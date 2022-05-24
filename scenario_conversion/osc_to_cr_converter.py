@@ -1,16 +1,22 @@
+import os.path
 from typing import List, Optional
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.scenario.scenario import Scenario as CrScenario
+from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration import xosc
 
 
 class OscToCrConverter:
     osc: xosc.Scenario
+    osd: CrScenario
     cr: Optional[CrScenario]
 
-    def __init__(self, scenario_file_name: str):
-        self.osc = xosc.ParseOpenScenario(scenario_file_name)
+    def __init__(self, openscenario_file_name: str, opendrive_file_name):
+        self.osc = xosc.ParseOpenScenario(openscenario_file_name)
+        opendrive_file = os.path.join(opendrive_file_name)
+        self.osd = opendrive_to_commonroad(opendrive_file)
+
         self.cr = None
         self._pre_run_checks()
 
@@ -20,6 +26,7 @@ class OscToCrConverter:
 
     def run(self):
         raise NotImplementedError
+        self.osd = opendrive_to_commonroad("asdf")
 
     def merge(self, common_road_files: List[str]):
         assert self.cr is not None, "Common road file not created, did you run run() beforehand?"

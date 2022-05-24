@@ -11,8 +11,9 @@ def command_line_interface() -> None:
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=["import", "merge"], help="Specify the ")
-    parser.add_argument("source_file", metavar="SOURCE_FILE_PATH")
+    parser.add_argument("openscenario_file", metavar="SOURCE_FILE_PATH")
     parser.add_argument("target_file", metavar="TARGET_FILE_PATH")
+    parser.add_argument("-d", "--opendrive", dest="opendrive_file", help="Optional Opendrive Map file")
     parser.add_argument("--cr-files", dest="cr_files", nargs="+", required=False, help="Common Road Files")
     parser.add_argument("--non-interactive", dest="interactive", action="store_false")
     args = parser.parse_args()
@@ -20,12 +21,16 @@ def command_line_interface() -> None:
     if args.mode == "merge" and len(args.cr_files) == 0:
         parser.error("With merge mode you need to specify Common Road Files with --cr-files to merge with")
 
-    if not os.path.exists(args.source_file):
-        error("Source filepath {} does not exist".format(args.source_file))
-    if not os.path.exists(args.target_file):
-        error("Target filepath {} does not exist".format(args.target_file))
+    if not os.path.exists(args.openscenario_file):
+        error("Source filepath {} does not exist".format(args.openscenario_file))
+        exit(0)
+    if args.opendrive_file is not None and not os.path.exists(args.opendrive_file):
+        error("Opendrive filepath {} does not exist".format(args.openscenario_file))
+        exit(0)
+    if os.path.exists(args.target_file):
+        error("Target filepath {} does exist".format(args.target_file))
 
-    converter = OscToCrConverter(args.source_file)
+    converter = OscToCrConverter(args.openscenario_file, args.opendrive_file)
 
     converter.run()
 
