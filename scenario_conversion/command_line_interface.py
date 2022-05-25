@@ -2,7 +2,7 @@ import argparse
 import os.path
 from logging import error
 
-from scenario_conversion.osc_to_cr_converter import OscToCrConverter
+from osc_to_cr_converter import OscToCrConverter
 
 
 def command_line_interface() -> None:

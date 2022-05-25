@@ -2,6 +2,19 @@
 
 Conversion from OpenSCENARIO to CommonRoad and vice versa.
 
+# Running with Docker
+You can use the provided `docker-compose.yml` file:
+
+Starting:
+```
+docker-compose up
+```
+Stopping
+```
+docker-compose down
+```
+and click on the prompted link to access a jupyter notebook Server with all dependencies installed
+
 ### OpenSCENARIO
 - Downloads: version v1.1.1 from this [link](https://www.asam.net/standards/detail/openscenario/)
 - [Environment Simulator Minimalistic (esmini)](https://github.com/esmini/esmini)
