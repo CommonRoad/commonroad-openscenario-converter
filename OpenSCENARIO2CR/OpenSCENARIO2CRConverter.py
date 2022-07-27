@@ -1,6 +1,7 @@
 import os.path
 import sys
 
+import requests
 import wget
 from typing import List, Optional
 from zipfile import ZipFile
@@ -9,13 +10,14 @@ from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.scenario.scenario import Scenario as CrScenario
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration import xosc
+from OpenSCENARIO2CR.EsminiWrapper import EsminiWrapper
 
 
 class OpenSCENARIO2CRConverter:
     osc: xosc.Scenario
     osd: CrScenario
     cr: Optional[CrScenario]
-    esmini_bin_path: Optional[str]
+    esmini_wrapper: Optional[EsminiWrapper]
 
     def __init__(self, openscenario_file_name: str, opendrive_file_name):
         self.osc = xosc.ParseOpenScenario(openscenario_file_name)
@@ -23,11 +25,27 @@ class OpenSCENARIO2CRConverter:
         self.osd = opendrive_to_commonroad(opendrive_file)
 
         self.cr = None
-        self.esmini_bin_path = None
-        self._load_esmini()
+        self.esmini_wrapper = None
+        self.esmini_wrapper = self._load_esmini_wrapper()
         self._pre_run_checks()
 
-    def _load_esmini(self):
+    @staticmethod
+    def _load_esmini_wrapper(version: Optional[str]=None) -> Optional[EsminiWrapper]:
+
+        if version is None:
+            r = requests.get('https://github.com/esmini/esmini/releases/latest')
+            latest_version = r.url.split("/")[-1]
+            version = latest_version
+        esmini_path = "esmini_{}".format(version)
+        bin_path = os.path.abspath(os.path.join(esmini_path, "bin"))
+        if not os.path.exists(bin_path):
+            OpenSCENARIO2CRConverter.download_esmini(version, esmini_path)
+        if os.path.exists(bin_path):
+            return EsminiWrapper(bin_path)
+        return None
+
+    @staticmethod
+    def download_esmini(version: str, directory_path: str):
         archive_name = ""
         if sys.platform.startswith("linux"):
             archive_name = "esmini-bin_ubuntu.zip"
@@ -38,20 +56,15 @@ class OpenSCENARIO2CRConverter:
         else:
             print("Unsupported platform: {}".format(sys.platform))
             quit()
-
-        if os.path.exists(os.path.abspath(os.path.join("esmini", "bin"))):
-            self.esmini_bin_path = os.path.abspath(os.path.join("esmini", "bin"))
-            return
-        wget.download("https://github.com/esmini/esmini/releases/download/v2.25.1/" + archive_name)
+        wget.download("/".join(["https://github.com/esmini/esmini/releases/download", version, archive_name]))
         with ZipFile(archive_name, "r") as zipObj:
             zipObj.extractall()
         os.remove(archive_name)
-        if os.path.exists(os.path.abspath(os.path.join("esmini", "bin"))):
-            self.esmini_bin_path = os.path.abspath(os.path.join("esmini", "bin"))
+        os.rename("esmini", directory_path)
 
     def _pre_run_checks(self):
-        if self.esmini_bin_path is None:
-            raise ValueError("Couldn't initialize esmini path to bin directory")
+        if self.esmini_wrapper is None:
+            raise ValueError("Esmini Wrapper was not created successfully")
         if not isinstance(self.osc, xosc.Scenario):
             raise ValueError("Can't parse non Scenario OpenScenario files")
 
