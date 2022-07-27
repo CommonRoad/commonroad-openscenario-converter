@@ -1,1 +1,0 @@
-from scenario_conversion.osc_to_cr_converter import OscToCrConverter

@@ -1,2 +1,2 @@
 commonroad-io==2022.1
-scenariogeneration==0.7.12
+scenariogeneration==0.9.0
