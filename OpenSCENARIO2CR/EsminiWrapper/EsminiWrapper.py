@@ -6,10 +6,9 @@ from sys import platform
 from typing import Optional, List, Dict, Tuple
 
 import imageio
-import imageio.v3 as iio
 
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperConfig import EsminiWrapperConfig, ScenarioEndDetectionConfig, \
-    WindowSize
+    WindowSize, LogConfig
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementState, EStoryBoardElementType, \
     StoryBoardElement
@@ -46,6 +45,7 @@ class EsminiWrapper:
             grace_time: Optional[float] = None,
             ignored_level: Optional[EStoryBoardElementType] = EStoryBoardElementType.ACT,
             random_seed: Optional[int] = None,
+            log_config: LogConfig = LogConfig(),
     ) -> Tuple[Optional[Dict[str, List[ScenarioObjectState]]], float]:
         if not self._initialize_scenario_engine(
                 EsminiWrapperConfig(
@@ -57,8 +57,9 @@ class EsminiWrapper:
                     ),
                     viewer_mode=0,
                     use_threading=False,
+                    log_config=log_config,
                     random_seed=random_seed,
-                    window_size=None
+                    window_size=None,
                 )
         ):
             return None, 0.0
@@ -81,6 +82,7 @@ class EsminiWrapper:
             ignored_level: Optional[EStoryBoardElementType] = EStoryBoardElementType.ACT,
             random_seed: Optional[int] = None,
             window_size: Optional[WindowSize] = None,
+            log_config: LogConfig = LogConfig(),
     ) -> None:
         if not self._initialize_scenario_engine(
                 EsminiWrapperConfig(
@@ -92,8 +94,9 @@ class EsminiWrapper:
                     ),
                     viewer_mode=1,
                     use_threading=True,
+                    log_config=log_config,
                     random_seed=random_seed,
-                    window_size=window_size
+                    window_size=window_size,
                 )
         ):
             return None
@@ -111,6 +114,7 @@ class EsminiWrapper:
             ignored_level: Optional[EStoryBoardElementType] = EStoryBoardElementType.ACT,
             random_seed: Optional[int] = None,
             window_size: Optional[WindowSize] = None,
+            log_config: LogConfig = LogConfig(),
     ) -> Optional[str]:
         if not self._initialize_scenario_engine(
                 EsminiWrapperConfig(
@@ -122,20 +126,22 @@ class EsminiWrapper:
                     ),
                     viewer_mode=7,
                     use_threading=False,
+                    log_config=log_config,
                     random_seed=random_seed,
-                    window_size=window_size
+                    window_size=window_size,
                 )
         ):
             return None
+        image_regex = re.compile(r"screen_shot_\d{5,}\.tga")
+        ignored_images = set([p for p in os.listdir(".") if image_regex.match(p) is not None])
         while not self._sim_finished():
             self._sim_step(1 / fps)
         self._close_scenario_engine()
-        images = sorted([p for p in os.listdir(".") if re.match(r"screen_shot_\d{5,}\.tga", p) is not None])
+        images = sorted([p for p in os.listdir(".") if image_regex.match(p) is not None and p not in ignored_images])
         with imageio.get_writer(gif_file_path, mode="I", fps=fps) as writer:
             for image in images:
-                writer.append_data(iio.imread(image))
+                writer.append_data(imageio.v3.imread(image))
                 os.remove(image)
-
 
     def _reset(self):
         self._end_detection = None
@@ -150,6 +156,15 @@ class EsminiWrapper:
     def _initialize_scenario_engine(self, config: EsminiWrapperConfig) -> bool:
         self._reset()
 
+        self._esmini_lib.SE_LogToConsole(config.log_config.to_console)
+        log_file = config.log_config.to_file
+        if isinstance(log_file, bool) and log_file is True:
+            self._esmini_lib.SE_SetLogFilePath("log.txt".encode("ASCII"))
+        elif isinstance(log_file, str):
+            self._esmini_lib.SE_SetLogFilePath(config.log_config.to_file.encode("ASCII"))
+        else:
+            self._esmini_lib.SE_SetLogFilePath("".encode("ASCII"))
+
         ret = self._esmini_lib.SE_Init(
             config.scenario_path.encode("ASCII"),
             int(0),
@@ -159,9 +174,9 @@ class EsminiWrapper:
         )
         if ret != 0:
             return False
+
         if config.random_seed is not None:
             self._esmini_lib.SE_SetSeed(config.random_seed)
-
         if config.window_size is not None:
             size = config.window_size
             self._esmini_lib.SE_SetWindowPosAndSize(size.x, size.y, size.width, size.height)

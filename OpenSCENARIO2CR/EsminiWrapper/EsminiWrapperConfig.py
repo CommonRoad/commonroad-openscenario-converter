@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Union
 
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementType
 
@@ -20,10 +20,17 @@ class WindowSize:
 
 
 @dataclass(frozen=True)
+class LogConfig:
+    to_console: bool = True
+    to_file: Union[str, bool] = False
+
+
+@dataclass(frozen=True)
 class EsminiWrapperConfig:
     scenario_path: str
     end_detection: ScenarioEndDetectionConfig
     viewer_mode: int
     use_threading: bool
+    log_config: LogConfig
     random_seed: Optional[int] = None
     window_size: Optional[WindowSize] = None
