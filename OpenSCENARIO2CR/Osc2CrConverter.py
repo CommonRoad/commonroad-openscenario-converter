@@ -19,7 +19,7 @@ from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperPro
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
 
 
-class OpenSCENARIO2CRConverter:
+class Osc2CrConverter:
     def __init__(self, delta_t: float, osc_file: str):
         self.esmini_wrapper = EsminiWrapperProvider().provide_esmini_wrapper()
         self.cr_dt = delta_t
@@ -110,7 +110,7 @@ class OpenSCENARIO2CRConverter:
     def ego_filter(self, new_filter: Optional[re.Pattern]):
         self._ego_filter = new_filter
 
-    def run(self) -> Optional[Tuple[Scenario, Optional[PlanningProblemSet]]]:
+    def run_conversion(self) -> Optional[Tuple[Scenario, Optional[PlanningProblemSet]]]:
         scenario: Scenario
         planning_problem_set: Optional[PlanningProblemSet] = None
         if self.odr_file is not None:
@@ -153,17 +153,19 @@ class OpenSCENARIO2CRConverter:
     def _is_object_name_used(self, object_name: str):
         return self.ego_filter is None or self.ego_filter.match(object_name) is None
 
-    def _osc_states_to_dynamic_obstacle(self, scenario: Scenario, states: List[ScenarioObjectState]) \
+    @staticmethod
+    def _osc_states_to_dynamic_obstacle(scenario: Scenario, states: List[ScenarioObjectState]) \
             -> Optional[DynamicObstacle]:
         if len(states) == 0:
             return None
         shape = Rectangle(states[0].length, states[0].width)
-        trajectory = Trajectory(0, [OpenSCENARIO2CRConverter._osc_state_to_cr(state, i) for i, state in enumerate(states)])
+        trajectory = Trajectory(0, [Osc2CrConverter._osc_state_to_cr(state, i) for i, state in enumerate(states)])
         prediction = TrajectoryPrediction(trajectory, shape)
 
         return DynamicObstacle(
             obstacle_id=scenario.generate_object_id(),
-            obstacle_type=OpenSCENARIO2CRConverter._osc_object_type_category_to_cr(states[0].objectType, states[0].objectCategory),
+            obstacle_type=Osc2CrConverter._osc_object_type_category_to_cr(states[0].objectType,
+                                                                          states[0].objectCategory),
             obstacle_shape=shape,
             initial_state=trajectory.state_list[0],
             prediction=prediction
@@ -226,11 +228,11 @@ class OpenSCENARIO2CRConverter:
 
 
 if __name__ == '__main__':
-    conv = OpenSCENARIO2CRConverter(
+    conv = Osc2CrConverter(
         "/home/michael/SoftwareProjects/CommonRoad/openscenario/scenarios/from_openScenario_standard/DoubleLaneChanger.xosc",
         # "/home/michael/SoftwareProjects/CommonRoad/openscenario/scenarios/from_openScenario_standard/Databases/AB_RQ31_Straight.xodr",
         "/home/michael/SoftwareProjects/CommonRoad/openscenario/scenarios/from_openScenario_standard/Databases/SampleDatabase.xodr",
         0.1,
         0.03,
     )
-    conv.run(view=True)
+    conv.run_conversion(view=True)

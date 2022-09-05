@@ -2,7 +2,7 @@ import argparse
 import os.path
 from logging import error
 
-from OpenSCENARIO2CRConverter import OpenSCENARIO2CRConverter
+from Osc2CrConverter import Osc2CrConverter
 
 
 def command_line_interface() -> None:
@@ -30,9 +30,9 @@ def command_line_interface() -> None:
     if os.path.exists(args.target_file):
         error("Target filepath {} does exist".format(args.target_file))
 
-    converter = OpenSCENARIO2CRConverter(args.openscenario_file, args.opendrive_file)
+    converter = Osc2CrConverter(args.openscenario_file, args.opendrive_file)
 
-    converter.run()
+    converter.run_conversion()
 
     if args.mode == "merge":
         converter.merge(args.cr_files)
