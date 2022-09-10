@@ -2,66 +2,145 @@ import ctypes as ct
 import logging
 import os.path
 import re
+import warnings
+from dataclasses import dataclass
+from os import path
 from sys import platform
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Union
 
 import imageio
+from commonroad.common.validity import is_real_number
 
-from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperConfig import EsminiWrapperConfig, ScenarioEndDetectionConfig, \
-    WindowSize, LogConfig
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementState, EStoryBoardElementType, \
     StoryBoardElement
 
 
+@dataclass(frozen=True)
+class WindowSize:
+    x: int = 0
+    y: int = 0
+    width: int = 640
+    height: int = 480
+
+
 class EsminiWrapper:
     _esmini_lib: ct.CDLL
 
-    _end_detection: Optional[ScenarioEndDetectionConfig]
     _all_sim_elements: Dict[StoryBoardElement, EStoryBoardElementState]
 
     _scenario_engine_initialized: bool
     _first_frame_run: bool
-    _sim_end_detection_grace_period_reached: bool
-    _max_time_reached: bool
 
     _callback_functor: ct.CFUNCTYPE
     _sim_end_detected_time: Optional[float]
 
     def __init__(self, esmini_bin_path: str):
-        self._esmini_lib = ct.CDLL(self._get_esmini_lib_path(esmini_bin_path))
-        self._esmini_lib.SE_StepDT.argtypes = [ct.c_float]
-        self._esmini_lib.SE_GetSimulationTime.restype = ct.c_float
-        self._esmini_lib.SE_SetSeed.argtypes = [ct.c_uint]
-        self._esmini_lib.SE_GetObjectName.restype = ct.c_char_p
+        self.esmini_lib = esmini_bin_path
+
+        self.max_time = 3600.0
+        self.grace_time = None
+        self.ignored_level = None
+        self.random_seed = None
+
+        self.log_to_console = True
+        self.log_to_file = False
 
         self._reset()
 
-    def simulate_scenario(
-            self,
-            scenario_path: str,
-            dt: float,
-            max_time: float = 3600.0,
-            grace_time: Optional[float] = None,
-            ignored_level: Optional[EStoryBoardElementType] = EStoryBoardElementType.ACT,
-            random_seed: Optional[int] = None,
-            log_config: LogConfig = LogConfig(),
-    ) -> Tuple[Optional[Dict[str, List[ScenarioObjectState]]], float]:
-        if not self._initialize_scenario_engine(
-                EsminiWrapperConfig(
-                    scenario_path=scenario_path,
-                    end_detection=ScenarioEndDetectionConfig(
-                        max_time=max_time,
-                        grace_time=grace_time,
-                        ignored_level=ignored_level
-                    ),
-                    viewer_mode=0,
-                    use_threading=False,
-                    log_config=log_config,
-                    random_seed=random_seed,
-                    window_size=None,
-                )
-        ):
+    @property
+    def esmini_lib(self) -> ct.CDLL:
+        return self._esmini_lib
+
+    @esmini_lib.setter
+    def esmini_lib(self, new_esmini_lib_bin_path: str):
+        if hasattr(self, "_esmini_lib"):
+            warnings.warn("<EsminiWrapper/esmini_lib> EsminiLib ctypes object is immutable")
+        elif path.exists(new_esmini_lib_bin_path):
+            if platform.startswith("linux"):
+                self._esmini_lib = ct.CDLL(path.join(new_esmini_lib_bin_path, "libesminiLib.so"))
+            elif platform.startswith("darwin"):
+                self._esmini_lib = ct.CDLL(path.join(new_esmini_lib_bin_path, "libesminiLib.dylib"))
+            elif platform.startswith("win32"):
+                self._esmini_lib = ct.CDLL(path.join(new_esmini_lib_bin_path, "esminiLib.dll"))
+            else:
+                warnings.warn(f"<EsminiWrapper/esmini_lib> Unsupported platform: {platform}")
+                return
+
+            self._esmini_lib.SE_StepDT.argtypes = [ct.c_float]
+            self._esmini_lib.SE_GetSimulationTime.restype = ct.c_float
+            self._esmini_lib.SE_SetSeed.argtypes = [ct.c_uint]
+            self._esmini_lib.SE_GetObjectName.restype = ct.c_char_p
+        else:
+            warnings.warn(f"<EsminiWrapper/esmini_lib> Path {new_esmini_lib_bin_path} does not exist")
+
+    @property
+    def max_time(self) -> float:
+        return self._max_time
+
+    @max_time.setter
+    def max_time(self, new_max_time: float):
+        if is_real_number(new_max_time):
+            self._max_time = new_max_time
+        else:
+            warnings.warn(f"<EsminiWrapper/max_time> Tried to set to non real number value {new_max_time}.")
+
+    @property
+    def grace_time(self) -> Optional[float]:
+        return self._grace_time
+
+    @grace_time.setter
+    def grace_time(self, new_grace_time: Optional[float]):
+        if new_grace_time is None or is_real_number(new_grace_time):
+            self._grace_time = new_grace_time
+        else:
+            warnings.warn(f"<EsminiWrapper/grace_time> Tried to set to non real number value {new_grace_time}.")
+
+    @property
+    def ignored_level(self) -> Optional[EStoryBoardElementType]:
+        return self._ignored_level
+
+    @ignored_level.setter
+    def ignored_level(self, new_ignored_level: Optional[EStoryBoardElementType]):
+        self._ignored_level = new_ignored_level
+
+    @property
+    def random_seed(self) -> Optional[int]:
+        return self._random_seed
+
+    @random_seed.setter
+    def random_seed(self, new_random_seed: int):
+        self._random_seed = new_random_seed
+
+    @property
+    def log_to_console(self) -> bool:
+        return self._log_to_console
+
+    @log_to_console.setter
+    def log_to_console(self, new_log_to_console: bool):
+        self._log_to_console = new_log_to_console
+
+    @property
+    def log_to_file(self) -> Optional[str]:
+        return self._log_to_file
+
+    @log_to_file.setter
+    def log_to_file(self, new_log_to_file: Union[bool, str]):
+        if isinstance(new_log_to_file, bool):
+            if new_log_to_file:
+                self._log_to_file = path.abspath("log.txt")
+                warnings.warn(f"Using default log file {self._log_to_file}")
+            else:
+                self._log_to_file = None
+        elif path.exists(path.dirname(new_log_to_file)):
+            self._log_to_file = path.abspath(new_log_to_file)
+        else:
+            warnings.warn(f"<EsminiWrapper/log_to_file> Logging dir {path.dirname(new_log_to_file)} does not exist.")
+
+    def simulate_scenario(self, scenario_path: str, dt: float) \
+            -> Tuple[Optional[Dict[str, List[ScenarioObjectState]]], float]:
+        if not self._initialize_scenario_engine(scenario_path, viewer_mode=0, use_threading=False):
+            warnings.warn("<EsminiWrapper/simulate_scenario> Failed to initialize scenario engine")
             return None, 0.0
         sim_time = 0.0
         all_states: Dict[int, List[ScenarioObjectState]]
@@ -74,64 +153,23 @@ class EsminiWrapper:
 
         return {self._get_scenario_object_name(object_id): states for object_id, states in all_states.items()}, sim_time
 
-    def view_scenario(
-            self,
-            scenario_path: str,
-            max_time: float = 3600.0,
-            grace_time: Optional[float] = None,
-            ignored_level: Optional[EStoryBoardElementType] = EStoryBoardElementType.ACT,
-            random_seed: Optional[int] = None,
-            window_size: Optional[WindowSize] = None,
-            log_config: LogConfig = LogConfig(),
-    ) -> None:
-        if not self._initialize_scenario_engine(
-                EsminiWrapperConfig(
-                    scenario_path=scenario_path,
-                    end_detection=ScenarioEndDetectionConfig(
-                        max_time=max_time,
-                        grace_time=grace_time,
-                        ignored_level=ignored_level
-                    ),
-                    viewer_mode=1,
-                    use_threading=True,
-                    log_config=log_config,
-                    random_seed=random_seed,
-                    window_size=window_size,
-                )
-        ):
-            return None
+    def view_scenario(self, scenario_path: str, window_size: Optional[WindowSize] = None):
+        if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
+            warnings.warn("<EsminiWrapper/view_scenario> Failed to initialize scenario engine")
+            return
+        if window_size is not None:
+            self._set_set_window_size(window_size)
         while not self._sim_finished():
             self._sim_step(None)
         self._close_scenario_engine()
 
-    def render_scenario_to_gif(
-            self,
-            scenario_path: str,
-            gif_file_path: str,
-            fps: int = 30,
-            max_time: float = 3600.0,
-            grace_time: Optional[float] = None,
-            ignored_level: Optional[EStoryBoardElementType] = EStoryBoardElementType.ACT,
-            random_seed: Optional[int] = None,
-            window_size: Optional[WindowSize] = None,
-            log_config: LogConfig = LogConfig(),
-    ) -> Optional[str]:
-        if not self._initialize_scenario_engine(
-                EsminiWrapperConfig(
-                    scenario_path=scenario_path,
-                    end_detection=ScenarioEndDetectionConfig(
-                        max_time=max_time,
-                        grace_time=grace_time,
-                        ignored_level=ignored_level
-                    ),
-                    viewer_mode=7,
-                    use_threading=False,
-                    log_config=log_config,
-                    random_seed=random_seed,
-                    window_size=window_size,
-                )
-        ):
+    def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
+                               window_size: Optional[WindowSize] = None) -> Optional[str]:
+        if not self._initialize_scenario_engine(scenario_path, viewer_mode=7, use_threading=False):
+            warnings.warn("<EsminiWrapper/render_scenario_to_gif> Failed to initialize scenario engine")
             return None
+        if window_size is not None:
+            self._set_set_window_size(window_size)
         image_regex = re.compile(r"screen_shot_\d{5,}\.tga")
         ignored_images = set([p for p in os.listdir(".") if image_regex.match(p) is not None])
         while not self._sim_finished():
@@ -144,66 +182,47 @@ class EsminiWrapper:
                 os.remove(image)
 
     def _reset(self):
-        self._end_detection = None
         self._all_sim_elements = {}
         self._scenario_engine_initialized = False
         self._first_frame_run = False
         self._callback_functor = None
         self._sim_end_detected_time = None
-        self._max_time_reached = False
-        self._sim_end_detection_grace_period_reached = False
 
-    def _initialize_scenario_engine(self, config: EsminiWrapperConfig) -> bool:
+    def _initialize_scenario_engine(self, scenario_path: str, viewer_mode: int, use_threading: bool) -> bool:
         self._reset()
 
-        self._esmini_lib.SE_LogToConsole(config.log_config.to_console)
-        log_file = config.log_config.to_file
-        if isinstance(log_file, bool) and log_file is True:
-            self._esmini_lib.SE_SetLogFilePath("log.txt".encode("ASCII"))
-        elif isinstance(log_file, str):
-            self._esmini_lib.SE_SetLogFilePath(config.log_config.to_file.encode("ASCII"))
-        else:
+        self._esmini_lib.SE_LogToConsole(self.log_to_console)
+        if self.log_to_file is None:
             self._esmini_lib.SE_SetLogFilePath("".encode("ASCII"))
+        else:
+            self._esmini_lib.SE_SetLogFilePath(self.log_to_file.encode("ASCII"))
 
         ret = self._esmini_lib.SE_Init(
-            config.scenario_path.encode("ASCII"),
+            scenario_path.encode("ASCII"),
             int(0),
-            int(config.viewer_mode),
-            int(config.use_threading),
+            int(viewer_mode),
+            int(use_threading),
             int(0)
         )
         if ret != 0:
             return False
 
-        if config.random_seed is not None:
-            self._esmini_lib.SE_SetSeed(config.random_seed)
-        if config.window_size is not None:
-            size = config.window_size
-            self._esmini_lib.SE_SetWindowPosAndSize(size.x, size.y, size.width, size.height)
+        if self.random_seed is not None:
+            self._esmini_lib.SE_SetSeed(self.random_seed)
 
         self._callback_functor = ct.CFUNCTYPE(None, ct.c_char_p, ct.c_int, ct.c_int)(self.__state_change_callback)
         self._esmini_lib.SE_RegisterStoryBoardElementStateChangeCallback(self._callback_functor)
         self._scenario_engine_initialized = True
-        self._end_detection = config.end_detection
         return True
+
+    def _set_set_window_size(self, window_size: WindowSize):
+        self._esmini_lib.SE_SetWindowPosAndSize(window_size.x, window_size.y, window_size.width, window_size.height)
 
     def _close_scenario_engine(self):
         if not self._scenario_engine_initialized:
             raise RuntimeError("Scenario Engine not initialized")
         self._esmini_lib.SE_Close()
         self._scenario_engine_initialized = False
-
-    @staticmethod
-    def _get_esmini_lib_path(esmini_bin_path: str):
-        if platform.startswith("linux"):
-            return os.path.join(esmini_bin_path, "libesminiLib.so")
-        elif platform.startswith("darwin"):
-            return os.path.join(esmini_bin_path, "libesminiLib.dylib")
-        elif platform.startswith("win32"):
-            return os.path.join(esmini_bin_path, "esminiLib.dll")
-        else:
-            print("Unsupported platform: {}".format(platform))
-            quit()
 
     def __state_change_callback(self, name: bytes, element_type: int, state: int):
         self._all_sim_elements[StoryBoardElement(name, EStoryBoardElementType(element_type))] = EStoryBoardElementState(
@@ -225,18 +244,18 @@ class EsminiWrapper:
         if not self._first_frame_run:
             return False
         now = self._esmini_lib.SE_GetSimulationTime()
-        if now >= self._end_detection.max_time:
-            print("{:.3f}: Max Execution tim reached ".format(now))
+        if now >= self.max_time:
+            self._log("{:.3f}: Max Execution tim reached ".format(now))
             return True
         if self._all_sim_elements_finished():
-            if self._end_detection.grace_time is None:
-                print("{:.3f}: End detected now".format(now))
+            if self.grace_time is None:
+                self._log("{:.3f}: End detected now".format(now))
                 return True
 
             if self._sim_end_detected_time is None:
                 self._sim_end_detected_time = now
-            if now >= self._sim_end_detected_time + self._end_detection.grace_time:
-                print("{:.3f}: End detected {:.3f}s ago".format(now, self._end_detection.grace_time))
+            if now >= self._sim_end_detected_time + self.grace_time:
+                self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_time))
                 return True
         else:
             self._sim_end_detected_time = None
@@ -245,7 +264,7 @@ class EsminiWrapper:
 
     def _all_sim_elements_finished(self) -> bool:
         all_relevant: List[EStoryBoardElementState]
-        lvl = self._end_detection.ignored_level
+        lvl = self.ignored_level
         if lvl is not None:
             all_relevant = [v for k, v in self._all_sim_elements.items() if k.element_type.value > lvl.value]
         else:
@@ -269,3 +288,7 @@ class EsminiWrapper:
     def _get_scenario_object_name(self, object_id: int) -> Optional[str]:
         raw_name: bytes = self._esmini_lib.SE_GetObjectName(object_id)
         return raw_name.decode("utf-8")
+
+    def _log(self, text: str):
+        if self.log_to_console:
+            print(text)

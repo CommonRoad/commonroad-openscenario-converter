@@ -3,7 +3,7 @@ import re
 import warnings
 import xml.etree.ElementTree as ElementTree
 from os import path
-from typing import Optional, List, Dict, Tuple
+from typing import Optional, List, Dict, Tuple, Union
 
 import numpy as np
 from commonroad.geometry.shape import Rectangle
@@ -17,17 +17,44 @@ from crdesigner.map_conversion.map_conversion_interface import opendrive_to_comm
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
+from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementType
 
 
 class Osc2CrConverter:
-    def __init__(self, delta_t: float, osc_file: str):
+    def __init__(
+            self,
+            delta_t: float,
+            osc_file: str,
+            odr_file: Optional[str] = None,
+            esmini_dt: Optional[float] = None,
+            ego_filter: Optional[re.Pattern] = None,
+            max_time: float = None,
+            grace_time: Optional[float] = None,
+            ignored_level: Optional[EStoryBoardElementType] = None,
+            random_seed: Optional[int] = None,
+            log_to_console: bool = None,
+            log_to_file: Union[str, bool] = None
+    ):
         self.esmini_wrapper = EsminiWrapperProvider().provide_esmini_wrapper()
         self.cr_dt = delta_t
         self.osc_file = osc_file
 
-        self.odr_file = None
-        self.esmini_dt = None
-        self.ego_filter = None
+        self.odr_file = odr_file
+        self.esmini_dt = esmini_dt
+        self.ego_filter = ego_filter
+
+        if max_time is not None:
+            self.esmini_wrapper.max_time = max_time
+        if grace_time is not None:
+            self.esmini_wrapper.grace_time = grace_time
+        if ignored_level is not None:
+            self.esmini_wrapper.ignored_level = ignored_level
+        if random_seed is not None:
+            self.esmini_wrapper.random_seed = random_seed
+        if log_to_console is not None:
+            self.esmini_wrapper.log_to_console = log_to_console
+        if log_to_file is not None:
+            self.esmini_wrapper.log_to_file = log_to_file
 
     @property
     def osc_file(self) -> str:
@@ -93,7 +120,10 @@ class Osc2CrConverter:
 
     @property
     def esmini_wrapper(self) -> EsminiWrapper:
-        return self._esmini_wrapper
+        if hasattr(self, "_esmini_wrapper"):
+            return self._esmini_wrapper
+        else:
+            return EsminiWrapperProvider().provide_esmini_wrapper()
 
     @esmini_wrapper.setter
     def esmini_wrapper(self, new_esmini_wrapper: EsminiWrapper):
@@ -110,7 +140,55 @@ class Osc2CrConverter:
     def ego_filter(self, new_filter: Optional[re.Pattern]):
         self._ego_filter = new_filter
 
-    def run_conversion(self) -> Optional[Tuple[Scenario, Optional[PlanningProblemSet]]]:
+    @property
+    def max_time(self) -> float:
+        return self.esmini_wrapper.max_time
+
+    @max_time.setter
+    def max_time(self, new_max_time: float):
+        self.esmini_wrapper.max_time = new_max_time
+
+    @property
+    def grace_time(self) -> Optional[float]:
+        return self.esmini_wrapper.grace_time
+
+    @grace_time.setter
+    def grace_time(self, new_grace_time: Optional[float]):
+        self.esmini_wrapper.grace_time = new_grace_time
+
+    @property
+    def ignored_level(self) -> Optional[EStoryBoardElementType]:
+        return self.esmini_wrapper.ignored_level
+
+    @ignored_level.setter
+    def ignored_level(self, new_ignored_level: Optional[EStoryBoardElementType]):
+        self.esmini_wrapper.ignored_level = new_ignored_level
+
+    @property
+    def random_seed(self) -> Optional[int]:
+        return self.esmini_wrapper.random_seed
+
+    @random_seed.setter
+    def random_seed(self, new_random_seed: int):
+        self.esmini_wrapper.random_seed = new_random_seed
+
+    @property
+    def log_to_console(self) -> bool:
+        return self.esmini_wrapper.log_to_console
+
+    @log_to_console.setter
+    def log_to_console(self, new_log_to_console: bool):
+        self.esmini_wrapper.log_to_console = new_log_to_console
+
+    @property
+    def log_to_file(self) -> Optional[str]:
+        return self.esmini_wrapper.log_to_file
+
+    @log_to_file.setter
+    def log_to_file(self, new_log_to_file: Union[None, bool, str]):
+        self.esmini_wrapper.log_to_file = new_log_to_file
+
+    def run_conversion(self) -> Tuple[Optional[Scenario], Optional[PlanningProblemSet]]:
         scenario: Scenario
         planning_problem_set: Optional[PlanningProblemSet] = None
         if self.odr_file is not None:
@@ -118,11 +196,7 @@ class Osc2CrConverter:
             scenario.dt = self.cr_dt
         else:
             scenario = Scenario(self.cr_dt)
-        states, sim_time = self.esmini_wrapper.simulate_scenario(
-            scenario_path=self.osc_file,
-            dt=self.esmini_dt,
-            grace_time=1.0,
-        )
+        states, sim_time = self.esmini_wrapper.simulate_scenario(self.osc_file, self.esmini_dt)
         if states is not None:
             final_timestamps = [step * self.cr_dt for step in range(math.ceil(sim_time / self.cr_dt) + 1)]
             interpolated_states = {
@@ -148,7 +222,7 @@ class Osc2CrConverter:
                 planning_problem_set = list(planning_problem_sets.values())[0]
 
             return scenario, planning_problem_set
-        return None
+        return None, None
 
     def _is_object_name_used(self, object_name: str):
         return self.ego_filter is None or self.ego_filter.match(object_name) is None
@@ -174,6 +248,7 @@ class Osc2CrConverter:
     @staticmethod
     def _osc_state_to_cr(state: ScenarioObjectState, time_step: int) -> State:
         # Todo add 3rd dimension and roll/pitch angles
+        # Todo acceleration
         c, s = np.cos(state.h), np.sin(state.h)
         rotation_matrix = np.array(((c, -s), (s, c)))
         return State(
@@ -200,7 +275,7 @@ class Osc2CrConverter:
                 7: ObstacleType.BICYCLE,  # BICYCLE
                 8: ObstacleType.TRAIN,  # TRAIN
                 9: ObstacleType.TRAIN,  # TRAM
-            }[object_category]
+            }.get(object_category, ObstacleType.UNKNOWN)
         elif object_type == 2:  # PEDESTRIAN
             return ObstacleType.PEDESTRIAN  # PEDESTRIAN, WHEELCHAIR, ANIMAL
         elif object_type == 3:  # MISC_OBJECT
@@ -222,17 +297,6 @@ class Osc2CrConverter:
                 14: ObstacleType.BUILDING,  # SOUNDBARRIER
                 15: ObstacleType.UNKNOWN,  # WIND
                 16: ObstacleType.UNKNOWN,  # ROADMARK
-            }[object_category]
+            }.get(object_category, ObstacleType.UNKNOWN)
         elif object_type == 4:  # N_OBJECT_TYPES
             return ObstacleType.UNKNOWN
-
-
-if __name__ == '__main__':
-    conv = Osc2CrConverter(
-        "/home/michael/SoftwareProjects/CommonRoad/openscenario/scenarios/from_openScenario_standard/DoubleLaneChanger.xosc",
-        # "/home/michael/SoftwareProjects/CommonRoad/openscenario/scenarios/from_openScenario_standard/Databases/AB_RQ31_Straight.xodr",
-        "/home/michael/SoftwareProjects/CommonRoad/openscenario/scenarios/from_openScenario_standard/Databases/SampleDatabase.xodr",
-        0.1,
-        0.03,
-    )
-    conv.run_conversion(view=True)

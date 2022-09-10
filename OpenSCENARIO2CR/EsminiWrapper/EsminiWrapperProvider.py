@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import warnings
 from io import BytesIO
 from os import path
 from typing import Optional
@@ -13,10 +14,9 @@ from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper
 
 class EsminiWrapperProvider:
 
-    def __init__(self, storage_prefix: Optional[str] = None):
-        self.storage_prefix = path.abspath(path.dirname(__file__))
-        if storage_prefix is not None:
-            self.storage_prefix = storage_prefix
+    def __init__(self, storage_prefix: Optional[str] = None, preferred_version: Optional[str] = None):
+        self.storage_prefix = path.abspath(path.dirname(__file__)) if storage_prefix is None else storage_prefix
+        self.preferred_version = preferred_version
 
     @property
     def storage_prefix(self) -> str:
@@ -26,13 +26,30 @@ class EsminiWrapperProvider:
     def storage_prefix(self, new_path_prefix: str):
         if path.exists(new_path_prefix):
             self._path_prefix = new_path_prefix
+        else:
+            warnings.warn(f"<EsminiWrapperProvider/storage_prefix> Path not found {new_path_prefix}")
 
-    def provide_esmini_wrapper(self, version: Optional[str] = None) -> Optional[EsminiWrapper]:
-        if version is not None and False:
-            if self._try_loading_version(version):
-                return EsminiWrapper(self._bin_path(self._esmini_path(version)))
+    @property
+    def preferred_version(self) -> Optional[str]:
+        return self._preferred_version
+
+    @preferred_version.setter
+    def preferred_version(self, new_preferred_version: Optional[str]):
+        r = re.compile(r"v\d+\.\d+\.\d+")
+        if new_preferred_version is None:
+            self._preferred_version = None
+        elif r.fullmatch(new_preferred_version) is not None:
+            self._preferred_version = new_preferred_version
+        else:
+            warnings.warn(
+                f"<EsminiWrapperProvider/preferred_version> Newversion  {new_preferred_version} not match {r.pattern}")
+
+    def provide_esmini_wrapper(self) -> Optional[EsminiWrapper]:
+        if self.preferred_version is not None and False:
+            if self._try_loading_version(self.preferred_version):
+                return EsminiWrapper(self._bin_path(self._esmini_path(self.preferred_version)))
             else:
-                print("Failed loading specified esmini version: {}".format(version))
+                print("Failed loading specified esmini version: {}".format(self.preferred_version))
                 quit()
 
         try:
@@ -62,24 +79,27 @@ class EsminiWrapperProvider:
     def _esmini_path(version: str) -> str:
         return "esmini_{}".format(version)
 
+    def _abs_path(self, rel_path: str) -> str:
+        return path.abspath(path.join(self.storage_prefix, rel_path))
+
     def _bin_path(self, esmini_path: str) -> str:
-        return path.abspath(path.join(self.storage_prefix, esmini_path, "esmini", "bin"))
+        return self._abs_path(path.join(esmini_path, "esmini", "bin"))
 
     def _download_esmini(self, version: str) -> bool:
         archive_name = ""
         if sys.platform.startswith("linux"):
-            archive_name = "EsminiWrapper-bin_ubuntu.zip"
+            archive_name = "esmini-bin_ubuntu.zip"
         elif sys.platform.startswith("darwin"):
-            archive_name = "EsminiWrapper-bin_mac_catalina.zip"
+            archive_name = "esmini-bin_mac_catalina.zip"
         elif sys.platform.startswith("win32"):
-            archive_name = "EsminiWrapper-bin_win_x64.zip"
+            archive_name = "esmini-bin_win_x64.zip"
         else:
             print("Unsupported platform: {}".format(sys.platform))
             quit()
         try:
             r = requests.get("/".join(["https://github.com/esmini/esmini/releases/download", version, archive_name]))
             with ZipFile(BytesIO(r.content), "r") as zipObj:
-                zipObj.extractall(self._esmini_path(version))
+                zipObj.extractall(self._abs_path(self._esmini_path(version)))
         except requests.exceptions.ConnectionError:
             return False
         return True
