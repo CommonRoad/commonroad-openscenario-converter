@@ -1,5 +1,5 @@
 import ctypes as ct
-from typing import List
+from typing import List, Optional
 
 
 class ScenarioObjectState(ct.Structure):
@@ -30,6 +30,17 @@ class ScenarioObjectState(ct.Structure):
         ("objectType", ct.c_int),
         ("objectCategory", ct.c_int),
     ]
+    acceleration: Optional[float]
+    h_rate: Optional[float]
+    p_rate: Optional[float]
+    r_rate: Optional[float]
+
+    def __int__(self, *args, **kwargs):
+        ct.Structure.__init__(self, *args, **kwargs)
+        self.acceleration = None
+        self.h_rate = None
+        self.p_rate = None
+        self.r_rate = None
 
     @staticmethod
     def build_interpolated(states: List["ScenarioObjectState"], timestamp: float) -> "ScenarioObjectState":
@@ -38,6 +49,10 @@ class ScenarioObjectState(ct.Structure):
         interpolated = ScenarioObjectState()
         if len(states) == 1:
             ct.pointer(interpolated)[0] = states[0]
+            interpolated.acceleration = 0
+            interpolated.h_rate = 0
+            interpolated.p_rate = 0
+            interpolated.r_rate = 0
             return interpolated
         closest_states = sorted(states, key=lambda state: abs(timestamp - state.timestamp))[:2]
         dt1 = closest_states[1].timestamp - closest_states[0].timestamp
@@ -58,6 +73,11 @@ class ScenarioObjectState(ct.Structure):
 
         def closest(field_name: str):
             setattr(interpolated, field_name, getattr(closest_states[0], field_name))
+
+        def differentiate(source_field_name: str, target_field_name: str):
+            val0, val1, = (getattr(closest_states[0], source_field_name), getattr(closest_states[1], source_field_name))
+            gradient = (val1 - val0) / dt1
+            setattr(interpolated, target_field_name, gradient)
 
         equal("id")
         equal("model_id")
@@ -84,5 +104,10 @@ class ScenarioObjectState(ct.Structure):
         interpolate("height")
         equal("objectType")
         equal("objectCategory")
+
+        differentiate("speed", "acceleration")
+        differentiate("h", "h_rate")
+        differentiate("p", "p_rate")
+        differentiate("r", "r_rate")
 
         return interpolated
