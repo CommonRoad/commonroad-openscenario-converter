@@ -293,12 +293,12 @@ class Osc2CrConverter:
 
         states, sim_time = self.esmini_wrapper.simulate_scenario(self.osc_file, self.esmini_dt)
         if states is not None:
-            obstacles = self._create_obstacles_from_state_lists(scenario, states, sim_time)
-            ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(obstacles.keys()))
+            ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(states.keys()))
+            obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, states, sim_time)
 
             scenario.add_objects([
                 o for o_name, o in obstacles.items()
-                if o is not None and (not self.keep_ego_vehicle_obstacle or ego_vehicle != o_name)
+                if o is not None and (self.keep_ego_vehicle_obstacle or ego_vehicle != o_name)
             ])
 
             return (
@@ -338,21 +338,27 @@ class Osc2CrConverter:
     def _create_obstacles_from_state_lists(
             self,
             scenario: Scenario,
+            ego_vehicle: str,
             states: Dict[str, List[ScenarioObjectState]],
-            sim_time: float
-    ) -> Dict[str, DynamicObstacle]:
+            sim_time: float,
+    ) -> Dict[str, Optional[DynamicObstacle]]:
         final_timestamps = [step * self.cr_dt for step in range(math.ceil(sim_time / self.cr_dt) + 1)]
         interpolated_states = {
             object_name: [ScenarioObjectState.build_interpolated(state_list, t) for t in final_timestamps]
             for object_name, state_list in states.items()
         }
-        return {
-            object_name: self._osc_states_to_dynamic_obstacle(
+
+        def create_obstacle(obstacle_name: str) -> Optional[DynamicObstacle]:
+            return self._osc_states_to_dynamic_obstacle(
                 obstacle_id=scenario.generate_object_id(),
-                states=state_list
+                states=interpolated_states[obstacle_name]
             )
-            for object_name, state_list in interpolated_states.items()
-        }
+
+        obstacles = {ego_vehicle: create_obstacle(ego_vehicle)}
+        for object_name in interpolated_states.keys():
+            if object_name != ego_vehicle:
+                obstacles[object_name] = create_obstacle(object_name)
+        return obstacles
 
     @staticmethod
     def _osc_states_to_dynamic_obstacle(obstacle_id: int, states: List[ScenarioObjectState]) \
