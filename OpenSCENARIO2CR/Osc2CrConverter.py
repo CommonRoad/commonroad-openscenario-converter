@@ -6,14 +6,18 @@ from os import path
 from typing import Optional, List, Dict, Tuple, Union
 
 import numpy as np
+from commonroad.common.util import Interval, AngleInterval
 from commonroad.geometry.shape import Rectangle
-from commonroad.planning.planning_problem import PlanningProblemSet
+from commonroad.planning.goal import GoalRegion
+from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import State, Trajectory
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 
+from OpenSCENARIO2CR.AbsRel import AbsRel
+from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
@@ -25,9 +29,22 @@ class Osc2CrConverter:
             self,
             delta_t: float,
             osc_file: str,
+
+            goal_state_time_step: AbsRel[Interval],
+            goal_state_position_length: float,
+            goal_state_position_width: float,
+
             odr_file: Optional[str] = None,
+            use_implicit_odr_file: Optional[bool] = None,
             esmini_dt: Optional[float] = None,
+
+            goal_state_position_use_ego_rotation: Optional[bool] = None,
+            goal_state_velocity: Optional[AbsRel[Interval]] = None,
+            goal_state_orientation: Optional[AbsRel[AngleInterval]] = None,
+
+            keep_ego_vehicle: Optional[bool] = None,
             ego_filter: Optional[re.Pattern] = None,
+
             max_time: float = None,
             grace_time: Optional[float] = None,
             ignored_level: Optional[EStoryBoardElementType] = None,
@@ -39,8 +56,18 @@ class Osc2CrConverter:
         self.cr_dt = delta_t
         self.osc_file = osc_file
 
+        self.goal_state_time_step = goal_state_time_step
+        self.goal_state_position_length = goal_state_position_length
+        self.goal_state_position_width = goal_state_position_width
+
+        self.goal_state_position_use_ego_rotation = goal_state_position_use_ego_rotation
+        self.goal_state_velocity = goal_state_velocity
+        self.goal_state_orientation = goal_state_orientation
+
         self.odr_file = odr_file
+        self.use_implicit_odr_file = use_implicit_odr_file
         self.esmini_dt = esmini_dt
+        self.keep_ego_vehicle_obstacle = bool(keep_ego_vehicle)
         self.ego_filter = ego_filter
 
         if max_time is not None:
@@ -65,17 +92,18 @@ class Osc2CrConverter:
     def osc_file(self, new_file_name: str):
         if path.exists(new_file_name):
             self._osc_file = path.abspath(new_file_name)
-            odr_file_element = ElementTree.parse(self.osc_file).getroot().find("RoadNetwork/logicFile")
+            odr_file_element = ElementTree.parse(self.osc_file).getroot().find("RoadNetwork/LogicFile[@filepath]")
             if odr_file_element is not None:
-                if path.exists(odr_file_element.text):
-                    self._odr_in_osc_file = path.abspath(odr_file_element.text)
+                filepath = path.join(path.dirname(new_file_name), odr_file_element.attrib["filepath"])
+                if path.exists(filepath):
+                    self._odr_in_osc_file = path.abspath(filepath)
                 else:
-                    warnings.warn(f"<OpenSCENARIO2CRConverter/osc_file> OpenDRIVE file {odr_file_element.text}, " +
-                                  f"specified inside OpenSCENARIO file {new_file_name} does not exist")
+                    warnings.warn(f"<OpenSCENARIO2CRConverter/osc_file> OpenDRIVE file \"{filepath}\", " +
+                                  f"specified inside OpenSCENARIO file \"{new_file_name}\" does not exist")
             else:
                 self._odr_in_osc_file = None
         else:
-            warnings.warn(f"<OpenSCENARIO2CRConverter/osc_file> OpenSCENARIO file {new_file_name} does not exist")
+            warnings.warn(f"<OpenSCENARIO2CRConverter/osc_file> OpenSCENARIO file \"{new_file_name}\" does not exist")
 
     @property
     def odr_in_osc_file(self) -> Optional[str]:
@@ -85,10 +113,12 @@ class Osc2CrConverter:
     @property
     def odr_file(self) -> Optional[str]:
         """ The file name of the OpenDRIVE file. If not specified the program will look"""
-        if hasattr(self, "_odr_file"):
+        if self._odr_file is not None:
             return self._odr_file
-        else:
+        elif self.use_implicit_odr_file:
             return self._odr_in_osc_file
+        else:
+            return None
 
     @odr_file.setter
     def odr_file(self, new_file_name: Optional[str]):
@@ -96,6 +126,17 @@ class Osc2CrConverter:
             self._odr_file = new_file_name
         else:
             warnings.warn(f"<OpenSCENARIO2CRConverter/osc_file> OpenDRIVE file {new_file_name} does not exist")
+
+    @property
+    def use_implicit_odr_file(self) -> bool:
+        return self._use_implicit_odr_file
+
+    @use_implicit_odr_file.setter
+    def use_implicit_odr_file(self, new_no_implicit_odr_file: Optional[bool]):
+        if new_no_implicit_odr_file is None:
+            self._use_implicit_odr_file = True
+        else:
+            self._use_implicit_odr_file = new_no_implicit_odr_file
 
     @property
     def cr_dt(self) -> float:
@@ -131,6 +172,65 @@ class Osc2CrConverter:
             warnings.warn("<OpenSCENARIO2CRConverter/esmini_wrapper>: New EsminiWrapper is None.")
         else:
             self._esmini_wrapper = new_esmini_wrapper
+
+    @property
+    def goal_state_time_step(self) -> AbsRel[Interval]:
+        return self._goal_state_timestamp
+
+    @goal_state_time_step.setter
+    def goal_state_time_step(self, new_goal_state_timestamp: AbsRel[Interval]):
+        self._goal_state_timestamp = new_goal_state_timestamp
+
+    @property
+    def goal_state_position_length(self) -> float:
+        return self._goal_state_position_length
+
+    @goal_state_position_length.setter
+    def goal_state_position_length(self, new_goal_state_position_length: float):
+        self._goal_state_position_length = new_goal_state_position_length
+
+    @property
+    def goal_state_position_width(self) -> float:
+        return self._goal_state_position_width
+
+    @goal_state_position_width.setter
+    def goal_state_position_width(self, new_goal_state_position_width: float):
+        self._goal_state_position_width = new_goal_state_position_width
+
+    @property
+    def goal_state_position_use_ego_rotation(self) -> bool:
+        return self._goal_state_position_use_ego_rotation
+
+    @goal_state_position_use_ego_rotation.setter
+    def goal_state_position_use_ego_rotation(self, new_goal_state_position_use_ego_rotation: Optional[bool]):
+        if new_goal_state_position_use_ego_rotation is None:
+            self._goal_state_position_use_ego_rotation = True
+        else:
+            self._goal_state_position_use_ego_rotation = new_goal_state_position_use_ego_rotation
+
+    @property
+    def goal_state_velocity(self) -> Optional[AbsRel[Interval]]:
+        return self._goal_state_velocity
+
+    @goal_state_velocity.setter
+    def goal_state_velocity(self, new_velocity: Optional[AbsRel[Interval]]):
+        self._goal_state_velocity = new_velocity
+
+    @property
+    def goal_state_orientation(self) -> Optional[AbsRel[AngleInterval]]:
+        return self._goal_state_orientation
+
+    @goal_state_orientation.setter
+    def goal_state_orientation(self, new_goal_state_orientation: Optional[AbsRel[AngleInterval]]):
+        self._goal_state_orientation = new_goal_state_orientation
+
+    @property
+    def keep_ego_vehicle_obstacle(self) -> bool:
+        return self._ego_filter is not None and self._remove_ego_vehicle
+
+    @keep_ego_vehicle_obstacle.setter
+    def keep_ego_vehicle_obstacle(self, new_remove_ego_vehicle: float):
+        self._remove_ego_vehicle = new_remove_ego_vehicle
 
     @property
     def ego_filter(self) -> Optional[re.Pattern]:
@@ -188,47 +288,74 @@ class Osc2CrConverter:
     def log_to_file(self, new_log_to_file: Union[None, bool, str]):
         self.esmini_wrapper.log_to_file = new_log_to_file
 
-    def run_conversion(self) -> Tuple[Optional[Scenario], Optional[PlanningProblemSet]]:
-        scenario: Scenario
-        planning_problem_set: Optional[PlanningProblemSet] = None
+    def run_conversion(self) -> Tuple[Optional[Scenario], Optional[PlanningProblemSet], Optional[ConversionStatistics]]:
+        scenario: Scenario = self._create_scenario_from_opendrive()
+
+        states, sim_time = self.esmini_wrapper.simulate_scenario(self.osc_file, self.esmini_dt)
+        if states is not None:
+            obstacles = self._create_obstacles_from_state_lists(scenario, states, sim_time)
+            ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(obstacles.keys()))
+
+            scenario.add_objects([
+                o for o_name, o in obstacles.items()
+                if o is not None and (not self.keep_ego_vehicle_obstacle or ego_vehicle != o_name)
+            ])
+
+            return (
+                scenario,
+                self._create_planning_problem_set(obstacles[ego_vehicle]),
+                ConversionStatistics(
+                    source_file=self.osc_file,
+                    database_file=self.odr_file,
+                    failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
+                    ego_vehicle=ego_vehicle,
+                    ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
+                    ego_obstacle_removed=self.keep_ego_vehicle_obstacle,
+                )
+            )
+        return None, None, None
+
+    def _create_scenario_from_opendrive(self) -> Scenario:
+
         if self.odr_file is not None:
             scenario = opendrive_to_commonroad(self.odr_file)
             scenario.dt = self.cr_dt
+            return scenario
         else:
-            scenario = Scenario(self.cr_dt)
-        states, sim_time = self.esmini_wrapper.simulate_scenario(self.osc_file, self.esmini_dt)
-        if states is not None:
-            final_timestamps = [step * self.cr_dt for step in range(math.ceil(sim_time / self.cr_dt) + 1)]
-            interpolated_states = {
-                object_name: [ScenarioObjectState.build_interpolated(state_list, t) for t in final_timestamps]
-                for object_name, state_list in states.items()
-            }
-            obstacles: List[DynamicObstacle] = []
-            planning_problem_sets: Dict[str, PlanningProblemSet] = {}
-            for object_name, state_list in interpolated_states.items():
-                if self._is_object_name_used(object_name):
-                    obstacle = self._osc_states_to_dynamic_obstacle(scenario, state_list)
-                    if obstacle is not None:
-                        obstacles.append(obstacle)
-                else:
-                    # Todo Do something here
-                    planning_problem_sets[object_name] = PlanningProblemSet()
-            scenario.add_objects(obstacles)
-
-            if self.ego_filter is None:
-                assert len(planning_problem_sets) == 0
-            else:
-                assert len(planning_problem_sets) == 1
-                planning_problem_set = list(planning_problem_sets.values())[0]
-
-            return scenario, planning_problem_set
-        return None, None
+            return Scenario(self.cr_dt)
 
     def _is_object_name_used(self, object_name: str):
         return self.ego_filter is None or self.ego_filter.match(object_name) is None
 
+    def _find_ego_vehicle(self, vehicle_name_list: List[str]) -> Tuple[str, bool]:
+        if self.ego_filter is not None:
+            found_ego_vehicles = [name for name in vehicle_name_list if self.ego_filter.match(name) is not None]
+            if len(found_ego_vehicles) > 0:
+                return sorted(found_ego_vehicles)[0], True
+
+        return sorted(vehicle_name_list)[0], False
+
+    def _create_obstacles_from_state_lists(
+            self,
+            scenario: Scenario,
+            states: Dict[str, List[ScenarioObjectState]],
+            sim_time: float
+    ) -> Dict[str, DynamicObstacle]:
+        final_timestamps = [step * self.cr_dt for step in range(math.ceil(sim_time / self.cr_dt) + 1)]
+        interpolated_states = {
+            object_name: [ScenarioObjectState.build_interpolated(state_list, t) for t in final_timestamps]
+            for object_name, state_list in states.items()
+        }
+        return {
+            object_name: self._osc_states_to_dynamic_obstacle(
+                obstacle_id=scenario.generate_object_id(),
+                states=state_list
+            )
+            for object_name, state_list in interpolated_states.items()
+        }
+
     @staticmethod
-    def _osc_states_to_dynamic_obstacle(scenario: Scenario, states: List[ScenarioObjectState]) \
+    def _osc_states_to_dynamic_obstacle(obstacle_id: int, states: List[ScenarioObjectState]) \
             -> Optional[DynamicObstacle]:
         if len(states) == 0:
             return None
@@ -237,7 +364,7 @@ class Osc2CrConverter:
         prediction = TrajectoryPrediction(trajectory, shape)
 
         return DynamicObstacle(
-            obstacle_id=scenario.generate_object_id(),
+            obstacle_id=obstacle_id,
             obstacle_type=Osc2CrConverter._osc_object_type_category_to_cr(states[0].objectType,
                                                                           states[0].objectCategory),
             obstacle_shape=shape,
@@ -247,17 +374,45 @@ class Osc2CrConverter:
 
     @staticmethod
     def _osc_state_to_cr(state: ScenarioObjectState, time_step: int) -> State:
-        # Todo add 3rd dimension and roll/pitch angles
-        # Todo acceleration
-        c, s = np.cos(state.h), np.sin(state.h)
-        rotation_matrix = np.array(((c, -s), (s, c)))
-        return State(
-            position=np.array((state.x, state.y)) + np.matmul(rotation_matrix, np.array(
-                (state.centerOffsetX, state.centerOffsetY))),
+        c_h, s_h = np.cos(state.h), np.sin(state.h)  # heading
+        c_p, s_p = np.cos(state.p), np.sin(state.p)  # pitch
+        c_r, s_r = np.cos(state.r), np.sin(state.r)  # roll
+
+        center = np.array((
+            state.x,
+            state.y,
+            state.z
+        ))
+        rotation_matrix = np.array((
+            (c_h * c_p, c_h * s_p * s_r - s_h * c_r, c_h * s_p * c_r + s_h * s_r),
+            (s_h * c_p, s_h * s_p * s_r + c_h * c_r, s_h * s_p * s_r - c_h * s_r),
+            (-s_p, c_p * s_r, c_p * c_r),
+        ))
+        offset = np.array((
+            state.centerOffsetX,
+            state.centerOffsetY,
+            state.centerOffsetZ,
+        ))
+        position_3d = center + np.matmul(rotation_matrix, offset)
+        cr_state = State(
+            position=position_3d[0:2],
+            position_z=position_3d[2],
             orientation=state.h,
+            pitch_angle=state.p,
+            roll_angle=state.r,
             velocity=state.speed,
             time_step=time_step,
         )
+        if state.acceleration is not None:
+            cr_state.acceleration = state.acceleration
+        if state.h_rate is not None:
+            cr_state.yaw_rate = state.h_rate
+        if state.p_rate is not None:
+            cr_state.pitch_rate = state.p_rate
+        if state.r_rate is not None:
+            cr_state.roll_rate = state.r_rate
+
+        return cr_state
 
     @staticmethod
     def _osc_object_type_category_to_cr(object_type: int, object_category: int) -> ObstacleType:
@@ -300,3 +455,36 @@ class Osc2CrConverter:
             }.get(object_category, ObstacleType.UNKNOWN)
         elif object_type == 4:  # N_OBJECT_TYPES
             return ObstacleType.UNKNOWN
+
+    def _create_planning_problem_set(self, obstacle: DynamicObstacle) -> PlanningProblemSet:
+        initial_state = obstacle.prediction.trajectory.state_list[0]
+        initial_state.slip_angle = 0.0
+        final_state = obstacle.prediction.trajectory.final_state
+        goal_state = State()
+
+        goal_state.position = Rectangle(
+            length=self.goal_state_position_length,
+            width=self.goal_state_position_width,
+            center=final_state.position,
+            orientation=final_state.orientation if self.goal_state_position_use_ego_rotation else 0.0
+        )
+
+        goal_state.time_step = self.goal_state_time_step.with_offset_if_relative(final_state.time_step)
+
+        if self.goal_state_velocity is not None:
+            goal_state.velocity = self.goal_state_velocity.with_offset_if_relative(final_state.velocity)
+        if self.goal_state_orientation is not None:
+            goal_state.orientation = self.goal_state_orientation.with_offset_if_relative(final_state.orientation)
+
+        return PlanningProblemSet(
+            [
+                PlanningProblem(
+                    planning_problem_id=obstacle.obstacle_id,
+                    initial_state=initial_state,
+                    goal_region=GoalRegion(
+                        state_list=[goal_state]
+                    )
+                )
+            ]
+        )
+        pass
