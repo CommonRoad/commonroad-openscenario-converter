@@ -573,15 +573,6 @@ class Osc2CrConverter:
             scenario_is_trimmed: bool = False,
     ) -> "ConversionStatistics":
 
-        if not scenario_is_trimmed:
-            monitor_scenario = self._trim_scenario(scenario, obstacles)
-        else:
-            monitor_scenario = scenario
-
-        if not self.keep_ego_vehicle:
-            # Ego vehicle won't be kept in final scenario, but still compute statistics for it
-            monitor_scenario.add_objects(obstacles[ego_vehicle])
-
         return ConversionStatistics(
             source_file=self.osc_file,
             database_file=self.odr_file,
@@ -589,14 +580,22 @@ class Osc2CrConverter:
             ego_vehicle=ego_vehicle,
             ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
             ego_vehicle_removed=not self.keep_ego_vehicle,
-            cr_monitor_analysis=self._run_cr_monitor(monitor_scenario, obstacles)
-            if self.do_run_cr_monitor else None,
+            cr_monitor_analysis=self._run_cr_monitor(scenario, obstacles, ego_vehicle, scenario_is_trimmed),
         )
 
-    def _run_cr_monitor(self, trimmed_scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]]) \
-            -> Optional[Dict[str, Optional[np.ndarray]]]:
+    def _run_cr_monitor(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
+                        ego_vehicle: str, scenario_is_trimmed: bool) -> Optional[Dict[str, Optional[np.ndarray]]]:
         if not self.do_run_cr_monitor:
             return None
+
+        if not scenario_is_trimmed:
+            trimmed_scenario = self._trim_scenario(scenario, obstacles)
+        else:
+            trimmed_scenario = scenario
+
+        if not self.keep_ego_vehicle:
+            # Ego vehicle isn't kept in final scenario, but still compute statistics for it
+            trimmed_scenario.add_objects(obstacles[ego_vehicle])
 
         start = time.time()
         world = World.create_from_scenario(trimmed_scenario)
