@@ -38,13 +38,13 @@ class EsminiWrapper:
     def __init__(self, esmini_bin_path: str):
         self.esmini_lib = esmini_bin_path
 
-        self.max_time = 3600.0
+        self.max_time = None
         self.grace_time = None
         self.ignored_level = None
         self.random_seed = None
 
-        self.log_to_console = True
-        self.log_to_file = False
+        self.log_to_console = None
+        self.log_to_file = None
 
         self._reset()
 
@@ -79,8 +79,10 @@ class EsminiWrapper:
         return self._max_time
 
     @max_time.setter
-    def max_time(self, new_max_time: float):
-        if is_real_number(new_max_time):
+    def max_time(self, new_max_time: Optional[float]):
+        if new_max_time is None:
+            self._max_time = 3600.0
+        elif is_real_number(new_max_time):
             self._max_time = new_max_time
         else:
             warnings.warn(f"<EsminiWrapper/max_time> Tried to set to non real number value {new_max_time}.")
@@ -109,7 +111,7 @@ class EsminiWrapper:
         return self._random_seed
 
     @random_seed.setter
-    def random_seed(self, new_random_seed: int):
+    def random_seed(self, new_random_seed: Optional[int]):
         self._random_seed = new_random_seed
 
     @property
@@ -117,16 +119,21 @@ class EsminiWrapper:
         return self._log_to_console
 
     @log_to_console.setter
-    def log_to_console(self, new_log_to_console: bool):
-        self._log_to_console = new_log_to_console
+    def log_to_console(self, new_log_to_console: Optional[bool]):
+        if new_log_to_console is None:
+            self._log_to_console = True
+        else:
+            self._log_to_console = new_log_to_console
 
     @property
     def log_to_file(self) -> Optional[str]:
         return self._log_to_file
 
     @log_to_file.setter
-    def log_to_file(self, new_log_to_file: Union[bool, str]):
-        if isinstance(new_log_to_file, bool):
+    def log_to_file(self, new_log_to_file: Union[None, bool, str]):
+        if new_log_to_file is None:
+            self._log_to_file = None
+        elif isinstance(new_log_to_file, bool):
             if new_log_to_file:
                 self._log_to_file = path.abspath("log.txt")
                 warnings.warn(f"Using default log file {self._log_to_file}")
