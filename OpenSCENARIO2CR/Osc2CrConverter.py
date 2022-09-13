@@ -20,6 +20,7 @@ from crdesigner.map_conversion.map_conversion_interface import opendrive_to_comm
 from crmonitor.common.world import World
 from crmonitor.evaluation.evaluation import RuleEvaluator
 
+from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.AbsRel import AbsRel
 from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper
@@ -28,11 +29,11 @@ from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectStat
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementType
 
 
-class Osc2CrConverter:
+class Osc2CrConverter(Converter):
     def __init__(
             self,
             delta_t: float,
-            osc_file: str,
+            source_file: str,
 
             goal_state_time_step: AbsRel[Interval],
             goal_state_position_length: float,
@@ -57,9 +58,10 @@ class Osc2CrConverter:
             log_to_console: bool = None,
             log_to_file: Union[str, bool] = None
     ):
+        Converter.__init__(self)
         self.esmini_wrapper = EsminiWrapperProvider().provide_esmini_wrapper()
         self.cr_dt = delta_t
-        self.osc_file = osc_file
+        self.source_file = source_file
 
         self.goal_state_time_step = goal_state_time_step
         self.goal_state_position_length = goal_state_position_length
@@ -84,30 +86,23 @@ class Osc2CrConverter:
         self.esmini_wrapper.log_to_console = log_to_console
         self.esmini_wrapper.log_to_file = log_to_file
 
-    @property
-    def osc_file(self) -> Optional[str]:
-        """ The file name of the OpenSCENARIO file."""
-        if hasattr(self, "_osc_file"):
-            return self._osc_file
-        else:
-            return None
-
-    @osc_file.setter
-    def osc_file(self, new_file_name: str):
-        if path.exists(new_file_name):
-            self._osc_file = path.abspath(new_file_name)
-            odr_file_element = ElementTree.parse(self._osc_file).getroot().find("RoadNetwork/LogicFile[@filepath]")
-            if odr_file_element is not None:
-                filepath = path.join(path.dirname(new_file_name), odr_file_element.attrib["filepath"])
-                if path.exists(filepath):
-                    self._odr_in_osc_file = path.abspath(filepath)
-                else:
-                    warnings.warn(f"<OpenSCENARIO2CRConverter/osc_file> OpenDRIVE file \"{filepath}\", " +
-                                  f"specified inside OpenSCENARIO file \"{new_file_name}\" does not exist")
+    def _source_file_changed_callback(self):
+        if self.source_file is not None:
+            if path.exists(self.source_file):
+                odr_file_element = ElementTree.parse(self.source_file).getroot().find(
+                    "RoadNetwork/LogicFile[@filepath]")
+                if odr_file_element is not None:
+                    filepath = path.join(path.dirname(self.source_file), odr_file_element.attrib["filepath"])
+                    if path.exists(filepath):
+                        self._odr_in_osc_file = path.abspath(filepath)
+                    else:
+                        warnings.warn(f"<OpenSCENARIO2CRConverter/osc_file> OpenDRIVE file \"{filepath}\", " +
+                                      f"specified inside OpenSCENARIO file \"{self.source_file}\" does not exist")
             else:
-                self._odr_in_osc_file = None
-        else:
-            warnings.warn(f"<OpenSCENARIO2CRConverter/osc_file> OpenSCENARIO file \"{new_file_name}\" does not exist")
+                warnings.warn(
+                    f"<OpenSCENARIO2CRConverter/osc_file> OpenSCENARIO file \"{self.source_file}\" does not exist"
+                )
+                self.source_file = None
 
     @property
     def odr_in_osc_file(self) -> Optional[str]:
@@ -315,12 +310,12 @@ class Osc2CrConverter:
         self.esmini_wrapper.log_to_file = new_log_to_file
 
     def run_conversion(self) -> Tuple[Optional[Scenario], Optional[PlanningProblemSet], Optional[ConversionStatistics]]:
-        if self.osc_file is None:
+        if self.source_file is None:
             return None, None, None
 
         scenario: Scenario = self._create_scenario_from_opendrive()
 
-        states, sim_time = self.esmini_wrapper.simulate_scenario(self.osc_file, self.esmini_dt)
+        states, sim_time = self.esmini_wrapper.simulate_scenario(self.source_file, self.esmini_dt)
         if states is not None:
             ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(states.keys()))
             obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, states, sim_time)
@@ -574,7 +569,7 @@ class Osc2CrConverter:
     ) -> "ConversionStatistics":
 
         return ConversionStatistics(
-            source_file=self.osc_file,
+            source_file=self.source_file,
             database_file=self.odr_file,
             failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
             ego_vehicle=ego_vehicle,
