@@ -1,5 +1,6 @@
 import math
 import re
+import time
 import warnings
 import xml.etree.ElementTree as ElementTree
 from os import path
@@ -11,10 +12,13 @@ from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
 from commonroad.prediction.prediction import TrajectoryPrediction
+from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import State, Trajectory
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
+from crmonitor.common.world import World
+from crmonitor.evaluation.evaluation import RuleEvaluator
 
 from OpenSCENARIO2CR.AbsRel import AbsRel
 from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics
@@ -37,13 +41,14 @@ class Osc2CrConverter:
             odr_file: Optional[str] = None,
             use_implicit_odr_file: Optional[bool] = None,
             esmini_dt: Optional[float] = None,
+            do_run_cr_monitor: Optional[bool] = None,
+            do_trim_scenario: Optional[bool] = None,
+            keep_ego_vehicle: Optional[bool] = None,
+            ego_filter: Optional[re.Pattern] = None,
 
             goal_state_position_use_ego_rotation: Optional[bool] = None,
             goal_state_velocity: Optional[AbsRel[Interval]] = None,
             goal_state_orientation: Optional[AbsRel[AngleInterval]] = None,
-
-            keep_ego_vehicle: Optional[bool] = None,
-            ego_filter: Optional[re.Pattern] = None,
 
             max_time: float = None,
             grace_time: Optional[float] = None,
@@ -60,39 +65,38 @@ class Osc2CrConverter:
         self.goal_state_position_length = goal_state_position_length
         self.goal_state_position_width = goal_state_position_width
 
+        self.odr_file = odr_file
+        self.use_implicit_odr_file = use_implicit_odr_file
+        self.esmini_dt = esmini_dt
+        self.do_run_cr_monitor = do_run_cr_monitor
+        self.do_trim_scenario = do_trim_scenario
+        self.keep_ego_vehicle = bool(keep_ego_vehicle)
+        self.ego_filter = ego_filter
+
         self.goal_state_position_use_ego_rotation = goal_state_position_use_ego_rotation
         self.goal_state_velocity = goal_state_velocity
         self.goal_state_orientation = goal_state_orientation
 
-        self.odr_file = odr_file
-        self.use_implicit_odr_file = use_implicit_odr_file
-        self.esmini_dt = esmini_dt
-        self.keep_ego_vehicle_obstacle = bool(keep_ego_vehicle)
-        self.ego_filter = ego_filter
-
-        if max_time is not None:
-            self.esmini_wrapper.max_time = max_time
-        if grace_time is not None:
-            self.esmini_wrapper.grace_time = grace_time
-        if ignored_level is not None:
-            self.esmini_wrapper.ignored_level = ignored_level
-        if random_seed is not None:
-            self.esmini_wrapper.random_seed = random_seed
-        if log_to_console is not None:
-            self.esmini_wrapper.log_to_console = log_to_console
-        if log_to_file is not None:
-            self.esmini_wrapper.log_to_file = log_to_file
+        self.esmini_wrapper.max_time = max_time
+        self.esmini_wrapper.grace_time = grace_time
+        self.esmini_wrapper.ignored_level = ignored_level
+        self.esmini_wrapper.random_seed = random_seed
+        self.esmini_wrapper.log_to_console = log_to_console
+        self.esmini_wrapper.log_to_file = log_to_file
 
     @property
-    def osc_file(self) -> str:
+    def osc_file(self) -> Optional[str]:
         """ The file name of the OpenSCENARIO file."""
-        return self._osc_file
+        if hasattr(self, "_osc_file"):
+            return self._osc_file
+        else:
+            return None
 
     @osc_file.setter
     def osc_file(self, new_file_name: str):
         if path.exists(new_file_name):
             self._osc_file = path.abspath(new_file_name)
-            odr_file_element = ElementTree.parse(self.osc_file).getroot().find("RoadNetwork/LogicFile[@filepath]")
+            odr_file_element = ElementTree.parse(self._osc_file).getroot().find("RoadNetwork/LogicFile[@filepath]")
             if odr_file_element is not None:
                 filepath = path.join(path.dirname(new_file_name), odr_file_element.attrib["filepath"])
                 if path.exists(filepath):
@@ -115,7 +119,7 @@ class Osc2CrConverter:
         """ The file name of the OpenDRIVE file. If not specified the program will look"""
         if self._odr_file is not None:
             return self._odr_file
-        elif self.use_implicit_odr_file:
+        elif self.use_implicit_odr_file and hasattr(self, "_odr_in_osc_file"):
             return self._odr_in_osc_file
         else:
             return None
@@ -225,12 +229,12 @@ class Osc2CrConverter:
         self._goal_state_orientation = new_goal_state_orientation
 
     @property
-    def keep_ego_vehicle_obstacle(self) -> bool:
-        return self._ego_filter is not None and self._remove_ego_vehicle
+    def keep_ego_vehicle(self) -> bool:
+        return self._ego_filter is not None and self._keep_ego_vehicle
 
-    @keep_ego_vehicle_obstacle.setter
-    def keep_ego_vehicle_obstacle(self, new_remove_ego_vehicle: float):
-        self._remove_ego_vehicle = new_remove_ego_vehicle
+    @keep_ego_vehicle.setter
+    def keep_ego_vehicle(self, new_keep_ego_vehicle: Optional[bool]):
+        self._keep_ego_vehicle = new_keep_ego_vehicle
 
     @property
     def ego_filter(self) -> Optional[re.Pattern]:
@@ -239,6 +243,28 @@ class Osc2CrConverter:
     @ego_filter.setter
     def ego_filter(self, new_filter: Optional[re.Pattern]):
         self._ego_filter = new_filter
+
+    @property
+    def do_run_cr_monitor(self) -> bool:
+        return self._do_run_cr_monitor
+
+    @do_run_cr_monitor.setter
+    def do_run_cr_monitor(self, new_run_cr_monitor_analysis: Optional[bool]):
+        if new_run_cr_monitor_analysis is None:
+            self._do_run_cr_monitor = False
+        else:
+            self._do_run_cr_monitor = new_run_cr_monitor_analysis
+
+    @property
+    def do_trim_scenario(self) -> bool:
+        return self._do_trim_scenario
+
+    @do_trim_scenario.setter
+    def do_trim_scenario(self, new_do_trim_scenario: Optional[bool]):
+        if new_do_trim_scenario is None:
+            self._do_trim_scenario = False
+        else:
+            self._do_trim_scenario = new_do_trim_scenario
 
     @property
     def max_time(self) -> float:
@@ -289,6 +315,9 @@ class Osc2CrConverter:
         self.esmini_wrapper.log_to_file = new_log_to_file
 
     def run_conversion(self) -> Tuple[Optional[Scenario], Optional[PlanningProblemSet], Optional[ConversionStatistics]]:
+        if self.osc_file is None:
+            return None, None, None
+
         scenario: Scenario = self._create_scenario_from_opendrive()
 
         states, sim_time = self.esmini_wrapper.simulate_scenario(self.osc_file, self.esmini_dt)
@@ -297,20 +326,26 @@ class Osc2CrConverter:
             obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, states, sim_time)
 
             scenario.add_objects([
-                o for o_name, o in obstacles.items()
-                if o is not None and (self.keep_ego_vehicle_obstacle or ego_vehicle != o_name)
+                obstacle for obstacle_name, obstacle in obstacles.items()
+                if obstacle is not None and (self.keep_ego_vehicle or ego_vehicle != obstacle_name)
             ])
+            scenario.assign_obstacles_to_lanelets()
+
+            if self.do_trim_scenario:
+                scenario = self._trim_scenario(scenario, obstacles)
+                scenario_is_trimmed = True
+            else:
+                scenario_is_trimmed = False
 
             return (
                 scenario,
                 self._create_planning_problem_set(obstacles[ego_vehicle]),
-                ConversionStatistics(
-                    source_file=self.osc_file,
-                    database_file=self.odr_file,
-                    failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
+                self._build_statistics(
+                    scenario=scenario,
+                    obstacles=obstacles,
                     ego_vehicle=ego_vehicle,
                     ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
-                    ego_obstacle_removed=self.keep_ego_vehicle_obstacle,
+                    scenario_is_trimmed=scenario_is_trimmed
                 )
             )
         return None, None, None
@@ -355,7 +390,7 @@ class Osc2CrConverter:
             )
 
         obstacles = {ego_vehicle: create_obstacle(ego_vehicle)}
-        for object_name in interpolated_states.keys():
+        for object_name in sorted(interpolated_states.keys()):
             if object_name != ego_vehicle:
                 obstacles[object_name] = create_obstacle(object_name)
         return obstacles
@@ -494,3 +529,85 @@ class Osc2CrConverter:
             ]
         )
         pass
+
+    @staticmethod
+    def _trim_scenario(scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]]) \
+            -> Scenario:
+        start = time.time()
+        used_lanelets = set()
+        for obstacle in obstacles.values():
+            for lanelet_set in obstacle.prediction.shape_lanelet_assignment.values():
+                for lanelet in lanelet_set:
+                    used_lanelets.add(lanelet)
+
+        trimmed_scenario = Scenario(scenario.dt)
+
+        trimmed_scenario.author = scenario.author
+        trimmed_scenario.tags = scenario.tags
+        trimmed_scenario.affiliation = scenario.affiliation
+        trimmed_scenario.source = scenario.source
+        trimmed_scenario.location = scenario.location
+
+        trimmed_scenario.add_objects(scenario.obstacles)
+        trimmed_scenario.add_objects(LaneletNetwork.create_from_lanelet_network(scenario.lanelet_network))
+
+        removable_lanelets = []
+
+        all_ids = {lanelet.lanelet_id for lanelet in trimmed_scenario.lanelet_network.lanelets}
+        for lanelet_id in all_ids - used_lanelets:
+            lanelet = trimmed_scenario.lanelet_network.find_lanelet_by_id(lanelet_id)
+            if lanelet is not None:
+                removable_lanelets.append(lanelet)
+        trimmed_scenario.remove_lanelet(removable_lanelets)
+        trimmed_scenario.assign_obstacles_to_lanelets()
+        print(f"Trimming took {time.time() - start}s")
+
+        return trimmed_scenario
+
+    def _build_statistics(
+            self,
+            obstacles: Dict[str, Optional[DynamicObstacle]],
+            scenario: Scenario,
+            ego_vehicle: str,
+            ego_vehicle_found_with_filter,
+            scenario_is_trimmed: bool = False,
+    ) -> "ConversionStatistics":
+
+        if not scenario_is_trimmed:
+            monitor_scenario = self._trim_scenario(scenario, obstacles)
+        else:
+            monitor_scenario = scenario
+
+        if not self.keep_ego_vehicle:
+            # Ego vehicle won't be kept in final scenario, but still compute statistics for it
+            monitor_scenario.add_objects(obstacles[ego_vehicle])
+
+        return ConversionStatistics(
+            source_file=self.osc_file,
+            database_file=self.odr_file,
+            failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
+            ego_vehicle=ego_vehicle,
+            ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
+            ego_vehicle_removed=not self.keep_ego_vehicle,
+            cr_monitor_analysis=self._run_cr_monitor(monitor_scenario, obstacles)
+            if self.do_run_cr_monitor else None,
+        )
+
+    def _run_cr_monitor(self, trimmed_scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]]) \
+            -> Optional[Dict[str, Optional[np.ndarray]]]:
+        if not self.do_run_cr_monitor:
+            return None
+
+        start = time.time()
+        world = World.create_from_scenario(trimmed_scenario)
+        results = {}
+        for obstacle_name, obstacle in obstacles.items():
+            if obstacle is None:
+                continue
+            vehicle = world.vehicle_by_id(obstacle.obstacle_id)
+            if vehicle is not None:
+                results[obstacle_name] = RuleEvaluator.create_from_config(world, vehicle).evaluate()
+            else:
+                results[obstacle_name] = None
+        print(f"CR monitor took {time.time() - start}s")
+        return results
