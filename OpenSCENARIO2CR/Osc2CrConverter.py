@@ -2,6 +2,7 @@ import math
 import re
 import warnings
 import xml.etree.ElementTree as ElementTree
+from enum import auto, Enum
 from os import path
 from typing import Optional, List, Dict, Tuple, Union
 
@@ -26,6 +27,12 @@ from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper, ESimEndin
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementType
+
+
+class EFailureReasons(Enum):
+    NO_SCENARIO_FILE_SPECIFIED = auto()
+    SIMULATION_FAILED_CREATING_OUTPUT = auto()
+    NO_DYNAMIC_BEHAVIOR_FOUND = auto()
 
 
 class Osc2CrConverter(Converter):
@@ -308,44 +315,46 @@ class Osc2CrConverter(Converter):
     def log_to_file(self, new_log_to_file: Union[None, bool, str]):
         self.esmini_wrapper.log_to_file = new_log_to_file
 
-    def run_conversion(self) -> Tuple[Optional[Scenario], Optional[PlanningProblemSet], Optional[ConversionStatistics]]:
+    def run_conversion(self) -> Union[Tuple[Scenario, PlanningProblemSet, ConversionStatistics], EFailureReasons]:
         if self.source_file is None:
             warnings.warn("<Osc2CrConverter/run_conversion> No valid source file specified")
-            return None, None, None
+            return EFailureReasons.NO_SCENARIO_FILE_SPECIFIED
 
         scenario: Scenario = self._create_scenario_from_opendrive()
-
         states, sim_time, ending_cause = self.esmini_wrapper.simulate_scenario(self.source_file, self.esmini_dt)
-        if states is not None and len(states) > 0:
-            ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(states.keys()))
-            obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, states, sim_time)
 
-            scenario.add_objects([
-                obstacle for obstacle_name, obstacle in obstacles.items()
-                if obstacle is not None and (self.keep_ego_vehicle or ego_vehicle != obstacle_name)
-            ])
-            scenario.assign_obstacles_to_lanelets()
+        if states is None:
+            return EFailureReasons.SIMULATION_FAILED_CREATING_OUTPUT
+        if len(states) == 0:
+            return EFailureReasons.NO_DYNAMIC_BEHAVIOR_FOUND
+        ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(states.keys()))
+        obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, states, sim_time)
 
-            if self.do_trim_scenario:
-                scenario = self._trim_scenario(scenario, obstacles)
-                scenario_is_trimmed = True
-            else:
-                scenario_is_trimmed = False
+        scenario.add_objects([
+            obstacle for obstacle_name, obstacle in obstacles.items()
+            if obstacle is not None and (self.keep_ego_vehicle or ego_vehicle != obstacle_name)
+        ])
+        scenario.assign_obstacles_to_lanelets()
 
-            return (
-                scenario,
-                self._create_planning_problem_set(obstacles[ego_vehicle]),
-                self._build_statistics(
-                    scenario=scenario,
-                    obstacles=obstacles,
-                    ego_vehicle=ego_vehicle,
-                    ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
-                    ending_cause=ending_cause,
-                    sim_time=sim_time,
-                    scenario_is_trimmed=scenario_is_trimmed,
-                )
+        if self.do_trim_scenario:
+            scenario = self._trim_scenario(scenario, obstacles)
+            scenario_is_trimmed = True
+        else:
+            scenario_is_trimmed = False
+
+        return (
+            scenario,
+            self._create_planning_problem_set(obstacles[ego_vehicle]),
+            self._build_statistics(
+                scenario=scenario,
+                obstacles=obstacles,
+                ego_vehicle=ego_vehicle,
+                ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
+                ending_cause=ending_cause,
+                sim_time=sim_time,
+                scenario_is_trimmed=scenario_is_trimmed,
             )
-        return None, None, None
+        )
 
     def _create_scenario_from_opendrive(self) -> Scenario:
 
