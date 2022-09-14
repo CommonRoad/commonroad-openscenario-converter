@@ -1,9 +1,11 @@
 import ctypes as ct
 import logging
+import math
 import os.path
 import re
 import warnings
 from dataclasses import dataclass
+from enum import Enum, auto
 from os import path
 from sys import platform
 from typing import Optional, List, Dict, Tuple, Union
@@ -24,9 +26,15 @@ class WindowSize:
     height: int = 480
 
 
-class EsminiWrapper:
-    _esmini_lib: ct.CDLL
+class ESimEndingCause(Enum):
+    NONE = auto()
+    MAX_TIME = auto()
+    DETECTED_NO_GRACE = auto()
+    DETECTED_WITH_GRACE = auto()
+    SCENARIO_FINISHED_BY_ESMINI = auto()
 
+
+class EsminiWrapper:
     _all_sim_elements: Dict[StoryBoardElement, EStoryBoardElementState]
 
     _scenario_engine_initialized: bool
@@ -145,20 +153,27 @@ class EsminiWrapper:
             warnings.warn(f"<EsminiWrapper/log_to_file> Logging dir {path.dirname(new_log_to_file)} does not exist.")
 
     def simulate_scenario(self, scenario_path: str, dt: float) \
-            -> Tuple[Optional[Dict[str, List[ScenarioObjectState]]], float]:
+            -> Tuple[Optional[Dict[str, List[ScenarioObjectState]]], float, Optional[ESimEndingCause]]:
         if not self._initialize_scenario_engine(scenario_path, viewer_mode=0, use_threading=False):
             warnings.warn("<EsminiWrapper/simulate_scenario> Failed to initialize scenario engine")
-            return None, 0.0
+            return None, 0.0, None
         sim_time = 0.0
         all_states: Dict[int, List[ScenarioObjectState]]
         all_states = {object_id: [state] for object_id, state in self._get_scenario_object_states().items()}
-        while not self._sim_finished():
+        while (cause := self._sim_finished()) == ESimEndingCause.NONE:
             self._sim_step(dt)
             sim_time += dt
             for object_id, new_state in self._get_scenario_object_states().items():
-                all_states[object_id].append(new_state)
+                if math.isclose(new_state.timestamp, all_states[object_id][-1].timestamp):
+                    all_states[object_id][-1] = new_state
+                else:
+                    all_states[object_id].append(new_state)
 
-        return {self._get_scenario_object_name(object_id): states for object_id, states in all_states.items()}, sim_time
+        return (
+            {self._get_scenario_object_name(object_id): states for object_id, states in all_states.items()},
+            sim_time,
+            cause
+        )
 
     def view_scenario(self, scenario_path: str, window_size: Optional[WindowSize] = None):
         if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
@@ -166,7 +181,7 @@ class EsminiWrapper:
             return
         if window_size is not None:
             self._set_set_window_size(window_size)
-        while not self._sim_finished():
+        while self._sim_finished() == ESimEndingCause.NONE:
             self._sim_step(None)
         self._close_scenario_engine()
 
@@ -179,7 +194,7 @@ class EsminiWrapper:
             self._set_set_window_size(window_size)
         image_regex = re.compile(r"screen_shot_\d{5,}\.tga")
         ignored_images = set([p for p in os.listdir(".") if image_regex.match(p) is not None])
-        while not self._sim_finished():
+        while self._sim_finished() == ESimEndingCause.NONE:
             self._sim_step(1 / fps)
         self._close_scenario_engine()
         images = sorted([p for p in os.listdir(".") if image_regex.match(p) is not None and p not in ignored_images])
@@ -198,13 +213,13 @@ class EsminiWrapper:
     def _initialize_scenario_engine(self, scenario_path: str, viewer_mode: int, use_threading: bool) -> bool:
         self._reset()
 
-        self._esmini_lib.SE_LogToConsole(self.log_to_console)
+        self.esmini_lib.SE_LogToConsole(self.log_to_console)
         if self.log_to_file is None:
-            self._esmini_lib.SE_SetLogFilePath("".encode("ASCII"))
+            self.esmini_lib.SE_SetLogFilePath("".encode("ASCII"))
         else:
-            self._esmini_lib.SE_SetLogFilePath(self.log_to_file.encode("ASCII"))
+            self.esmini_lib.SE_SetLogFilePath(self.log_to_file.encode("ASCII"))
 
-        ret = self._esmini_lib.SE_Init(
+        ret = self.esmini_lib.SE_Init(
             scenario_path.encode("ASCII"),
             int(0),
             int(viewer_mode),
@@ -215,20 +230,20 @@ class EsminiWrapper:
             return False
 
         if self.random_seed is not None:
-            self._esmini_lib.SE_SetSeed(self.random_seed)
+            self.esmini_lib.SE_SetSeed(self.random_seed)
 
         self._callback_functor = ct.CFUNCTYPE(None, ct.c_char_p, ct.c_int, ct.c_int)(self.__state_change_callback)
-        self._esmini_lib.SE_RegisterStoryBoardElementStateChangeCallback(self._callback_functor)
+        self.esmini_lib.SE_RegisterStoryBoardElementStateChangeCallback(self._callback_functor)
         self._scenario_engine_initialized = True
         return True
 
     def _set_set_window_size(self, window_size: WindowSize):
-        self._esmini_lib.SE_SetWindowPosAndSize(window_size.x, window_size.y, window_size.width, window_size.height)
+        self.esmini_lib.SE_SetWindowPosAndSize(window_size.x, window_size.y, window_size.width, window_size.height)
 
     def _close_scenario_engine(self):
         if not self._scenario_engine_initialized:
             raise RuntimeError("Scenario Engine not initialized")
-        self._esmini_lib.SE_Close()
+        self.esmini_lib.SE_Close()
         self._scenario_engine_initialized = False
 
     def __state_change_callback(self, name: bytes, element_type: int, state: int):
@@ -241,33 +256,36 @@ class EsminiWrapper:
         self._first_frame_run = True
 
         if dt is not None:
-            self._esmini_lib.SE_StepDT(dt)
+            assert self.esmini_lib.SE_StepDT(dt) == 0
         else:
-            self._esmini_lib.SE_Step()
+            assert self.esmini_lib.SE_Step() == 0
 
-    def _sim_finished(self) -> bool:
+    def _sim_finished(self) -> ESimEndingCause:
         if not self._scenario_engine_initialized:
-            return False
+            return ESimEndingCause.NONE
         if not self._first_frame_run:
-            return False
-        now = self._esmini_lib.SE_GetSimulationTime()
+            return ESimEndingCause.NONE
+        now = self.esmini_lib.SE_GetSimulationTime()
+        if self.esmini_lib.SE_GetQuitFlag() == 1:
+            self._log("{:.3f}: Esmini requested quitting -> Scenario finished completely ".format(now))
+            return ESimEndingCause.SCENARIO_FINISHED_BY_ESMINI
         if now >= self.max_time:
             self._log("{:.3f}: Max Execution tim reached ".format(now))
-            return True
+            return ESimEndingCause.MAX_TIME
         if self._all_sim_elements_finished():
             if self.grace_time is None:
                 self._log("{:.3f}: End detected now".format(now))
-                return True
+                return ESimEndingCause.DETECTED_NO_GRACE
 
             if self._sim_end_detected_time is None:
                 self._sim_end_detected_time = now
             if now >= self._sim_end_detected_time + self.grace_time:
                 self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_time))
-                return True
+                return ESimEndingCause.DETECTED_WITH_GRACE
         else:
             self._sim_end_detected_time = None
 
-        return False
+        return ESimEndingCause.NONE
 
     def _all_sim_elements_finished(self) -> bool:
         all_relevant: List[EStoryBoardElementState]
@@ -283,9 +301,9 @@ class EsminiWrapper:
             raise RuntimeError("Scenario Engine not initialized")
         try:
             objects = {}
-            for j in range(self._esmini_lib.SE_GetNumberOfObjects()):
+            for j in range(self.esmini_lib.SE_GetNumberOfObjects()):
                 objects[j] = ScenarioObjectState()
-                self._esmini_lib.SE_GetObjectState(self._esmini_lib.SE_GetId(j), ct.byref(objects[j]))
+                self.esmini_lib.SE_GetObjectState(self.esmini_lib.SE_GetId(j), ct.byref(objects[j]))
 
             return objects
         except Exception as e:
@@ -293,7 +311,7 @@ class EsminiWrapper:
             return None
 
     def _get_scenario_object_name(self, object_id: int) -> Optional[str]:
-        raw_name: bytes = self._esmini_lib.SE_GetObjectName(object_id)
+        raw_name: bytes = self.esmini_lib.SE_GetObjectName(object_id)
         return raw_name.decode("utf-8")
 
     def _log(self, text: str):

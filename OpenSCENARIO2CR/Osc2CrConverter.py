@@ -1,6 +1,5 @@
 import math
 import re
-import time
 import warnings
 import xml.etree.ElementTree as ElementTree
 from os import path
@@ -23,7 +22,7 @@ from crmonitor.evaluation.evaluation import RuleEvaluator
 from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.AbsRel import AbsRel
 from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics
-from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper
+from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper, ESimEndingCause
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementType
@@ -33,12 +32,12 @@ class Osc2CrConverter(Converter):
     def __init__(
             self,
             delta_t: float,
-            source_file: str,
 
             goal_state_time_step: AbsRel[Interval],
             goal_state_position_length: float,
             goal_state_position_width: float,
 
+            source_file: Optional[str] = None,
             odr_file: Optional[str] = None,
             use_implicit_odr_file: Optional[bool] = None,
             esmini_dt: Optional[float] = None,
@@ -311,12 +310,13 @@ class Osc2CrConverter(Converter):
 
     def run_conversion(self) -> Tuple[Optional[Scenario], Optional[PlanningProblemSet], Optional[ConversionStatistics]]:
         if self.source_file is None:
+            warnings.warn("<Osc2CrConverter/run_conversion> No valid source file specified")
             return None, None, None
 
         scenario: Scenario = self._create_scenario_from_opendrive()
 
-        states, sim_time = self.esmini_wrapper.simulate_scenario(self.source_file, self.esmini_dt)
-        if states is not None:
+        states, sim_time, ending_cause = self.esmini_wrapper.simulate_scenario(self.source_file, self.esmini_dt)
+        if states is not None and len(states) > 0:
             ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(states.keys()))
             obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, states, sim_time)
 
@@ -340,7 +340,9 @@ class Osc2CrConverter(Converter):
                     obstacles=obstacles,
                     ego_vehicle=ego_vehicle,
                     ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
-                    scenario_is_trimmed=scenario_is_trimmed
+                    ending_cause=ending_cause,
+                    sim_time=sim_time,
+                    scenario_is_trimmed=scenario_is_trimmed,
                 )
             )
         return None, None, None
@@ -528,7 +530,6 @@ class Osc2CrConverter(Converter):
     @staticmethod
     def _trim_scenario(scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]]) \
             -> Scenario:
-        start = time.time()
         used_lanelets = set()
         for obstacle in obstacles.values():
             for lanelet_set in obstacle.prediction.shape_lanelet_assignment.values():
@@ -555,7 +556,6 @@ class Osc2CrConverter(Converter):
                 removable_lanelets.append(lanelet)
         trimmed_scenario.remove_lanelet(removable_lanelets)
         trimmed_scenario.assign_obstacles_to_lanelets()
-        print(f"Trimming took {time.time() - start}s")
 
         return trimmed_scenario
 
@@ -565,6 +565,8 @@ class Osc2CrConverter(Converter):
             scenario: Scenario,
             ego_vehicle: str,
             ego_vehicle_found_with_filter,
+            ending_cause: ESimEndingCause,
+            sim_time: float,
             scenario_is_trimmed: bool = False,
     ) -> "ConversionStatistics":
 
@@ -575,6 +577,8 @@ class Osc2CrConverter(Converter):
             ego_vehicle=ego_vehicle,
             ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
             ego_vehicle_removed=not self.keep_ego_vehicle,
+            sim_ending_cause=ending_cause,
+            sim_time=sim_time,
             cr_monitor_analysis=self._run_cr_monitor(scenario, obstacles, ego_vehicle, scenario_is_trimmed),
         )
 
@@ -592,7 +596,6 @@ class Osc2CrConverter(Converter):
             # Ego vehicle isn't kept in final scenario, but still compute statistics for it
             trimmed_scenario.add_objects(obstacles[ego_vehicle])
 
-        start = time.time()
         world = World.create_from_scenario(trimmed_scenario)
         results = {}
         for obstacle_name, obstacle in obstacles.items():
@@ -603,5 +606,4 @@ class Osc2CrConverter(Converter):
                 results[obstacle_name] = RuleEvaluator.create_from_config(world, vehicle).evaluate()
             else:
                 results[obstacle_name] = None
-        print(f"CR monitor took {time.time() - start}s")
         return results
