@@ -1,5 +1,6 @@
 import os
 import re
+import traceback
 from typing import List
 
 from tqdm import tqdm
@@ -43,7 +44,11 @@ class BatchConverter:
 
     def run_batch_conversion(self):
         results = {}
-        for file in tqdm(self.file_list):
-            self.converter.source_file = file
-            results[file] = self.converter.run_conversion()
+        for file in (pbar := tqdm(sorted(self.file_list))):
+            pbar.set_description(file)
+            try:
+                self.converter.source_file = file
+                results[file] = (True, self.converter.run_conversion())
+            except Exception as e:
+                results[file] = (False, (str(e), traceback.format_exc()))
         return results
