@@ -1,10 +1,9 @@
 from dataclasses import dataclass, fields
-from enum import Enum
 from typing import Optional, List, Dict
 
-import numpy as np
-
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import ESimEndingCause
+
+CR_MONITOR_TYPE = Optional[Dict[str, Optional[Dict[str, List[float]]]]]
 
 
 @dataclass(frozen=True)
@@ -20,21 +19,24 @@ class ConversionStatistics:
     ego_vehicle_removed: bool
     sim_ending_cause: ESimEndingCause
     sim_time: float
-    cr_monitor_analysis: Optional[Dict[str, Optional[np.ndarray]]]
+    cr_monitor_analysis: CR_MONITOR_TYPE
 
     def to_dict(self) -> dict:
-        return {
-            key: value if not issubclass(type(value), Enum) else value.name
-            for key, value in vars(self).items()
-        }
+        ret = {}
+        for attr_name, attr_value in vars(self).items():
+            if attr_name == "sim_ending_cause":
+                ret[attr_name] = attr_value.name
+            else:
+                ret[attr_name] = attr_value
+        return ret
 
     @staticmethod
     def from_dict(data: dict) -> "ConversionStatistics":
-        return ConversionStatistics(
-            **{
-                field.name: data[field.name]
-                if not (isinstance(field.type, type) and issubclass(field.type, Enum))
-                else field.type[data[field.name]]
-                for field in fields(ConversionStatistics)
-            }
-        )
+        ret = {}
+        for field in fields(ConversionStatistics):
+            value = data[field.name]
+            if field.name == "sim_ending_cause":
+                ret[field.name] = ESimEndingCause[value]
+            else:
+                ret[field.name] = value
+        return ConversionStatistics(**ret)

@@ -22,14 +22,14 @@ from crmonitor.evaluation.evaluation import RuleEvaluator
 
 from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.AbsRel import AbsRel
-from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics
+from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics, CR_MONITOR_TYPE
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper, ESimEndingCause
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementType
 
 
-class EFailureReasons(Enum):
+class EFailureReason(Enum):
     NO_SCENARIO_FILE_SPECIFIED = auto()
     SIMULATION_FAILED_CREATING_OUTPUT = auto()
     NO_DYNAMIC_BEHAVIOR_FOUND = auto()
@@ -95,10 +95,14 @@ class Osc2CrConverter(Converter):
     def _source_file_changed_callback(self):
         if self.source_file is not None:
             if path.exists(self.source_file):
-                odr_file_element = ElementTree.parse(self.source_file).getroot().find(
-                    "RoadNetwork/LogicFile[@filepath]")
-                if odr_file_element is not None:
-                    filepath = path.join(path.dirname(self.source_file), odr_file_element.attrib["filepath"])
+                root = ElementTree.parse(self.source_file).getroot()
+                scenario_file = root.find("ParameterValueDistribution/ScenarioFile[@filepath]")
+                if scenario_file is not None:
+                    self.source_file = path.join(path.dirname(self.source_file), scenario_file.attrib["filepath"])
+                    return
+                odr_file = root.find("RoadNetwork/LogicFile[@filepath]")
+                if odr_file is not None:
+                    filepath = path.join(path.dirname(self.source_file), odr_file.attrib["filepath"])
                     if path.exists(filepath):
                         self._odr_in_osc_file = path.abspath(filepath)
                     else:
@@ -315,18 +319,18 @@ class Osc2CrConverter(Converter):
     def log_to_file(self, new_log_to_file: Union[None, bool, str]):
         self.esmini_wrapper.log_to_file = new_log_to_file
 
-    def run_conversion(self) -> Union[Tuple[Scenario, PlanningProblemSet, ConversionStatistics], EFailureReasons]:
+    def run_conversion(self) -> Union[Tuple[Scenario, PlanningProblemSet, ConversionStatistics], EFailureReason]:
         if self.source_file is None:
             warnings.warn("<Osc2CrConverter/run_conversion> No valid source file specified")
-            return EFailureReasons.NO_SCENARIO_FILE_SPECIFIED
+            return EFailureReason.NO_SCENARIO_FILE_SPECIFIED
 
         scenario: Scenario = self._create_scenario_from_opendrive()
         states, sim_time, ending_cause = self.esmini_wrapper.simulate_scenario(self.source_file, self.esmini_dt)
 
         if states is None:
-            return EFailureReasons.SIMULATION_FAILED_CREATING_OUTPUT
+            return EFailureReason.SIMULATION_FAILED_CREATING_OUTPUT
         if len(states) == 0:
-            return EFailureReasons.NO_DYNAMIC_BEHAVIOR_FOUND
+            return EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
         ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(states.keys()))
         obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, states, sim_time)
 
@@ -334,7 +338,8 @@ class Osc2CrConverter(Converter):
             obstacle for obstacle_name, obstacle in obstacles.items()
             if obstacle is not None and (self.keep_ego_vehicle or ego_vehicle != obstacle_name)
         ])
-        scenario.assign_obstacles_to_lanelets()
+        if len(scenario.lanelet_network.lanelets) > 0:
+            scenario.assign_obstacles_to_lanelets()
 
         if self.do_trim_scenario:
             scenario = self._trim_scenario(scenario, obstacles)
@@ -539,6 +544,10 @@ class Osc2CrConverter(Converter):
     @staticmethod
     def _trim_scenario(scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]]) \
             -> Scenario:
+        if any(obstacle.prediction.shape_lanelet_assignment is None for obstacle in obstacles.values()):
+            # No shape lanelet assignment can only happen if assign_obstacles_to_lanelets will never be called,
+            # This only happens if len(lanelets) == 0, so no further trimming can be done
+            return scenario
         used_lanelets = set()
         for obstacle in obstacles.values():
             for lanelet_set in obstacle.prediction.shape_lanelet_assignment.values():
@@ -592,27 +601,39 @@ class Osc2CrConverter(Converter):
         )
 
     def _run_cr_monitor(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
-                        ego_vehicle: str, scenario_is_trimmed: bool) -> Optional[Dict[str, Optional[np.ndarray]]]:
+                        ego_vehicle: str, scenario_is_trimmed: bool) -> CR_MONITOR_TYPE:
         if not self.do_run_cr_monitor:
             return None
 
-        if not scenario_is_trimmed:
-            trimmed_scenario = self._trim_scenario(scenario, obstacles)
-        else:
-            trimmed_scenario = scenario
-
-        if not self.keep_ego_vehicle:
-            # Ego vehicle isn't kept in final scenario, but still compute statistics for it
-            trimmed_scenario.add_objects(obstacles[ego_vehicle])
-
-        world = World.create_from_scenario(trimmed_scenario)
-        results = {}
-        for obstacle_name, obstacle in obstacles.items():
-            if obstacle is None:
-                continue
-            vehicle = world.vehicle_by_id(obstacle.obstacle_id)
-            if vehicle is not None:
-                results[obstacle_name] = RuleEvaluator.create_from_config(world, vehicle).evaluate()
+        try:
+            if not scenario_is_trimmed:
+                trimmed_scenario = self._trim_scenario(scenario, obstacles)
             else:
-                results[obstacle_name] = None
-        return results
+                trimmed_scenario = scenario
+            for obstacle in trimmed_scenario.dynamic_obstacles:
+                assert obstacle.prediction.shape_lanelet_assignment is not None
+
+            if not self.keep_ego_vehicle:
+                # Ego vehicle isn't kept in final scenario, but still compute statistics for it
+                trimmed_scenario.add_objects(obstacles[ego_vehicle])
+                trimmed_scenario.assign_obstacles_to_lanelets(obstacle_ids={obstacles[ego_vehicle].obstacle_id})
+
+            world = World.create_from_scenario(trimmed_scenario)
+            results = {}
+            for obstacle_name, obstacle in obstacles.items():
+                if obstacle is None:
+                    continue
+                vehicle = world.vehicle_by_id(obstacle.obstacle_id)
+                if vehicle is not None:
+                    results[obstacle_name] = {}
+                    rule_set = {"R_G1", "R_G2", "R_G3", }
+                    results[obstacle_name] = {
+                        rule: RuleEvaluator.create_from_config(world, vehicle, rule=rule).evaluate().tolist()
+                        for rule in rule_set
+                    }
+                else:
+                    results[obstacle_name] = None
+            return results
+        except Exception as e:
+            warnings.warn(f"<Osc2CrConverter/_run_cr_monitor> Failed with: {e}")
+            return None

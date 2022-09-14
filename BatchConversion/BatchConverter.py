@@ -1,7 +1,7 @@
 import os
 import re
 import traceback
-from typing import List
+from typing import List, Set
 
 from tqdm import tqdm
 
@@ -15,11 +15,11 @@ class BatchConverter:
         self.converter = converter
 
     @property
-    def file_list(self) -> List[str]:
+    def file_list(self) -> Set[str]:
         return self._file_list
 
     @file_list.setter
-    def file_list(self, new_file_list: List[str]):
+    def file_list(self, new_file_list: Set[str]):
         self._file_list = new_file_list
 
     @property
@@ -33,14 +33,14 @@ class BatchConverter:
     def discover_files(self, directory: str, file_matcher: re.Pattern, reset_file_list: bool = True,
                        recursively: bool = True):
         if reset_file_list:
-            self.file_list = []
+            self.file_list = set()
         abs_directory = os.path.abspath(directory)
         for dir_path, dirs, files in os.walk(directory):
             if not recursively and os.path.abspath(dir_path) != abs_directory:
                 continue
             for file in files:
                 if file_matcher.match(file) is not None:
-                    self.file_list.append(os.path.join(dir_path, file))
+                    self.file_list.add(os.path.join(dir_path, file))
 
     def run_batch_conversion(self):
         results = {}
@@ -48,6 +48,10 @@ class BatchConverter:
             pbar.set_description(file)
             try:
                 self.converter.source_file = file
+                if self.converter.source_file in results.keys():
+                    # There are some special cases in OpenSCENARIO, where an osc file might actually reference another
+                    # file, so check here to avoid duplicates
+                    continue
                 results[file] = (True, self.converter.run_conversion())
             except Exception as e:
                 results[file] = (False, (str(e), traceback.format_exc()))
