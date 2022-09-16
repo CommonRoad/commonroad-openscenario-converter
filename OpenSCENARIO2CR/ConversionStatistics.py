@@ -13,6 +13,7 @@ class ConversionStatistics:
     """
     source_file: str
     database_file: Optional[str]
+    num_obstacle_conversions: int
     failed_obstacle_conversions: List[str]
     ego_vehicle: str
     ego_vehicle_found_with_filter: bool

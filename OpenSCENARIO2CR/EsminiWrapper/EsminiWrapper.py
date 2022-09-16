@@ -6,6 +6,7 @@ import re
 import warnings
 from dataclasses import dataclass
 from enum import Enum, auto
+from multiprocessing import Lock
 from os import path
 from sys import platform
 from typing import Optional, List, Dict, Tuple, Union
@@ -29,12 +30,13 @@ class WindowSize:
 class ESimEndingCause(Enum):
     NONE = auto()
     MAX_TIME = auto()
-    DETECTED_NO_GRACE = auto()
-    DETECTED_WITH_GRACE = auto()
+    DETECTED = auto()
     SCENARIO_FINISHED_BY_ESMINI = auto()
 
 
 class EsminiWrapper:
+    __lock: Lock = Lock()
+
     _all_sim_elements: Dict[StoryBoardElement, EStoryBoardElementState]
 
     _scenario_engine_initialized: bool
@@ -152,22 +154,29 @@ class EsminiWrapper:
         else:
             warnings.warn(f"<EsminiWrapper/log_to_file> Logging dir {path.dirname(new_log_to_file)} does not exist.")
 
+    @classmethod
+    def __get_lock(cls):
+        return cls.__lock
+
     def simulate_scenario(self, scenario_path: str, dt: float) \
             -> Tuple[Optional[Dict[str, List[ScenarioObjectState]]], float, Optional[ESimEndingCause]]:
-        if not self._initialize_scenario_engine(scenario_path, viewer_mode=0, use_threading=False):
-            warnings.warn("<EsminiWrapper/simulate_scenario> Failed to initialize scenario engine")
-            return None, 0.0, None
-        sim_time = 0.0
-        all_states: Dict[int, List[ScenarioObjectState]]
-        all_states = {object_id: [state] for object_id, state in self._get_scenario_object_states().items()}
-        while (cause := self._sim_finished()) == ESimEndingCause.NONE:
-            self._sim_step(dt)
-            sim_time += dt
-            for object_id, new_state in self._get_scenario_object_states().items():
-                if math.isclose(new_state.timestamp, all_states[object_id][-1].timestamp):
-                    all_states[object_id][-1] = new_state
-                else:
-                    all_states[object_id].append(new_state)
+        with self.__get_lock():
+            if not self._initialize_scenario_engine(scenario_path, viewer_mode=0, use_threading=False):
+                warnings.warn("<EsminiWrapper/simulate_scenario> Failed to initialize scenario engine")
+                return None, 0.0, None
+            sim_time = 0.0
+            all_states: Dict[int, List[ScenarioObjectState]]
+            all_states = {object_id: [state] for object_id, state in self._get_scenario_object_states().items()}
+            while (cause := self._sim_finished()) == ESimEndingCause.NONE:
+                self._sim_step(dt)
+                sim_time += dt
+                for object_id, new_state in self._get_scenario_object_states().items():
+                    if object_id not in all_states:
+                        all_states[object_id] = [new_state]
+                    elif math.isclose(new_state.timestamp, all_states[object_id][-1].timestamp):
+                        all_states[object_id][-1] = new_state
+                    else:
+                        all_states[object_id].append(new_state)
 
         return (
             {self._get_scenario_object_name(object_id): states for object_id, states in all_states.items()},
@@ -176,32 +185,35 @@ class EsminiWrapper:
         )
 
     def view_scenario(self, scenario_path: str, window_size: Optional[WindowSize] = None):
-        if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
-            warnings.warn("<EsminiWrapper/view_scenario> Failed to initialize scenario engine")
-            return
-        if window_size is not None:
-            self._set_set_window_size(window_size)
-        while self._sim_finished() == ESimEndingCause.NONE:
-            self._sim_step(None)
-        self._close_scenario_engine()
+        with self.__get_lock():
+            if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
+                warnings.warn("<EsminiWrapper/view_scenario> Failed to initialize scenario engine")
+                return
+            if window_size is not None:
+                self._set_set_window_size(window_size)
+            while self._sim_finished() == ESimEndingCause.NONE:
+                self._sim_step(None)
+            self._close_scenario_engine()
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
                                window_size: Optional[WindowSize] = None) -> Optional[str]:
-        if not self._initialize_scenario_engine(scenario_path, viewer_mode=7, use_threading=False):
-            warnings.warn("<EsminiWrapper/render_scenario_to_gif> Failed to initialize scenario engine")
-            return None
-        if window_size is not None:
-            self._set_set_window_size(window_size)
-        image_regex = re.compile(r"screen_shot_\d{5,}\.tga")
-        ignored_images = set([p for p in os.listdir(".") if image_regex.match(p) is not None])
-        while self._sim_finished() == ESimEndingCause.NONE:
-            self._sim_step(1 / fps)
-        self._close_scenario_engine()
-        images = sorted([p for p in os.listdir(".") if image_regex.match(p) is not None and p not in ignored_images])
-        with imageio.get_writer(gif_file_path, mode="I", fps=fps) as writer:
-            for image in images:
-                writer.append_data(imageio.v3.imread(image))
-                os.remove(image)
+        with self.__get_lock():
+            if not self._initialize_scenario_engine(scenario_path, viewer_mode=7, use_threading=False):
+                warnings.warn("<EsminiWrapper/render_scenario_to_gif> Failed to initialize scenario engine")
+                return None
+            if window_size is not None:
+                self._set_set_window_size(window_size)
+            image_regex = re.compile(r"screen_shot_\d{5,}\.tga")
+            ignored_images = set([p for p in os.listdir(".") if image_regex.match(p) is not None])
+            while self._sim_finished() == ESimEndingCause.NONE:
+                self._sim_step(1 / fps)
+            self._close_scenario_engine()
+            images = sorted(
+                [p for p in os.listdir(".") if image_regex.match(p) is not None and p not in ignored_images])
+            with imageio.get_writer(gif_file_path, mode="I", fps=fps) as writer:
+                for image in images:
+                    writer.append_data(imageio.v3.imread(image))
+                    os.remove(image)
 
     def _reset(self):
         self._all_sim_elements = {}
@@ -272,16 +284,12 @@ class EsminiWrapper:
         if now >= self.max_time:
             self._log("{:.3f}: Max Execution tim reached ".format(now))
             return ESimEndingCause.MAX_TIME
-        if self._all_sim_elements_finished():
-            if self.grace_time is None:
-                self._log("{:.3f}: End detected now".format(now))
-                return ESimEndingCause.DETECTED_NO_GRACE
-
+        if self.grace_time is not None and self._all_sim_elements_finished():
             if self._sim_end_detected_time is None:
                 self._sim_end_detected_time = now
             if now >= self._sim_end_detected_time + self.grace_time:
                 self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_time))
-                return ESimEndingCause.DETECTED_WITH_GRACE
+                return ESimEndingCause.DETECTED
         else:
             self._sim_end_detected_time = None
 
@@ -302,8 +310,9 @@ class EsminiWrapper:
         try:
             objects = {}
             for j in range(self.esmini_lib.SE_GetNumberOfObjects()):
-                objects[j] = ScenarioObjectState()
-                self.esmini_lib.SE_GetObjectState(self.esmini_lib.SE_GetId(j), ct.byref(objects[j]))
+                object_id = self.esmini_lib.SE_GetId(j)
+                objects[object_id] = ScenarioObjectState()
+                self.esmini_lib.SE_GetObjectState(object_id, ct.byref(objects[object_id]))
 
             return objects
         except Exception as e:

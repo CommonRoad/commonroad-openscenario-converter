@@ -1,18 +1,29 @@
 import os
 import re
 import traceback
-from typing import List, Set
+from dataclasses import dataclass
+from multiprocessing import Pool
+from typing import Set, Optional, Any, Dict, Type
 
 from tqdm import tqdm
 
 from BatchConversion.Converter import Converter
 
 
+@dataclass(frozen=True)
+class BatchConversionResult:
+    without_exception: bool
+    conversion_result: Optional[Any] = None
+    exception_text: Optional[str] = None
+    traceback: Optional[str] = None
+
+
 class BatchConverter:
 
-    def __init__(self, converter: Converter):
+    def __init__(self, converter_class: Type[Converter], **converter_kwargs):
         self.file_list = []
-        self.converter = converter
+        self.converter_class = converter_class
+        self.converter_kwargs = converter_kwargs
 
     @property
     def file_list(self) -> Set[str]:
@@ -23,12 +34,20 @@ class BatchConverter:
         self._file_list = new_file_list
 
     @property
-    def converter(self) -> Converter:
-        return self._converter
+    def converter_class(self) -> Type[Converter]:
+        return self._converter_class
 
-    @converter.setter
-    def converter(self, new_converter: Converter):
-        self._converter = new_converter
+    @converter_class.setter
+    def converter_class(self, new_converter_class: Type[Converter]):
+        self._converter_class = new_converter_class
+
+    @property
+    def converter_kwargs(self) -> Dict:
+        return self._converter_kwargs
+
+    @converter_kwargs.setter
+    def converter_kwargs(self, new_converter_kwargs: Dict):
+        self._converter_kwargs = new_converter_kwargs
 
     def discover_files(self, directory: str, file_matcher: re.Pattern, reset_file_list: bool = True,
                        recursively: bool = True):
@@ -42,17 +61,43 @@ class BatchConverter:
                 if file_matcher.match(file) is not None:
                     self.file_list.add(os.path.join(dir_path, file))
 
-    def run_batch_conversion(self):
-        results = {}
+    def run_batch_conversion(self, num_worker: Optional[int] = None, timeout: Optional[int] = None) \
+            -> Dict[str, BatchConversionResult]:
+        if num_worker is None:
+            return self._run_batch_conversion_squential()
+        else:
+            return self._run_batch_conversion_parallel(num_worker, timeout)
+
+    def _run_batch_conversion_squential(self) -> Dict[str, BatchConversionResult]:
+        results: Dict[str, BatchConversionResult] = {}
         for file in (pbar := tqdm(sorted(self.file_list))):
             pbar.set_description(file)
-            try:
-                self.converter.source_file = file
-                if self.converter.source_file in results.keys():
-                    # There are some special cases in OpenSCENARIO, where an osc file might actually reference another
-                    # file, so check here to avoid duplicates
-                    continue
-                results[file] = (True, self.converter.run_conversion())
-            except Exception as e:
-                results[file] = (False, (str(e), traceback.format_exc()))
+            results[file] = self._convert_single(file, self.converter_class, self.converter_kwargs)
         return results
+
+    def _run_batch_conversion_parallel(self, num_worker: int, timeout: Optional[int]) \
+            -> Dict[str, BatchConversionResult]:
+        if num_worker <= 0:
+            num_worker = os.cpu_count()
+        with Pool(processes=num_worker) as pool:
+            results_async = {
+                file: pool.apply_async(
+                    BatchConverter._convert_single, (file, self.converter_class, self.converter_kwargs)
+                )
+                for file in self.file_list
+            }
+            return {file: result.get(timeout=timeout) for file, result in tqdm(results_async.items())}
+
+    @staticmethod
+    def _convert_single(file: str, converter_class: Type[Converter], converter_kwargs: Dict) -> BatchConversionResult:
+        try:
+            return BatchConversionResult(
+                without_exception=True,
+                conversion_result=converter_class.from_args(**converter_kwargs).run_conversion(file)
+            )
+        except Exception as e:
+            return BatchConversionResult(
+                without_exception=False,
+                exception_text=str(e),
+                traceback=traceback.format_exc(limit=50),
+            )
