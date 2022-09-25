@@ -15,15 +15,14 @@ from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario
-from commonroad.scenario.state import MBState
-from commonroad.scenario.trajectory import State, Trajectory
+from commonroad.scenario.state import MBState, State
+from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
-from crmonitor.common.world import World
-from crmonitor.evaluation.evaluation import RuleEvaluator
 
 from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.AbsRel import AbsRel
-from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics, CR_MONITOR_TYPE
+from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
+from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics, EAnalyzer
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper, ESimEndingCause
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
@@ -52,7 +51,6 @@ class Osc2CrConverter(Converter):
             odr_file: Optional[str] = None,
             use_implicit_odr_file: Optional[bool] = None,
             esmini_dt: Optional[float] = None,
-            do_run_cr_monitor: Optional[bool] = None,
             do_trim_scenario: Optional[bool] = None,
             keep_ego_vehicle: Optional[bool] = None,
             ego_filter: Optional[re.Pattern] = None,
@@ -66,7 +64,9 @@ class Osc2CrConverter(Converter):
             ignored_level: Optional[EStoryBoardElementType] = None,
             random_seed: Optional[int] = None,
             log_to_console: bool = None,
-            log_to_file: Union[str, bool] = None
+            log_to_file: Union[str, bool] = None,
+
+            analyzers: Union[None, List[EAnalyzer], Dict[EAnalyzer, Analyzer]] = None,
     ):
         Converter.__init__(self)
         self.esmini_wrapper = EsminiWrapperProvider(preferred_version="v2.26.3").provide_esmini_wrapper()
@@ -79,7 +79,6 @@ class Osc2CrConverter(Converter):
         self.odr_file = odr_file
         self.use_implicit_odr_file = use_implicit_odr_file
         self.esmini_dt = esmini_dt
-        self.do_run_cr_monitor = do_run_cr_monitor
         self.do_trim_scenario = do_trim_scenario
         self.keep_ego_vehicle = bool(keep_ego_vehicle)
         self.ego_filter = ego_filter
@@ -95,6 +94,8 @@ class Osc2CrConverter(Converter):
         self.esmini_wrapper.log_to_console = log_to_console
         self.esmini_wrapper.log_to_file = log_to_file
 
+        self.analyzers = analyzers
+
     @staticmethod
     def from_args(**kwargs) -> "Converter":
 
@@ -104,40 +105,13 @@ class Osc2CrConverter(Converter):
             goal_state_position_length=kwargs["goal_state_position_length"],
             goal_state_position_width=kwargs["goal_state_position_width"],
         )
-        if "odr_file" in kwargs:
-            converter.odr_file = kwargs["odr_file"]
-        if "use_implicit_odr_file" in kwargs:
-            converter.use_implicit_odr_file = kwargs["use_implicit_odr_file"]
-        if "esmini_dt" in kwargs:
-            converter.esmini_dt = kwargs["esmini_dt"]
-        if "do_run_cr_monitor" in kwargs:
-            converter.do_run_cr_monitor = kwargs["do_run_cr_monitor"]
-        if "do_trim_scenario" in kwargs:
-            converter.do_trim_scenario = kwargs["do_trim_scenario"]
-        if "keep_ego_vehicle" in kwargs:
-            converter.keep_ego_vehicle = kwargs["keep_ego_vehicle"]
-        if "ego_filter" in kwargs:
-            converter.ego_filter = kwargs["ego_filter"]
-
-        if "goal_state_position_use_ego_rotation" in kwargs:
-            converter.goal_state_position_use_ego_rotation = kwargs["goal_state_position_use_ego_rotation"]
-        if "goal_state_velocity" in kwargs:
-            converter.goal_state_velocity = kwargs["goal_state_velocity"]
-        if "goal_state_orientation" in kwargs:
-            converter.goal_state_orientation = kwargs["goal_state_orientation"]
-
-        if "max_time" in kwargs:
-            converter.max_time = kwargs["max_time"]
-        if "grace_time" in kwargs:
-            converter.grace_time = kwargs["grace_time"]
-        if "ignored_level" in kwargs:
-            converter.ignored_level = kwargs["ignored_level"]
-        if "random_seed" in kwargs:
-            converter.random_seed = kwargs["random_seed"]
-        if "log_to_console" in kwargs:
-            converter.log_to_console = kwargs["log_to_console"]
-        if "log_to_file" in kwargs:
-            converter.log_to_file = kwargs["log_to_file"]
+        for key, value in kwargs.items():
+            if key in ["esmini_wrapper", ]:
+                continue
+            elif hasattr(converter.esmini_wrapper, "_" + key):
+                setattr(converter.esmini_wrapper, key, value)
+            elif hasattr(converter, "_" + key):
+                setattr(converter, key, value)
 
         return converter
 
@@ -269,17 +243,6 @@ class Osc2CrConverter(Converter):
         self._ego_filter = new_filter
 
     @property
-    def do_run_cr_monitor(self) -> bool:
-        return self._do_run_cr_monitor
-
-    @do_run_cr_monitor.setter
-    def do_run_cr_monitor(self, new_run_cr_monitor_analysis: Optional[bool]):
-        if new_run_cr_monitor_analysis is None:
-            self._do_run_cr_monitor = False
-        else:
-            self._do_run_cr_monitor = new_run_cr_monitor_analysis
-
-    @property
     def do_trim_scenario(self) -> bool:
         return self._do_trim_scenario
 
@@ -338,6 +301,17 @@ class Osc2CrConverter(Converter):
     def log_to_file(self, new_log_to_file: Union[None, bool, str]):
         self.esmini_wrapper.log_to_file = new_log_to_file
 
+    @property
+    def analyzers(self) -> Optional[Dict[EAnalyzer, Analyzer]]:
+        return self._analyzers
+
+    @analyzers.setter
+    def analyzers(self, new_analyzers: Union[None, List[EAnalyzer], Dict[EAnalyzer, Analyzer]]):
+        if new_analyzers is None or isinstance(new_analyzers, dict):
+            self._analyzers = new_analyzers
+        else:
+            self._analyzers = {e_analyzer: e_analyzer.analyzer_type() for e_analyzer in new_analyzers}
+
     def run_conversion(self, source_file: str) \
             -> Union[Tuple[Scenario, PlanningProblemSet, ConversionStatistics], EFailureReason]:
 
@@ -369,9 +343,6 @@ class Osc2CrConverter(Converter):
 
         if self.do_trim_scenario:
             scenario = self._trim_scenario(scenario, obstacles)
-            scenario_is_trimmed = True
-        else:
-            scenario_is_trimmed = False
 
         return (
             scenario,
@@ -385,7 +356,6 @@ class Osc2CrConverter(Converter):
                 ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
                 ending_cause=ending_cause,
                 sim_time=sim_time,
-                scenario_is_trimmed=scenario_is_trimmed,
             )
         )
 
@@ -612,9 +582,10 @@ class Osc2CrConverter(Converter):
     @staticmethod
     def _trim_scenario(scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]]) \
             -> Scenario:
+        if len(scenario.lanelet_network.lanelets) == 0:
+            return scenario
+        scenario.assign_obstacles_to_lanelets()
         if any(obstacle.prediction.shape_lanelet_assignment is None for obstacle in obstacles.values()):
-            # No shape lanelet assignment can only happen if assign_obstacles_to_lanelets will never be called,
-            # This only happens if len(lanelets) == 0, so no further trimming can be done
             return scenario
         used_lanelets = set()
         for obstacle in obstacles.values():
@@ -655,56 +626,29 @@ class Osc2CrConverter(Converter):
             ego_vehicle_found_with_filter,
             ending_cause: ESimEndingCause,
             sim_time: float,
-            scenario_is_trimmed: bool = False,
     ) -> "ConversionStatistics":
+
+        trimmed_scenario = self._trim_scenario(scenario, obstacles)
+        if not self.keep_ego_vehicle:
+            trimmed_scenario.add_objects(obstacles[ego_vehicle])
+            if len(scenario.lanelet_network.lanelets) > 0:
+                scenario.assign_obstacles_to_lanelets()
+        if self.analyzers is None:
+            analysis = {}
+        else:
+            analysis = {
+                e_analyzer: analyzer.run(trimmed_scenario, obstacles) for e_analyzer, analyzer in self.analyzers.items()
+            }
 
         return ConversionStatistics(
             source_file=source_file,
             database_file=used_odr_file,
-            num_obstacle_conversions=len(scenario.dynamic_obstacles),
+            num_obstacle_conversions=len(obstacles),
             failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
             ego_vehicle=ego_vehicle,
             ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
             ego_vehicle_removed=not self.keep_ego_vehicle,
             sim_ending_cause=ending_cause,
             sim_time=sim_time,
-            cr_monitor_analysis=self._run_cr_monitor(scenario, obstacles, ego_vehicle, scenario_is_trimmed),
+            analysis=analysis,
         )
-
-    def _run_cr_monitor(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
-                        ego_vehicle: str, scenario_is_trimmed: bool) -> CR_MONITOR_TYPE:
-        if not self.do_run_cr_monitor:
-            return None
-
-        try:
-            if not scenario_is_trimmed:
-                trimmed_scenario = self._trim_scenario(scenario, obstacles)
-            else:
-                trimmed_scenario = scenario
-            for obstacle in trimmed_scenario.dynamic_obstacles:
-                assert obstacle.prediction.shape_lanelet_assignment is not None
-
-            if not self.keep_ego_vehicle:
-                # Ego vehicle isn't kept in final scenario, but still compute statistics for it
-                trimmed_scenario.add_objects(obstacles[ego_vehicle])
-                trimmed_scenario.assign_obstacles_to_lanelets(obstacle_ids={obstacles[ego_vehicle].obstacle_id})
-
-            world = World.create_from_scenario(trimmed_scenario)
-            results = {}
-            for obstacle_name, obstacle in obstacles.items():
-                if obstacle is None:
-                    continue
-                vehicle = world.vehicle_by_id(obstacle.obstacle_id)
-                if vehicle is not None:
-                    results[obstacle_name] = {}
-                    rule_set = {"R_G1", "R_G2", "R_G3", }
-                    results[obstacle_name] = {
-                        rule: RuleEvaluator.create_from_config(world, vehicle, rule=rule).evaluate().tolist()
-                        for rule in rule_set
-                    }
-                else:
-                    results[obstacle_name] = None
-            return results
-        except Exception as e:
-            warnings.warn(f"<Osc2CrConverter/_run_cr_monitor> Failed with: {e}")
-            return None
