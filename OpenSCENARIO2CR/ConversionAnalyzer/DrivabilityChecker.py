@@ -18,7 +18,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.ErrorAnalysisResult import ErrorAnalysis
 
 
 @dataclass(frozen=True)
-class DriveAbilityCheckerResult(AnalysisResult):
+class DrivabilityCheckerResult(AnalysisResult):
     collision: Optional[bool] = None
     feasibility: Optional[bool] = None
 
@@ -31,16 +31,16 @@ class DriveAbilityCheckerResult(AnalysisResult):
         return ret
 
     @staticmethod
-    def from_dict(data: Dict) -> "DriveAbilityCheckerResult":
+    def from_dict(data: Dict) -> "DrivabilityCheckerResult":
         collision = data["collision"] if "collision" in data else None
         feasibility = data["feasibility"] if "feasibility" in data else None
-        return DriveAbilityCheckerResult(
+        return DrivabilityCheckerResult(
             collision=collision,
             feasibility=feasibility
         )
 
 
-class DriveAbilityChecker(Analyzer):
+class DrivabilityChecker(Analyzer):
     def __init__(self):
         self.vehicle_dynamics = VehicleDynamics.KS(VehicleType.BMW_320i)
         self.dt = 0.1
@@ -62,7 +62,7 @@ class DriveAbilityChecker(Analyzer):
         self._dt = new_dt
 
     def run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]]) \
-            -> Dict[str, DriveAbilityCheckerResult]:
+            -> Dict[str, DrivabilityCheckerResult]:
         try:
             if len(obstacles) > 0:
                 _, road_boundary = create_road_boundary_obstacle(scenario)
@@ -75,7 +75,7 @@ class DriveAbilityChecker(Analyzer):
                         collision_checker.add_collision_object(road_boundary)
                         traj = obstacle.prediction.trajectory
                         vehicle_collision_object = create_collision_object(obstacle)
-                        results[obstacle_name] = DriveAbilityCheckerResult(
+                        results[obstacle_name] = DrivabilityCheckerResult(
                             collision=collision_checker.collide(vehicle_collision_object),
                             feasibility=
                             feasibility_checker.trajectory_feasibility(traj, self.vehicle_dynamics, self.dt)[0]
@@ -84,7 +84,7 @@ class DriveAbilityChecker(Analyzer):
                         results[obstacle_name] = ErrorAnalysisResult.from_exception(e)
                 return results
         except Exception as e:
-            warnings.warn(f"<DriveAbilityChecker/run> Failed with: {e}")
+            warnings.warn(f"<DrivabilityChecker/run> Failed with: {e}")
             warnings.warn(traceback.format_exc(limit=50))
             return {obstacle_name: ErrorAnalysisResult.from_exception(e) for obstacle_name in obstacles.keys()}
-        return {obstacle_name: DriveAbilityCheckerResult() for obstacle_name in obstacles.keys()}
+        return {obstacle_name: DrivabilityCheckerResult() for obstacle_name in obstacles.keys()}

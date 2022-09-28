@@ -4,7 +4,7 @@ from typing import Optional, List, Dict, Type
 
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalysisResult import AnalysisResult
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
-from OpenSCENARIO2CR.ConversionAnalyzer.DriveAbilityChecker import DriveAbilityChecker, DriveAbilityCheckerResult
+from OpenSCENARIO2CR.ConversionAnalyzer.DrivabilityChecker import DrivabilityChecker, DrivabilityCheckerResult
 from OpenSCENARIO2CR.ConversionAnalyzer.ErrorAnalysisResult import ErrorAnalysisResult
 from OpenSCENARIO2CR.ConversionAnalyzer.STLMonitor import STLMonitor, STLMonitorResult
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import ESimEndingCause
@@ -23,7 +23,7 @@ class EAnalyzer(Enum):
         obj.result_type = result_type
         return obj
 
-    DRIVE_ABILITY_CHECKER = (DriveAbilityChecker, DriveAbilityCheckerResult)
+    DRIVABILITY_CHECKER = (DrivabilityChecker, DrivabilityCheckerResult)
     STL_MONITOR = (STLMonitor, STLMonitorResult)
 
 
