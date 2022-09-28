@@ -1,6 +1,5 @@
 import os
 import re
-import traceback
 from dataclasses import dataclass
 from multiprocessing import Pool
 from typing import Set, Optional, Any, Dict, Type
@@ -8,14 +7,34 @@ from typing import Set, Optional, Any, Dict, Type
 from tqdm import tqdm
 
 from BatchConversion.Converter import Converter
+from OpenSCENARIO2CR.ConversionAnalyzer.ErrorAnalysisResult import ErrorAnalysisResult
 
 
 @dataclass(frozen=True)
 class BatchConversionResult:
-    without_exception: bool
-    conversion_result: Optional[Any] = None
-    exception_text: Optional[str] = None
-    traceback: Optional[str] = None
+    exception: Optional[ErrorAnalysisResult]
+    conversion_result: Optional[Any]
+
+    @staticmethod
+    def from_conversion_result(conversion_result: Any) -> "BatchConversionResult":
+        return BatchConversionResult(
+            exception=None,
+            conversion_result=conversion_result
+        )
+
+    @staticmethod
+    def from_exception(e: Exception) -> "BatchConversionResult":
+        return BatchConversionResult(
+            exception=ErrorAnalysisResult.from_exception(e),
+            conversion_result=None
+        )
+
+    def __post_init__(self):
+        assert self.exception is not None or self.conversion_result is not None
+
+    @property
+    def without_exception(self) -> bool:
+        return self.exception is None
 
 
 class BatchConverter:
@@ -91,13 +110,8 @@ class BatchConverter:
     @staticmethod
     def _convert_single(file: str, converter_class: Type[Converter], converter_kwargs: Dict) -> BatchConversionResult:
         try:
-            return BatchConversionResult(
-                without_exception=True,
-                conversion_result=converter_class.from_args(**converter_kwargs).run_conversion(file)
+            return BatchConversionResult.from_conversion_result(
+                converter_class.from_args(**converter_kwargs).run_conversion(file)
             )
         except Exception as e:
-            return BatchConversionResult(
-                without_exception=False,
-                exception_text=str(e),
-                traceback=traceback.format_exc(limit=50),
-            )
+            return BatchConversionResult.from_exception(e)
