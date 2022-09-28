@@ -1,5 +1,6 @@
 import traceback
 import warnings
+from copy import deepcopy
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -64,12 +65,14 @@ class DriveAbilityChecker(Analyzer):
             -> Dict[str, DriveAbilityCheckerResult]:
         try:
             if len(obstacles) > 0:
-                collision_checker = create_collision_checker(scenario)
                 _, road_boundary = create_road_boundary_obstacle(scenario)
-                collision_checker.add_collision_object(road_boundary)
                 results = {}
                 for obstacle_name, obstacle in obstacles.items():
                     try:
+                        scenario_for_vehicle = deepcopy(scenario)
+                        scenario_for_vehicle.remove_obstacle(obstacle)
+                        collision_checker = create_collision_checker(scenario_for_vehicle)
+                        collision_checker.add_collision_object(road_boundary)
                         traj = obstacle.prediction.trajectory
                         vehicle_collision_object = create_collision_object(obstacle)
                         results[obstacle_name] = DriveAbilityCheckerResult(
