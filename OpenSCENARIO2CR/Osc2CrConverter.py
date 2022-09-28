@@ -69,7 +69,7 @@ class Osc2CrConverter(Converter):
             analyzers: Union[None, List[EAnalyzer], Dict[EAnalyzer, Analyzer]] = None,
     ):
         Converter.__init__(self)
-        self.esmini_wrapper = EsminiWrapperProvider(preferred_version="v2.26.3").provide_esmini_wrapper()
+        self.esmini_wrapper = EsminiWrapperProvider(preferred_version="v2.26.5").provide_esmini_wrapper()
         self.cr_dt = delta_t
 
         self.goal_state_time_step = goal_state_time_step
