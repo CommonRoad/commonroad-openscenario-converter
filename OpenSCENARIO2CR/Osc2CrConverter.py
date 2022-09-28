@@ -8,6 +8,7 @@ from typing import Optional, List, Dict, Tuple, Union
 
 import numpy as np
 from commonroad.common.util import Interval, AngleInterval
+from commonroad.common.validity import is_valid_orientation
 from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
@@ -15,8 +16,7 @@ from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario
-from commonroad.scenario.state import MBState, State
-from commonroad.scenario.trajectory import Trajectory
+from commonroad.scenario.trajectory import Trajectory, State
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 
 from BatchConversion.Converter import Converter
@@ -25,7 +25,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics, EAnalyzer
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper, ESimEndingCause
 from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperProvider
-from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
+from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState, SEStruct
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementType
 
 
@@ -408,7 +408,7 @@ class Osc2CrConverter(Converter):
             self,
             scenario: Scenario,
             ego_vehicle: str,
-            states: Dict[str, List[ScenarioObjectState]],
+            states: Dict[str, List[SEStruct]],
             sim_time: float,
     ) -> Dict[str, Optional[DynamicObstacle]]:
         final_timestamps = [step * self.cr_dt for step in range(math.floor(sim_time / self.cr_dt) + 1)]
@@ -430,7 +430,7 @@ class Osc2CrConverter(Converter):
     def _osc_states_to_dynamic_obstacle(
             self,
             obstacle_id: int,
-            states: List[ScenarioObjectState],
+            states: List[SEStruct],
             timestamps: List[float]
     ) -> Optional[DynamicObstacle]:
         if len(states) == 0:
@@ -447,7 +447,7 @@ class Osc2CrConverter(Converter):
         shape = Rectangle(states[0].length, states[0].width)
         trajectory = Trajectory(
             first_used_time_step,
-            [Osc2CrConverter._osc_state_to_cr(state, i + first_used_time_step) for i, state in enumerate(used_states)]
+            [state.to_cr_state(i + first_used_time_step) for i, state in enumerate(used_states)]
         )
         prediction = TrajectoryPrediction(trajectory, shape)
         prediction.final_time_step = last_used_time_step
@@ -461,48 +461,6 @@ class Osc2CrConverter(Converter):
             initial_state=trajectory.state_list[0],
             prediction=prediction
         )
-
-    @staticmethod
-    def _osc_state_to_cr(state: ScenarioObjectState, time_step: int) -> State:
-        c_h, s_h = np.cos(state.h), np.sin(state.h)  # heading
-        c_p, s_p = np.cos(state.p), np.sin(state.p)  # pitch
-        c_r, s_r = np.cos(state.r), np.sin(state.r)  # roll
-
-        center = np.array((
-            state.x,
-            state.y,
-            state.z
-        ))
-        rotation_matrix = np.array((
-            (c_h * c_p, c_h * s_p * s_r - s_h * c_r, c_h * s_p * c_r + s_h * s_r),
-            (s_h * c_p, s_h * s_p * s_r + c_h * c_r, s_h * s_p * s_r - c_h * s_r),
-            (-s_p, c_p * s_r, c_p * c_r),
-        ))
-        offset = np.array((
-            state.centerOffsetX,
-            state.centerOffsetY,
-            state.centerOffsetZ,
-        ))
-        position_3d = center + np.matmul(rotation_matrix, offset)
-        cr_state = MBState(
-            position=position_3d[0:2],
-            position_z=position_3d[2],
-            orientation=state.h,
-            pitch_angle=state.p,
-            roll_angle=state.r,
-            velocity=state.speed,
-            time_step=time_step,
-        )
-        if state.acceleration is not None:
-            cr_state.acceleration = state.acceleration
-        if state.h_rate is not None:
-            cr_state.yaw_rate = state.h_rate
-        if state.p_rate is not None:
-            cr_state.pitch_rate = state.p_rate
-        if state.r_rate is not None:
-            cr_state.roll_rate = state.r_rate
-
-        return cr_state
 
     @staticmethod
     def _osc_object_type_category_to_cr(object_type: int, object_category: int) -> ObstacleType:
@@ -550,13 +508,20 @@ class Osc2CrConverter(Converter):
         initial_state = obstacle.prediction.trajectory.state_list[0]
         initial_state.slip_angle = 0.0
         final_state = obstacle.prediction.trajectory.final_state
+        orientation = final_state.orientation if self.goal_state_position_use_ego_rotation else 0.0
+        while not is_valid_orientation(orientation):
+            if orientation > 0:
+                orientation -= 2 * np.pi
+            else:
+                orientation += 2 * np.pi
+
         goal_state = State()
 
         goal_state.position = Rectangle(
             length=self.goal_state_position_length,
             width=self.goal_state_position_width,
             center=final_state.position,
-            orientation=final_state.orientation if self.goal_state_position_use_ego_rotation else 0.0
+            orientation=orientation
         )
 
         goal_state.time_step = self.goal_state_time_step.with_offset_if_relative(final_state.time_step)

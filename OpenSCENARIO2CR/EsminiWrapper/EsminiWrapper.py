@@ -14,7 +14,7 @@ from typing import Optional, List, Dict, Tuple, Union
 import imageio
 from commonroad.common.validity import is_real_number
 
-from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState
+from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import SEStruct
 from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementState, EStoryBoardElementType, \
     StoryBoardElement
 
@@ -117,12 +117,15 @@ class EsminiWrapper:
         self._ignored_level = new_ignored_level
 
     @property
-    def random_seed(self) -> Optional[int]:
+    def random_seed(self) -> int:
         return self._random_seed
 
     @random_seed.setter
     def random_seed(self, new_random_seed: Optional[int]):
-        self._random_seed = new_random_seed
+        if new_random_seed is None:
+            self._random_seed = 0
+        else:
+            self._random_seed = new_random_seed
 
     @property
     def log_to_console(self) -> bool:
@@ -159,13 +162,13 @@ class EsminiWrapper:
         return cls.__lock
 
     def simulate_scenario(self, scenario_path: str, dt: float) \
-            -> Tuple[Optional[Dict[str, List[ScenarioObjectState]]], float, Optional[ESimEndingCause]]:
+            -> Tuple[Optional[Dict[str, List[SEStruct]]], float, Optional[ESimEndingCause]]:
         with self.__get_lock():
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=0, use_threading=False):
                 warnings.warn("<EsminiWrapper/simulate_scenario> Failed to initialize scenario engine")
                 return None, 0.0, None
             sim_time = 0.0
-            all_states: Dict[int, List[ScenarioObjectState]]
+            all_states: Dict[int, List[SEStruct]]
             all_states = {object_id: [state] for object_id, state in self._get_scenario_object_states().items()}
             while (cause := self._sim_finished()) == ESimEndingCause.NONE:
                 self._sim_step(dt)
@@ -241,8 +244,7 @@ class EsminiWrapper:
         if ret != 0:
             return False
 
-        if self.random_seed is not None:
-            self.esmini_lib.SE_SetSeed(self.random_seed)
+        self.esmini_lib.SE_SetSeed(self.random_seed)
 
         self._callback_functor = ct.CFUNCTYPE(None, ct.c_char_p, ct.c_int, ct.c_int)(self.__state_change_callback)
         self.esmini_lib.SE_RegisterStoryBoardElementStateChangeCallback(self._callback_functor)
@@ -304,14 +306,14 @@ class EsminiWrapper:
             all_relevant = list(self._all_sim_elements.values())
         return all([v is EStoryBoardElementState.COMPLETE for v in all_relevant])
 
-    def _get_scenario_object_states(self) -> Optional[Dict[int, ScenarioObjectState]]:
+    def _get_scenario_object_states(self) -> Optional[Dict[int, SEStruct]]:
         if not self._scenario_engine_initialized:
             raise RuntimeError("Scenario Engine not initialized")
         try:
             objects = {}
             for j in range(self.esmini_lib.SE_GetNumberOfObjects()):
                 object_id = self.esmini_lib.SE_GetId(j)
-                objects[object_id] = ScenarioObjectState()
+                objects[object_id] = SEStruct()
                 self.esmini_lib.SE_GetObjectState(object_id, ct.byref(objects[object_id]))
 
             return objects
