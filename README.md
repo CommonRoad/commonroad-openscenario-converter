@@ -1,29 +1,41 @@
 # OpenSCENARIO2CR
 
-Conversion from OpenSCENARIO to CommonRoad and vice versa.
+Conversion from OpenSCENARIO to CommonRoad and utilizing the commonroad analysis framework.
 
-# Running with Docker
-You can use the provided `docker-compose.yml` file:
+# Installation
 
-Starting:
+Create a anaconda python environment >=3.8 (Tested only on 3.9)
+
 ```
-docker-compose up
+pip install -r requirements.txt
 ```
-Stopping
+
+Install the commonroad stl monitor with this command:
+
 ```
-docker-compose down
+pip install git+ssh://git@gitlab.lrz.de/cps/commonroad-stl-monitor.git
 ```
-and click on the prompted link to access a jupyter notebook Server with all dependencies installed
+
+Pull the [CommonRoad Scenario Designer](https://gitlab.lrz.de/cps/commonroad-scenario-designer) and check out the
+following hash `13365aa714e61278b57ae6046fa9871ecbab527b` 
+
+Afterwards install the designer within the same virtual environment following its README.
 
 ### OpenSCENARIO
+
 - Downloads: version v1.1.1 from this [link](https://www.asam.net/standards/detail/openscenario/)
 - [Environment Simulator Minimalistic (esmini)](https://github.com/esmini/esmini)
-- OpenDRIVE2CR: conversion from OpenDRIVE map to CommonRoad is implemented [here](https://gitlab.lrz.de/cps/commonroad-scenario-designer/-/tree/master), see [tutorial](https://gitlab.lrz.de/cps/commonroad-scenario-designer/-/blob/master/tutorials/conversion_examples/example_opendrive_to_commonroad.py)
-- Selected scenarios ([start point](https://gitlab.lrz.de/kosi/wp6/openscenario/-/tree/main/scenarios)): 
+- OpenDRIVE2CR: conversion from OpenDRIVE map to CommonRoad is
+  implemented [here](https://gitlab.lrz.de/cps/commonroad-scenario-designer/-/tree/master),
+  see [tutorial](https://gitlab.lrz.de/cps/commonroad-scenario-designer/-/blob/master/tutorials/conversion_examples/example_opendrive_to_commonroad.py)
+- Selected scenarios ([start point](https://gitlab.lrz.de/kosi/wp6/openscenario/-/tree/main/scenarios)):
     - DoubleLaneChange from openScenario standard examples
     - Pedestrian example Esmini
 
 ### CommonRoad
+
 - Format: version 2021.02 - [link](https://commonroad-io.readthedocs.io/en/latest/user/getting_started/)
 
 scenario editor hash: `13365aa714e61278b57ae6046fa9871ecbab527b`
+
+#   
