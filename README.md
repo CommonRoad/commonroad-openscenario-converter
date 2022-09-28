@@ -25,3 +25,5 @@ and click on the prompted link to access a jupyter notebook Server with all depe
 
 ### CommonRoad
 - Format: version 2021.02 - [link](https://commonroad-io.readthedocs.io/en/latest/user/getting_started/)
+
+scenario editor hash: `13365aa714e61278b57ae6046fa9871ecbab527b`
