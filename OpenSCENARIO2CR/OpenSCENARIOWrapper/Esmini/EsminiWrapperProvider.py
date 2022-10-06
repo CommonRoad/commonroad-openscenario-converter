@@ -10,7 +10,7 @@ from zipfile import ZipFile
 
 import requests
 
-from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapper import EsminiWrapper
 
 
 class EsminiWrapperProvider:

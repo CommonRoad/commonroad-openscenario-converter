@@ -2,10 +2,13 @@ import ctypes as ct
 from typing import List, Tuple
 
 import numpy as np
+from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.trajectory import State
 
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
 
-class SEStruct(ct.Structure):
+
+class SEStruct(ct.Structure, SimScenarioObjectState):
     _fields_ = [
         ("id", ct.c_int),
         ("model_id", ct.c_int),
@@ -36,42 +39,59 @@ class SEStruct(ct.Structure):
         ("wheel_rotation", ct.c_float)
     ]
 
+    def get_timestamp(self) -> float:
+        return self.timestamp
 
-class ScenarioObjectState:
+    def get_object_length(self) -> float:
+        return self.length
+
+    def get_object_width(self) -> float:
+        return self.width
+
+    def get_obstacle_type(self) -> ObstacleType:
+        if self.objectType == 0:  # TYPE_NONE
+            return ObstacleType.UNKNOWN
+        elif self.objectType == 1:  # VEHICLE
+            return {
+                0: ObstacleType.CAR,  # CAR
+                1: ObstacleType.CAR,  # VAN
+                2: ObstacleType.TRUCK,  # TRUCK
+                3: ObstacleType.TRUCK,  # SEMITRAILER
+                4: ObstacleType.TRUCK,  # TRAILER
+                5: ObstacleType.BUS,  # BUS
+                6: ObstacleType.MOTORCYCLE,  # MOTORBIKE
+                7: ObstacleType.BICYCLE,  # BICYCLE
+                8: ObstacleType.TRAIN,  # TRAIN
+                9: ObstacleType.TRAIN,  # TRAM
+            }.get(self.objectCategory, ObstacleType.UNKNOWN)
+        elif self.objectType == 2:  # PEDESTRIAN
+            return ObstacleType.PEDESTRIAN  # PEDESTRIAN, WHEELCHAIR, ANIMAL
+        elif self.objectType == 3:  # MISC_OBJECT
+            return {
+                0: ObstacleType.UNKNOWN,  # NONE
+                1: ObstacleType.UNKNOWN,  # OBSTACLE
+                2: ObstacleType.PILLAR,  # POLE
+                3: ObstacleType.PILLAR,  # TREE
+                4: ObstacleType.UNKNOWN,  # VEGETATION
+                5: ObstacleType.BUILDING,  # BARRIER
+                6: ObstacleType.BUILDING,  # BUILDING
+                7: ObstacleType.UNKNOWN,  # PARKINGSPACE
+                8: ObstacleType.UNKNOWN,  # PATCH
+                9: ObstacleType.BUILDING,  # RAILING
+                10: ObstacleType.MEDIAN_STRIP,  # TRAFFICISLAND
+                11: ObstacleType.UNKNOWN,  # CROSSWALK
+                12: ObstacleType.PILLAR,  # STREETLAMP
+                13: ObstacleType.BUILDING,  # GANTRY
+                14: ObstacleType.BUILDING,  # SOUNDBARRIER
+                15: ObstacleType.UNKNOWN,  # WIND
+                16: ObstacleType.UNKNOWN,  # ROADMARK
+            }.get(self.objectCategory, ObstacleType.UNKNOWN)
+        elif self.objectType == 4:  # N_OBJECT_TYPES
+            return ObstacleType.UNKNOWN
+
+
+class EsminiScenarioObjectState(ScenarioObjectState):
     _closest: Tuple[SEStruct, SEStruct]
-
-    def __init__(self, timestamp: float, closest_states: Tuple[SEStruct, SEStruct]):
-        if abs(timestamp - closest_states[0].timestamp) <= abs(timestamp - closest_states[1].timestamp):
-            self._closest = (closest_states[0], closest_states[1])
-        else:
-            self._closest = (closest_states[1], closest_states[0])
-
-        self._timestamp = timestamp
-        self._dt1 = self._closest[1].timestamp - self._closest[0].timestamp
-        self._dt2 = self.timestamp - self._closest[0].timestamp
-
-    def _get_single(self, field_name: str):
-        return getattr(self._closest, field_name)
-
-    def _get_interpolated(self, field_name: str):
-        val0, val1, = (getattr(self._closest[0], field_name), getattr(self._closest[1], field_name))
-        gradient = (val1 - val0) / self._dt1
-        return val0 + gradient * self._dt2
-
-    def _get_equal(self, field_name: str):
-        val0, val1, = (getattr(self._closest[0], field_name), getattr(self._closest[1], field_name))
-        if val0 != val1:
-            raise ValueError("Failed interpolating new state, expected {}s to be equal: {}!={}"
-                             .format(field_name, val0, val1))
-        else:
-            return val0
-
-    def _get_closest(self, field_name: str):
-        return getattr(self._closest[0], field_name)
-
-    def _get_differentiate(self, field_name: str):
-        val0, val1, = (getattr(self._closest[0], field_name), getattr(self._closest[1], field_name))
-        return (val1 - val0) / self._dt1
 
     @property
     def timestamp(self) -> float:
@@ -249,19 +269,6 @@ class ScenarioObjectState:
         if not hasattr(self, "_center_offset_z"):
             self._center_offset_z = self._get_interpolated("centerOffsetZ")
         return self._center_offset_z
-
-    @property
-    def width(self) -> float:
-        if not hasattr(self, "_width"):
-            self._width = self._get_interpolated("width")
-        return self._width
-
-    @property
-    def length(self) -> float:
-        if not hasattr(self, "_length"):
-            self._length = self._get_interpolated("length")
-        return self._length
-
     @property
     def height(self) -> float:
         if not hasattr(self, "_height"):
@@ -309,10 +316,6 @@ class ScenarioObjectState:
     def build_interpolated(states: List[SEStruct], timestamp: float) -> "ScenarioObjectState":
         assert len(states) > 0
         if len(states) == 1:
-            return ScenarioObjectState.build_interpolated([states[0], states[0]], timestamp)
+            return EsminiScenarioObjectState.build_interpolated([states[0], states[0]], timestamp)
         sorted_states = sorted(states, key=lambda state: abs(timestamp - state.timestamp))[:2]
-        return ScenarioObjectState(timestamp=timestamp, closest_states=(sorted_states[0], sorted_states[1]))
-
-    @staticmethod
-    def calc_slip_angle(steering_angle: float) -> float:
-        raise NotImplementedError
+        return EsminiScenarioObjectState(timestamp=timestamp, closest_states=(sorted_states[0], sorted_states[1]))

@@ -14,19 +14,19 @@ from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.lanelet import LaneletNetwork
-from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
+from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import Trajectory, State
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 
 from BatchConversion.Converter import Converter
-from OpenSCENARIO2CR.AbsRel import AbsRel
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
-from OpenSCENARIO2CR.ConversionStatistics import ConversionStatistics, EAnalyzer
-from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapper import EsminiWrapper, ESimEndingCause
-from OpenSCENARIO2CR.EsminiWrapper.EsminiWrapperProvider import EsminiWrapperProvider
-from OpenSCENARIO2CR.EsminiWrapper.ScenarioObjectState import ScenarioObjectState, SEStruct
-from OpenSCENARIO2CR.EsminiWrapper.StoryBoardElement import EStoryBoardElementType
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.Wrapper import Wrapper
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.WrapperSimResult import WrapperSimResult
+from OpenSCENARIO2CR.util.AbsRel import AbsRel
+from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics, EAnalyzer
 
 
 class EFailureReason(Enum):
@@ -43,6 +43,7 @@ class Osc2CrConverter(Converter):
     def __init__(
             self,
             delta_t: float,
+            sim_wrapper: Wrapper,
 
             goal_state_time_step: AbsRel[Interval],
             goal_state_position_length: float,
@@ -59,17 +60,10 @@ class Osc2CrConverter(Converter):
             goal_state_velocity: Optional[AbsRel[Interval]] = None,
             goal_state_orientation: Optional[AbsRel[AngleInterval]] = None,
 
-            max_time: float = None,
-            grace_time: Optional[float] = None,
-            ignored_level: Optional[EStoryBoardElementType] = None,
-            random_seed: Optional[int] = None,
-            log_to_console: bool = None,
-            log_to_file: Union[str, bool] = None,
-
             analyzers: Union[None, List[EAnalyzer], Dict[EAnalyzer, Analyzer]] = None,
     ):
         Converter.__init__(self)
-        self.esmini_wrapper = EsminiWrapperProvider(preferred_version="v2.26.5").provide_esmini_wrapper()
+        self.sim_wrapper = sim_wrapper
         self.cr_dt = delta_t
 
         self.goal_state_time_step = goal_state_time_step
@@ -87,13 +81,6 @@ class Osc2CrConverter(Converter):
         self.goal_state_velocity = goal_state_velocity
         self.goal_state_orientation = goal_state_orientation
 
-        self.esmini_wrapper.max_time = max_time
-        self.esmini_wrapper.grace_time = grace_time
-        self.esmini_wrapper.ignored_level = ignored_level
-        self.esmini_wrapper.random_seed = random_seed
-        self.esmini_wrapper.log_to_console = log_to_console
-        self.esmini_wrapper.log_to_file = log_to_file
-
         self.analyzers = analyzers
 
     @staticmethod
@@ -101,15 +88,14 @@ class Osc2CrConverter(Converter):
 
         converter = Osc2CrConverter(
             delta_t=kwargs["delta_t"],
+            sim_wrapper=kwargs["sim_wrapper"],
             goal_state_time_step=kwargs["goal_state_time_step"],
             goal_state_position_length=kwargs["goal_state_position_length"],
             goal_state_position_width=kwargs["goal_state_position_width"],
         )
         for key, value in kwargs.items():
-            if key in ["esmini_wrapper", ]:
+            if key in ["sim_wrapper", ]:
                 continue
-            elif hasattr(converter.esmini_wrapper, "_" + key):
-                setattr(converter.esmini_wrapper, key, value)
             elif hasattr(converter, "_" + key):
                 setattr(converter, key, value)
 
@@ -162,18 +148,12 @@ class Osc2CrConverter(Converter):
             self._esmini_dt = new_dt
 
     @property
-    def esmini_wrapper(self) -> EsminiWrapper:
-        if hasattr(self, "_esmini_wrapper"):
-            return self._esmini_wrapper
-        else:
-            return EsminiWrapperProvider().provide_esmini_wrapper()
+    def sim_wrapper(self) -> Wrapper:
+        return self._sim_wrapper
 
-    @esmini_wrapper.setter
-    def esmini_wrapper(self, new_esmini_wrapper: EsminiWrapper):
-        if new_esmini_wrapper is None:
-            warnings.warn("<OpenSCENARIO2CRConverter/esmini_wrapper>: New EsminiWrapper is None.")
-        else:
-            self._esmini_wrapper = new_esmini_wrapper
+    @sim_wrapper.setter
+    def sim_wrapper(self, new_esmini_wrapper: Wrapper):
+        self._sim_wrapper = new_esmini_wrapper
 
     @property
     def goal_state_time_step(self) -> AbsRel[Interval]:
@@ -254,54 +234,6 @@ class Osc2CrConverter(Converter):
             self._do_trim_scenario = new_do_trim_scenario
 
     @property
-    def max_time(self) -> float:
-        return self.esmini_wrapper.max_time
-
-    @max_time.setter
-    def max_time(self, new_max_time: float):
-        self.esmini_wrapper.max_time = new_max_time
-
-    @property
-    def grace_time(self) -> Optional[float]:
-        return self.esmini_wrapper.grace_time
-
-    @grace_time.setter
-    def grace_time(self, new_grace_time: Optional[float]):
-        self.esmini_wrapper.grace_time = new_grace_time
-
-    @property
-    def ignored_level(self) -> Optional[EStoryBoardElementType]:
-        return self.esmini_wrapper.ignored_level
-
-    @ignored_level.setter
-    def ignored_level(self, new_ignored_level: Optional[EStoryBoardElementType]):
-        self.esmini_wrapper.ignored_level = new_ignored_level
-
-    @property
-    def random_seed(self) -> Optional[int]:
-        return self.esmini_wrapper.random_seed
-
-    @random_seed.setter
-    def random_seed(self, new_random_seed: int):
-        self.esmini_wrapper.random_seed = new_random_seed
-
-    @property
-    def log_to_console(self) -> bool:
-        return self.esmini_wrapper.log_to_console
-
-    @log_to_console.setter
-    def log_to_console(self, new_log_to_console: bool):
-        self.esmini_wrapper.log_to_console = new_log_to_console
-
-    @property
-    def log_to_file(self) -> Optional[str]:
-        return self.esmini_wrapper.log_to_file
-
-    @log_to_file.setter
-    def log_to_file(self, new_log_to_file: Union[None, bool, str]):
-        self.esmini_wrapper.log_to_file = new_log_to_file
-
-    @property
     def analyzers(self) -> Optional[Dict[EAnalyzer, Analyzer]]:
         return self._analyzers
 
@@ -325,14 +257,14 @@ class Osc2CrConverter(Converter):
         if isinstance(scenario, EFailureReason):
             return scenario
 
-        states, sim_time, ending_cause = self.esmini_wrapper.simulate_scenario(source_file, self.esmini_dt)
-
-        if states is None:
+        r: WrapperSimResult = self.sim_wrapper.simulate_scenario(source_file, self.esmini_dt)
+        if r.ending_cause is ESimEndingCause.FAILURE:
             return EFailureReason.SIMULATION_FAILED_CREATING_OUTPUT
-        if len(states) == 0:
+        if len(r.states) == 0:
             return EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
+        states = r.states
         ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(states.keys()))
-        obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, states, sim_time)
+        obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, r.states, r.sim_time)
 
         scenario.add_objects([
             obstacle for obstacle_name, obstacle in obstacles.items()
@@ -354,8 +286,8 @@ class Osc2CrConverter(Converter):
                 obstacles=obstacles,
                 ego_vehicle=ego_vehicle,
                 ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
-                ending_cause=ending_cause,
-                sim_time=sim_time,
+                ending_cause=r.ending_cause,
+                sim_time=r.sim_time,
             )
         )
 
@@ -408,7 +340,7 @@ class Osc2CrConverter(Converter):
             self,
             scenario: Scenario,
             ego_vehicle: str,
-            states: Dict[str, List[SEStruct]],
+            states: Dict[str, List[SimScenarioObjectState]],
             sim_time: float,
     ) -> Dict[str, Optional[DynamicObstacle]]:
         final_timestamps = [step * self.cr_dt for step in range(math.floor(sim_time / self.cr_dt) + 1)]
@@ -430,13 +362,13 @@ class Osc2CrConverter(Converter):
     def _osc_states_to_dynamic_obstacle(
             self,
             obstacle_id: int,
-            states: List[SEStruct],
+            states: List[SimScenarioObjectState],
             timestamps: List[float]
     ) -> Optional[DynamicObstacle]:
         if len(states) == 0:
             return None
-        first_occurred_timestamp = min([state.timestamp for state in states])
-        last_occurred_timestamp = max([state.timestamp for state in states])
+        first_occurred_timestamp = min([state.get_timestamp() for state in states])
+        last_occurred_timestamp = max([state.get_timestamp() for state in states])
         first_used_timestamp = min([t for t in timestamps], key=lambda t: math.fabs(first_occurred_timestamp - t))
         last_used_timestamp = min([t for t in timestamps], key=lambda t: math.fabs(last_occurred_timestamp - t))
         first_used_time_step = round(first_used_timestamp / self.cr_dt)
@@ -444,7 +376,7 @@ class Osc2CrConverter(Converter):
         used_timestamps = sorted([t for t in timestamps if first_used_timestamp <= t <= last_used_timestamp])
         used_states = [ScenarioObjectState.build_interpolated(states, t) for t in used_timestamps]
 
-        shape = Rectangle(states[0].length, states[0].width)
+        shape = Rectangle(states[0].get_object_length(), states[0].get_object_width())
         trajectory = Trajectory(
             first_used_time_step,
             [state.to_cr_state(i + first_used_time_step) for i, state in enumerate(used_states)]
@@ -455,54 +387,11 @@ class Osc2CrConverter(Converter):
 
         return DynamicObstacle(
             obstacle_id=obstacle_id,
-            obstacle_type=Osc2CrConverter._osc_object_type_category_to_cr(states[0].objectType,
-                                                                          states[0].objectCategory),
+            obstacle_type=states[0].get_obstacle_type(),
             obstacle_shape=shape,
             initial_state=trajectory.state_list[0],
             prediction=prediction
         )
-
-    @staticmethod
-    def _osc_object_type_category_to_cr(object_type: int, object_category: int) -> ObstacleType:
-        if object_type == 0:  # TYPE_NONE
-            return ObstacleType.UNKNOWN
-        elif object_type == 1:  # VEHICLE
-            return {
-                0: ObstacleType.CAR,  # CAR
-                1: ObstacleType.CAR,  # VAN
-                2: ObstacleType.TRUCK,  # TRUCK
-                3: ObstacleType.TRUCK,  # SEMITRAILER
-                4: ObstacleType.TRUCK,  # TRAILER
-                5: ObstacleType.BUS,  # BUS
-                6: ObstacleType.MOTORCYCLE,  # MOTORBIKE
-                7: ObstacleType.BICYCLE,  # BICYCLE
-                8: ObstacleType.TRAIN,  # TRAIN
-                9: ObstacleType.TRAIN,  # TRAM
-            }.get(object_category, ObstacleType.UNKNOWN)
-        elif object_type == 2:  # PEDESTRIAN
-            return ObstacleType.PEDESTRIAN  # PEDESTRIAN, WHEELCHAIR, ANIMAL
-        elif object_type == 3:  # MISC_OBJECT
-            return {
-                0: ObstacleType.UNKNOWN,  # NONE
-                1: ObstacleType.UNKNOWN,  # OBSTACLE
-                2: ObstacleType.PILLAR,  # POLE
-                3: ObstacleType.PILLAR,  # TREE
-                4: ObstacleType.UNKNOWN,  # VEGETATION
-                5: ObstacleType.BUILDING,  # BARRIER
-                6: ObstacleType.BUILDING,  # BUILDING
-                7: ObstacleType.UNKNOWN,  # PARKINGSPACE
-                8: ObstacleType.UNKNOWN,  # PATCH
-                9: ObstacleType.BUILDING,  # RAILING
-                10: ObstacleType.MEDIAN_STRIP,  # TRAFFICISLAND
-                11: ObstacleType.UNKNOWN,  # CROSSWALK
-                12: ObstacleType.PILLAR,  # STREETLAMP
-                13: ObstacleType.BUILDING,  # GANTRY
-                14: ObstacleType.BUILDING,  # SOUNDBARRIER
-                15: ObstacleType.UNKNOWN,  # WIND
-                16: ObstacleType.UNKNOWN,  # ROADMARK
-            }.get(object_category, ObstacleType.UNKNOWN)
-        elif object_type == 4:  # N_OBJECT_TYPES
-            return ObstacleType.UNKNOWN
 
     def _create_planning_problem_set(self, obstacle: DynamicObstacle) -> PlanningProblemSet:
         initial_state = obstacle.prediction.trajectory.state_list[0]
