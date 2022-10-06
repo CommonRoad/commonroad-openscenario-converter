@@ -45,12 +45,8 @@ class EsminiWrapperProvider:
             warnings.warn(
                 f"<EsminiWrapperProvider/preferred_version> Newversion  {new_preferred_version} not match {r.pattern}")
 
-    @classmethod
-    def __get_lock(cls):
-        return cls.__lock
-
     def provide_esmini_wrapper(self) -> Optional[EsminiWrapper]:
-        with self.__get_lock():
+        with self.__lock:
             if self.preferred_version is not None:
                 if self._try_loading_version(self.preferred_version):
                     return EsminiWrapper(self._bin_path(self._esmini_path(self.preferred_version)))

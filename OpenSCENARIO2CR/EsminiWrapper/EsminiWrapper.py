@@ -157,13 +157,9 @@ class EsminiWrapper:
         else:
             warnings.warn(f"<EsminiWrapper/log_to_file> Logging dir {path.dirname(new_log_to_file)} does not exist.")
 
-    @classmethod
-    def __get_lock(cls):
-        return cls.__lock
-
     def simulate_scenario(self, scenario_path: str, dt: float) \
             -> Tuple[Optional[Dict[str, List[SEStruct]]], float, Optional[ESimEndingCause]]:
-        with self.__get_lock():
+        with self.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=0, use_threading=False):
                 warnings.warn("<EsminiWrapper/simulate_scenario> Failed to initialize scenario engine")
                 return None, 0.0, None
@@ -188,7 +184,7 @@ class EsminiWrapper:
         )
 
     def view_scenario(self, scenario_path: str, window_size: Optional[WindowSize] = None):
-        with self.__get_lock():
+        with self.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
                 warnings.warn("<EsminiWrapper/view_scenario> Failed to initialize scenario engine")
                 return
@@ -200,7 +196,7 @@ class EsminiWrapper:
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
                                window_size: Optional[WindowSize] = None) -> Optional[str]:
-        with self.__get_lock():
+        with self.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=7, use_threading=False):
                 warnings.warn("<EsminiWrapper/render_scenario_to_gif> Failed to initialize scenario engine")
                 return None
