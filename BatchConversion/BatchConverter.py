@@ -2,7 +2,7 @@ import os
 import re
 from dataclasses import dataclass
 from multiprocessing import Pool
-from typing import Set, Optional, Any, Dict, Type
+from typing import Set, Optional, Any, Dict
 
 from tqdm import tqdm
 
@@ -39,10 +39,9 @@ class BatchConversionResult:
 
 class BatchConverter:
 
-    def __init__(self, converter_class: Type[Converter], **converter_kwargs):
+    def __init__(self, converter: Converter):
         self.file_list = []
-        self.converter_class = converter_class
-        self.converter_kwargs = converter_kwargs
+        self.converter = converter
 
     @property
     def file_list(self) -> Set[str]:
@@ -53,20 +52,12 @@ class BatchConverter:
         self._file_list = new_file_list
 
     @property
-    def converter_class(self) -> Type[Converter]:
-        return self._converter_class
+    def converter(self) -> Converter:
+        return self._converter
 
-    @converter_class.setter
-    def converter_class(self, new_converter_class: Type[Converter]):
-        self._converter_class = new_converter_class
-
-    @property
-    def converter_kwargs(self) -> Dict:
-        return self._converter_kwargs
-
-    @converter_kwargs.setter
-    def converter_kwargs(self, new_converter_kwargs: Dict):
-        self._converter_kwargs = new_converter_kwargs
+    @converter.setter
+    def converter(self, new_converter: Converter):
+        self._converter = new_converter
 
     def discover_files(self, directory: str, file_matcher: re.Pattern, reset_file_list: bool = True,
                        recursively: bool = True):
@@ -83,15 +74,15 @@ class BatchConverter:
     def run_batch_conversion(self, num_worker: Optional[int] = None, timeout: Optional[int] = None) \
             -> Dict[str, BatchConversionResult]:
         if num_worker is None:
-            return self._run_batch_conversion_squential()
+            return self._run_batch_conversion_sequential()
         else:
             return self._run_batch_conversion_parallel(num_worker, timeout)
 
-    def _run_batch_conversion_squential(self) -> Dict[str, BatchConversionResult]:
+    def _run_batch_conversion_sequential(self) -> Dict[str, BatchConversionResult]:
         results: Dict[str, BatchConversionResult] = {}
         for file in (pbar := tqdm(sorted(self.file_list))):
             pbar.set_description(file)
-            results[file] = self._convert_single(file, self.converter_class, self.converter_kwargs)
+            results[file] = self._convert_single(file, self.converter)
         return results
 
     def _run_batch_conversion_parallel(self, num_worker: int, timeout: Optional[int]) \
@@ -101,17 +92,17 @@ class BatchConverter:
         with Pool(processes=num_worker) as pool:
             results_async = {
                 file: pool.apply_async(
-                    BatchConverter._convert_single, (file, self.converter_class, self.converter_kwargs)
+                    BatchConverter._convert_single, (file, self.converter)
                 )
                 for file in self.file_list
             }
             return {file: result.get(timeout=timeout) for file, result in tqdm(results_async.items())}
 
     @staticmethod
-    def _convert_single(file: str, converter_class: Type[Converter], converter_kwargs: Dict) -> BatchConversionResult:
+    def _convert_single(file: str, converter: Converter) -> BatchConversionResult:
         try:
             return BatchConversionResult.from_conversion_result(
-                converter_class.from_args(**converter_kwargs).run_conversion(file)
+                converter.run_conversion(file)
             )
         except Exception as e:
             return BatchConversionResult.from_exception(e)

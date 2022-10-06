@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Type
 
 from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.trajectory import State
@@ -15,6 +15,12 @@ class SimScenarioObjectState:
         raise NotImplementedError
 
     def get_obstacle_type(self) -> ObstacleType:
+        raise NotImplementedError
+
+    def get_scenario_object_state_type(self) -> "Type[ScenarioObjectState]":
+        """
+        Specifies which subclass of ScenarioObjectState will be build from this
+        """
         raise NotImplementedError
 
 
@@ -56,7 +62,21 @@ class ScenarioObjectState:
     @staticmethod
     def build_interpolated(states: List[SimScenarioObjectState], timestamp: float) -> "ScenarioObjectState":
         """
-        The build_interpolated function takes a list of states and a timestamp,
+        Convenience function around _build_interpolated which utilizes
+        SimScenarioObjectState.get_scenario_object_state_type() to enable inheritance
+
+
+        :param states:List[SimScenarioObjectState]: All states as input
+        :param timestamp:float: Specify the time at which the interpolated state should be created
+        :return: The interpolated state of the object at a given timestamp
+        """
+        assert len(states) > 0
+        return states[0].get_scenario_object_state_type()._build_interpolated(states, timestamp)
+
+    @staticmethod
+    def _build_interpolated(states: List[SimScenarioObjectState], timestamp: float) -> "ScenarioObjectState":
+        """
+        The _build_interpolated function takes a list of states and a timestamp,
         and returns an interpolated state between the two closest states.
 
 

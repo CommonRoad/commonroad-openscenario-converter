@@ -34,7 +34,7 @@ class EsminiWrapper(Wrapper):
 
     def __init__(self, esmini_bin_path: str):
         super().__init__(max_time=None)
-        self.esmini_lib = esmini_bin_path
+        self.esmini_lib_bin_path = esmini_bin_path
 
         self.grace_time = None
         self.ignored_level = None
@@ -49,11 +49,16 @@ class EsminiWrapper(Wrapper):
     def esmini_lib(self) -> ct.CDLL:
         return self._esmini_lib
 
-    @esmini_lib.setter
-    def esmini_lib(self, new_esmini_lib_bin_path: str):
+    @property
+    def esmini_lib_bin_path(self) -> str:
+        return self._esmini_lib_bin_path
+
+    @esmini_lib_bin_path.setter
+    def esmini_lib_bin_path(self, new_esmini_lib_bin_path: str):
         if hasattr(self, "_esmini_lib"):
             warnings.warn("<EsminiWrapper/esmini_lib> EsminiLib ctypes object is immutable")
         elif path.exists(new_esmini_lib_bin_path):
+            self._esmini_lib_bin_path = new_esmini_lib_bin_path
             if platform.startswith("linux"):
                 self._esmini_lib = ct.CDLL(path.join(new_esmini_lib_bin_path, "libesminiLib.so"))
             elif platform.startswith("darwin"):
@@ -68,8 +73,25 @@ class EsminiWrapper(Wrapper):
             self._esmini_lib.SE_GetSimulationTime.restype = ct.c_float
             self._esmini_lib.SE_SetSeed.argtypes = [ct.c_uint]
             self._esmini_lib.SE_GetObjectName.restype = ct.c_char_p
+
         else:
             warnings.warn(f"<EsminiWrapper/esmini_lib> Path {new_esmini_lib_bin_path} does not exist")
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["_esmini_lib"]
+
+        del state["_all_sim_elements"]
+        del state["_scenario_engine_initialized"]
+        del state["_first_frame_run"]
+        del state["_callback_functor"]
+        del state["_sim_end_detected_time"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.esmini_lib_bin_path = state["_esmini_lib_bin_path"]
+        self._reset()
 
     @property
     def grace_time(self) -> Optional[float]:

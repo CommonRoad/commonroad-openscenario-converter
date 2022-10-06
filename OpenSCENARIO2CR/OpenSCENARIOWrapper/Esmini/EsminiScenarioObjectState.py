@@ -1,5 +1,5 @@
 import ctypes as ct
-from typing import List, Tuple
+from typing import List, Tuple, Type
 
 import numpy as np
 from commonroad.scenario.obstacle import ObstacleType
@@ -38,6 +38,9 @@ class SEStruct(ct.Structure, SimScenarioObjectState):
         ("wheel_angle", ct.c_float),
         ("wheel_rotation", ct.c_float)
     ]
+
+    def get_scenario_object_state_type(self) -> "Type[ScenarioObjectState]":
+        return EsminiScenarioObjectState
 
     def get_timestamp(self) -> float:
         return self.timestamp
@@ -313,9 +316,8 @@ class EsminiScenarioObjectState(ScenarioObjectState):
         )
 
     @staticmethod
-    def build_interpolated(states: List[SEStruct], timestamp: float) -> "ScenarioObjectState":
-        assert len(states) > 0
+    def _build_interpolated(states: List[SEStruct], timestamp: float) -> "ScenarioObjectState":
         if len(states) == 1:
-            return EsminiScenarioObjectState.build_interpolated([states[0], states[0]], timestamp)
+            return EsminiScenarioObjectState._build_interpolated([states[0], states[0]], timestamp)
         sorted_states = sorted(states, key=lambda state: abs(timestamp - state.timestamp))[:2]
         return EsminiScenarioObjectState(timestamp=timestamp, closest_states=(sorted_states[0], sorted_states[1]))
