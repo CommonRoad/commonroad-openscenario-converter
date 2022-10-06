@@ -17,11 +17,11 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiScenarioObjectState import
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryBoardElementState, \
     EStoryBoardElementType, StoryBoardElement
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Wrapper import Wrapper
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.WrapperSimResult import WrapperSimResult
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
 
 
-class EsminiWrapper(Wrapper):
+class EsminiWrapper(SimWrapper):
     __lock: Lock = Lock()
 
     _all_sim_elements: Dict[StoryBoardElement, EStoryBoardElementState]
@@ -34,7 +34,7 @@ class EsminiWrapper(Wrapper):
 
     def __init__(self, esmini_bin_path: str):
         super().__init__(max_time=None)
-        self.esmini_lib_bin_path = esmini_bin_path
+        self._esmini_lib_bin_path = esmini_bin_path
 
         self.grace_time = None
         self.ignored_level = None
@@ -50,15 +50,15 @@ class EsminiWrapper(Wrapper):
         return self._esmini_lib
 
     @property
-    def esmini_lib_bin_path(self) -> str:
-        return self._esmini_lib_bin_path
+    def _esmini_lib_bin_path(self) -> str:
+        return self._esmini_lib_bin_path_
 
-    @esmini_lib_bin_path.setter
-    def esmini_lib_bin_path(self, new_esmini_lib_bin_path: str):
+    @_esmini_lib_bin_path.setter
+    def _esmini_lib_bin_path(self, new_esmini_lib_bin_path: str):
         if hasattr(self, "_esmini_lib"):
             warnings.warn("<EsminiWrapper/esmini_lib> EsminiLib ctypes object is immutable")
         elif path.exists(new_esmini_lib_bin_path):
-            self._esmini_lib_bin_path = new_esmini_lib_bin_path
+            self._esmini_lib_bin_path_ = new_esmini_lib_bin_path
             if platform.startswith("linux"):
                 self._esmini_lib = ct.CDLL(path.join(new_esmini_lib_bin_path, "libesminiLib.so"))
             elif platform.startswith("darwin"):
@@ -90,7 +90,7 @@ class EsminiWrapper(Wrapper):
 
     def __setstate__(self, state):
         self.__dict__.update(state)
-        self.esmini_lib_bin_path = state["_esmini_lib_bin_path"]
+        self._esmini_lib_bin_path = state["_esmini_lib_bin_path_"]
         self._reset()
 
     @property
@@ -154,7 +154,7 @@ class EsminiWrapper(Wrapper):
             warnings.warn(f"<EsminiWrapper/log_to_file> Logging dir {path.dirname(new_log_to_file)} does not exist.")
 
     def simulate_scenario(self, scenario_path: str, sim_dt: float) -> WrapperSimResult:
-        with self.__lock:
+        with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=0, use_threading=False):
                 warnings.warn("<EsminiWrapper/simulate_scenario> Failed to initialize scenario engine")
                 return WrapperSimResult.failure()
@@ -180,7 +180,7 @@ class EsminiWrapper(Wrapper):
             )
 
     def view_scenario(self, scenario_path: str, window_size: Optional[WindowSize] = None):
-        with self.__lock:
+        with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
                 warnings.warn("<EsminiWrapper/view_scenario> Failed to initialize scenario engine")
                 return
@@ -192,7 +192,7 @@ class EsminiWrapper(Wrapper):
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
                                window_size: Optional[WindowSize] = None) -> bool:
-        with self.__lock:
+        with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=7, use_threading=False):
                 warnings.warn("<EsminiWrapper/render_scenario_to_gif> Failed to initialize scenario engine")
                 return False

@@ -3,7 +3,6 @@ import re
 import sys
 import warnings
 from io import BytesIO
-from multiprocessing import Lock
 from os import path
 from typing import Optional
 from zipfile import ZipFile
@@ -14,9 +13,7 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapper import EsminiWrapp
 
 
 class EsminiWrapperProvider:
-    __lock: Lock = Lock()
-
-    def __init__(self, storage_prefix: Optional[str] = None, preferred_version: Optional[str] = None):
+    def __init__(self, storage_prefix: Optional[str] = None, preferred_version: Optional[str] = "v2.26.5"):
         self.storage_prefix = path.abspath(path.dirname(__file__)) if storage_prefix is None else storage_prefix
         self.preferred_version = preferred_version
 
@@ -37,40 +34,40 @@ class EsminiWrapperProvider:
 
     @preferred_version.setter
     def preferred_version(self, new_preferred_version: Optional[str]):
+        r = re.compile(r"v\d+\.\d+\.\d+")
         if new_preferred_version is None:
             self._preferred_version = None
-        elif re.fullmatch(r"v\d+\.\d+\.\d+", new_preferred_version) is not None:
+        elif r.fullmatch(new_preferred_version) is not None:
             self._preferred_version = new_preferred_version
         else:
             warnings.warn(
-                f"<EsminiWrapperProvider/preferred_version> Newversion  {new_preferred_version} not match {r.pattern}")
+                f"<EsminiWrapperProvider/preferred_version> Newversion {new_preferred_version} not match {r.pattern}")
 
     def provide_esmini_wrapper(self) -> Optional[EsminiWrapper]:
-        with self.__lock:
-            if self.preferred_version is not None:
-                if self._try_loading_version(self.preferred_version):
-                    return EsminiWrapper(self._bin_path(self._esmini_path(self.preferred_version)))
-                else:
-                    print("Failed loading specified esmini version: {}".format(self.preferred_version))
-                    quit()
+        if self.preferred_version is not None:
+            if self._try_loading_version(self.preferred_version):
+                return EsminiWrapper(self._bin_path(self._esmini_path(self.preferred_version)))
+            else:
+                print("Failed loading specified esmini version: {}".format(self.preferred_version))
+                quit()
 
-            try:
-                r = requests.get('https://github.com/esmini/esmini/releases/latest')
-                version = r.url.split("/")[-1]
-                if self._try_loading_version(version):
-                    return EsminiWrapper(self._bin_path(self._esmini_path(version)))
-            except requests.exceptions.ConnectionError:
-                pass
+        try:
+            r = requests.get('https://github.com/esmini/esmini/releases/latest')
+            version = r.url.split("/")[-1]
+            if self._try_loading_version(version):
+                return EsminiWrapper(self._bin_path(self._esmini_path(version)))
+        except requests.exceptions.ConnectionError:
+            pass
 
-            available_versions = sorted([
-                dir_path for dir_path in os.listdir(self.storage_prefix)
-                if re.match(self._esmini_path(""), dir_path) and os.path.exists(self._bin_path(dir_path))
-            ])
+        available_versions = sorted([
+            dir_path for dir_path in os.listdir(self.storage_prefix)
+            if re.match(self._esmini_path(""), dir_path) and os.path.exists(self._bin_path(dir_path))
+        ])
 
-            if len(available_versions) > 0:
-                return EsminiWrapper(self._bin_path(available_versions[-1]))
+        if len(available_versions) > 0:
+            return EsminiWrapper(self._bin_path(available_versions[-1]))
 
-            return None
+        return None
 
     def _try_loading_version(self, version: str) -> bool:
         if not path.exists(self._bin_path(self._esmini_path(version))):
