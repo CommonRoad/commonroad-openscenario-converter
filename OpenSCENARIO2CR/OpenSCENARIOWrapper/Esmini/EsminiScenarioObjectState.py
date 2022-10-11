@@ -214,8 +214,8 @@ class EsminiScenarioObjectState(ScenarioObjectState):
             if np.isclose(self.speed, 0.0):
                 self._slip_angle = 0.0
             else:
-                slip_angle_x = np.arccos(self._get_differentiate("x") / self.speed) - self.h
-                slip_angle_y = np.arcsin(self._get_differentiate("y") / self.speed) - self.h
+                slip_angle_x = np.arccos(max(-1, min(self._get_differentiate("x") / self.speed, 1))) - self.h
+                slip_angle_y = np.arcsin(max(-1, min(self._get_differentiate("y") / self.speed, 1))) - self.h
                 self._slip_angle = (slip_angle_x + slip_angle_y) / 2
         return self._slip_angle
 
@@ -272,6 +272,7 @@ class EsminiScenarioObjectState(ScenarioObjectState):
         if not hasattr(self, "_center_offset_z"):
             self._center_offset_z = self._get_interpolated("centerOffsetZ")
         return self._center_offset_z
+
     @property
     def height(self) -> float:
         if not hasattr(self, "_height"):

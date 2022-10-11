@@ -5,25 +5,27 @@ import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass, field
 from enum import auto, Enum
 from os import path
-from typing import Optional, List, Dict, Tuple, Union
+from typing import Optional, List, Dict, Tuple, Union, Set
 
 from commonroad.geometry.shape import Rectangle
-from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle
-from commonroad.scenario.scenario import Scenario
+from commonroad.scenario.scenario import Scenario, Tag
 from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 
 from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
+from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
+from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
+from OpenSCENARIO2CR.util.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
 from OpenSCENARIO2CR.util.PlanningProblemBuilder import PlanningProblemSetBuilder
 from OpenSCENARIO2CR.util.UtilFunctions import trim_scenario, dataclass_is_complete
 
@@ -40,6 +42,11 @@ class EFailureReason(Enum):
 @dataclass
 class Osc2CrConverter(Converter):
     # Required
+    author: str
+    affiliation: str
+    source: str
+    tags: Set[Tag]
+
     dt_cr: float = 0.1
     sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()
     pps_builder: PlanningProblemSetBuilder = PlanningProblemSetBuilder()
@@ -47,16 +54,32 @@ class Osc2CrConverter(Converter):
     use_implicit_odr_file: bool = False
     trim_scenario: bool = False
     keep_ego_vehicle: bool = True
-    analyzers: Union[Dict[EAnalyzer, Analyzer], List[EAnalyzer]] = field(default_factory=lambda: list(EAnalyzer))
+    analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = \
+        field(default_factory=lambda: list(EAnalyzer))
 
     # Optional
     dt_sim: Optional[float] = None
     odr_file_override: Optional[str] = None
     ego_filter: Optional[re.Pattern] = None
 
+    def get_analyzer_objects(self) -> Dict[EAnalyzer, Analyzer]:
+        if self.analyzers is None:
+            return {}
+        elif isinstance(self.analyzers, list):
+            return {e_analyzer: e_analyzer.analyzer_type() for e_analyzer in self.analyzers}
+        elif isinstance(self.analyzers, dict):
+            ret = {}
+            for e_analyzer, analyzer in self.analyzers.items():
+                if analyzer is not None:
+                    ret[e_analyzer] = analyzer
+                else:
+                    ret[e_analyzer] = e_analyzer.analyzer_type()
+            return ret
+
     def run_conversion(self, source_file: str) \
-            -> Union[Tuple[Scenario, PlanningProblemSet, ConversionStatistics], EFailureReason]:
+            -> Union[Osc2CrConverterResult, EFailureReason]:
         assert dataclass_is_complete(self)
+
         source_file = path.abspath(source_file)
 
         implicit_opendrive_path = self._pre_parse_scenario(source_file)
@@ -86,25 +109,35 @@ class Osc2CrConverter(Converter):
             obstacle for obstacle_name, obstacle in obstacles.items()
             if obstacle is not None and (self.keep_ego_vehicle or ego_vehicle != obstacle_name)
         ])
+        extra_information_finder = ObstacleExtraInfoFinder()
+        extra_information_finder.obstacles = obstacles
+        extra_information_finder.scenario_path = source_file
         if len(scenario.lanelet_network.lanelets) > 0:
             scenario.assign_obstacles_to_lanelets()
 
         if self.trim_scenario:
             scenario = trim_scenario(scenario, deep_copy=False)
-        return (
-            scenario,
-            self.pps_builder.build(obstacles[ego_vehicle]),
-            self.build_statistics(
-                scenario=scenario,
+
+        return Osc2CrConverterResult(
+            statistics=self.build_statistics(
                 obstacles=obstacles,
                 ego_vehicle=ego_vehicle,
                 ego_vehicle_found_with_filter=ego_vehicle_found_with_filter,
                 keep_ego_vehicle=keep_ego_vehicle,
                 ending_cause=ending_cause,
                 sim_time=sim_time,
-                source_file=source_file,
                 used_odr_file=used_odr_file
             ),
+            analysis=self.run_analysis(
+                scenario_path=source_file,
+                scenario=scenario,
+                obstacles=obstacles,
+                ego_vehicle=ego_vehicle,
+                keep_ego_vehicle=keep_ego_vehicle,
+            ),
+            source_file=source_file,
+            scenario=scenario,
+            planning_problem_set=self.pps_builder.build(obstacles[ego_vehicle]),
         )
 
     @staticmethod
@@ -130,23 +163,32 @@ class Osc2CrConverter(Converter):
         return None
 
     def _create_scenario(self, implicit_odr_file: Optional[str]) -> Tuple[Scenario, Optional[str]]:
+        odr_file: Optional[str] = None
         if self.odr_file_override is not None:
             if path.exists(self.odr_file_override):
-                scenario = opendrive_to_commonroad(self.odr_file_override)
-                scenario.dt = self.dt_cr
-                return scenario, self.odr_file_override
+                odr_file = self.odr_file_override
             else:
                 warnings.warn(
                     f"<OpenSCENARIO2CRConverter/_create_scenario> File {self.odr_file_override} does not exist")
-        if implicit_odr_file is not None and self.use_implicit_odr_file and path.exists(implicit_odr_file):
+        elif implicit_odr_file is not None and self.use_implicit_odr_file:
             if path.exists(implicit_odr_file):
-                scenario = opendrive_to_commonroad(implicit_odr_file)
-                scenario.dt = self.dt_cr
-                return scenario, implicit_odr_file
+                odr_file = implicit_odr_file
             else:
-                warnings.warn(f"<OpenSCENARIO2CRConverter/_create_scenario> File {implicit_odr_file} does not exist")
+                warnings.warn(
+                    f"<OpenSCENARIO2CRConverter/_create_scenario> File {implicit_odr_file} does not exist")
 
-        return Scenario(self.dt_cr), None
+        if odr_file is not None:
+            scenario = opendrive_to_commonroad(odr_file)
+            scenario.dt = self.dt_cr
+        else:
+            scenario = Scenario(self.dt_cr)
+
+        scenario.author = self.author
+        scenario.affiliation = self.affiliation
+        scenario.source = self.source
+        scenario.tags = self.tags
+
+        return scenario, odr_file
 
     def _is_object_name_used(self, object_name: str):
         return self.ego_filter is None or self.ego_filter.match(object_name) is None
@@ -216,35 +258,17 @@ class Osc2CrConverter(Converter):
             prediction=prediction
         )
 
+    @staticmethod
     def build_statistics(
-            self,
-            scenario: Scenario,
             obstacles: Dict[str, Optional[DynamicObstacle]],
             ego_vehicle: str,
             ego_vehicle_found_with_filter: bool,
             keep_ego_vehicle: bool,
             ending_cause: ESimEndingCause,
             sim_time: float,
-            source_file: str,
             used_odr_file: Optional[str] = None,
     ) -> ConversionStatistics:
-        trimmed_scenario = trim_scenario(scenario)
-        if not keep_ego_vehicle:
-            trimmed_scenario.add_objects(obstacles[ego_vehicle])
-            if len(scenario.lanelet_network.lanelets) > 0:
-                scenario.assign_obstacles_to_lanelets()
-        if self.analyzers is None:
-            analysis = {}
-        else:
-            analyzers = self.analyzers if isinstance(self.analyzers, dict) \
-                else {e_analyzer: e_analyzer.analyzer_type() for e_analyzer in self.analyzers}
-            analysis = {
-                e_analyzer: analyzer.run(trimmed_scenario, obstacles) for e_analyzer, analyzer in
-                analyzers.items()
-            }
-
         return ConversionStatistics(
-            source_file=source_file,
             database_file=used_odr_file,
             num_obstacle_conversions=len(obstacles),
             failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
@@ -253,5 +277,30 @@ class Osc2CrConverter(Converter):
             ego_vehicle_removed=not keep_ego_vehicle,
             sim_ending_cause=ending_cause,
             sim_time=sim_time,
-            analysis=analysis,
         )
+
+    def run_analysis(
+            self,
+            scenario_path: str,
+            scenario: Scenario,
+            obstacles: Dict[str, Optional[DynamicObstacle]],
+            ego_vehicle: str,
+            keep_ego_vehicle: bool,
+    ) -> Dict[EAnalyzer, Dict[str, AnalyzerResult]]:
+        analyzers = self.get_analyzer_objects()
+        if len(analyzers) == 0:
+            return {}
+        else:
+            trimmed_scenario = trim_scenario(scenario)
+            if not keep_ego_vehicle:
+                trimmed_scenario.add_objects(obstacles[ego_vehicle])
+                if len(scenario.lanelet_network.lanelets) > 0:
+                    scenario.assign_obstacles_to_lanelets()
+            obstacles_extra_info = ObstacleExtraInfoFinder(scenario_path=scenario_path, obstacles=obstacles).run()
+            return {
+                e_analyzer: analyzer.run(
+                    trimmed_scenario,
+                    obstacles,
+                    obstacles_extra_info
+                ) for e_analyzer, analyzer in analyzers.items()
+            }
