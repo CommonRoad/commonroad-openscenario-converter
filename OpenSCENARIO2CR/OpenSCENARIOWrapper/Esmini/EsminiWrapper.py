@@ -16,9 +16,9 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiScenarioObjectState import SEStruct
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryBoardElementState, \
     EStoryBoardElementType, StoryBoardElement
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
 
 
 class EsminiWrapper(SimWrapper):
@@ -36,6 +36,7 @@ class EsminiWrapper(SimWrapper):
         super().__init__(max_time=None)
         self._esmini_lib_bin_path = esmini_bin_path
 
+        self.min_time = None
         self.grace_time = None
         self.ignored_level = None
         self.random_seed = None
@@ -44,6 +45,17 @@ class EsminiWrapper(SimWrapper):
         self.log_to_file = None
 
         self._reset()
+
+    @property
+    def min_time(self) -> float:
+        return self._min_time
+
+    @min_time.setter
+    def min_time(self, new_min_time: Optional[float]):
+        if new_min_time is None:
+            self._min_time = 0.0
+        else:
+            self._min_time = new_min_time
 
     @property
     def esmini_lib(self) -> ct.CDLL:
@@ -282,7 +294,7 @@ class EsminiWrapper(SimWrapper):
         if self.grace_time is not None and self._all_sim_elements_finished():
             if self._sim_end_detected_time is None:
                 self._sim_end_detected_time = now
-            if now >= self._sim_end_detected_time + self.grace_time:
+            if now >= self._sim_end_detected_time + self.grace_time and now >= self.min_time:
                 self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_time))
                 return ESimEndingCause.END_DETECTED
         else:
@@ -316,7 +328,7 @@ class EsminiWrapper(SimWrapper):
 
     def _get_scenario_object_name(self, object_id: int) -> Optional[str]:
         raw_name: bytes = self.esmini_lib.SE_GetObjectName(object_id)
-        return raw_name.decode("utf-8")
+        return f"no-name-{object_id}" if raw_name is None else raw_name.decode("utf-8")
 
     def _log(self, text: str):
         if self.log_to_console:

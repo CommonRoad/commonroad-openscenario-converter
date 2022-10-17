@@ -26,7 +26,7 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResul
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
 from OpenSCENARIO2CR.util.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
-from OpenSCENARIO2CR.util.PlanningProblemBuilder import PlanningProblemSetBuilder
+from OpenSCENARIO2CR.util.PlanningProblemBuilder import PPSBuilder
 from OpenSCENARIO2CR.util.UtilFunctions import trim_scenario, dataclass_is_complete
 
 
@@ -49,7 +49,7 @@ class Osc2CrConverter(Converter):
 
     dt_cr: float = 0.1
     sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()
-    pps_builder: PlanningProblemSetBuilder = PlanningProblemSetBuilder()
+    pps_builder: PPSBuilder = PPSBuilder()
 
     use_implicit_odr_file: bool = False
     trim_scenario: bool = False

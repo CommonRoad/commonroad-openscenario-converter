@@ -3,8 +3,8 @@ from typing import Optional
 
 from commonroad.common.validity import is_real_number
 
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
 
 
 class SimWrapper:
@@ -44,7 +44,7 @@ class SimWrapper:
         :param scenario_path Path to the .xosc scenario file
         :param window_size Wanted size of the rendering window
         """
-        pass
+        warnings.warn(f"{self.__class__} did not implement to view scenario")
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
                                gif_size: Optional[WindowSize] = None) -> bool:
@@ -57,4 +57,5 @@ class SimWrapper:
         :param gif_size Size of the gif
         :return Returns if gif creation was successful
         """
-        pass
+        warnings.warn(f"{self.__class__} did not implement to render a scenario to a gif")
+        return False

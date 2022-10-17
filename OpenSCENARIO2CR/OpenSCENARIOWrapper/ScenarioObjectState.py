@@ -71,20 +71,13 @@ class ScenarioObjectState:
         :return: The interpolated state of the object at a given timestamp
         """
         assert len(states) > 0
-        return states[0].get_scenario_object_state_type()._build_interpolated(states, timestamp)
-
-    @staticmethod
-    def _build_interpolated(states: List[SimScenarioObjectState], timestamp: float) -> "ScenarioObjectState":
-        """
-        The _build_interpolated function takes a list of states and a timestamp,
-        and returns an interpolated state between the two closest states.
-
-
-        :param states:List[SimScenarioObjectState]: All states as input
-        :param timestamp:float: Specify the time at which the interpolated state should be created
-        :return: The interpolated state of the object at a given timestamp
-        """
-        raise NotImplementedError
+        if len(states) == 1:
+            return ScenarioObjectState.build_interpolated([states[0], states[0]], timestamp)
+        sorted_states = sorted(states, key=lambda state: abs(timestamp - state.timestamp))[:2]
+        return states[0].get_scenario_object_state_type()(
+            timestamp=timestamp,
+            closest_states=(sorted_states[0], sorted_states[1])
+        )
 
     def to_cr_state(self, time_step: int) -> State:
         """

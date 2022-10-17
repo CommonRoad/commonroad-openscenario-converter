@@ -19,7 +19,7 @@ class Analyzer:
     def run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
             obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Dict[str, AnalyzerResult]:
         """
-        The run function is the main entry point for your analyzer. It is called by the
+        The run method is the main entry point for your analyzer. It is called by the
         scenario runner and expects to receive three arguments:
 
             * A Scenario object, which contains all information about the scenario that was converted.
@@ -69,7 +69,7 @@ class Analyzer:
     def _run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
              obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Dict[str, AnalyzerResult]:
         """
-        The _run function is the function where the actual work of the analyzer happens
+        The _run method is the method where the actual work of the analyzer happens
 
         :param scenario:Scenario: Get the current scenario
         :param obstacles:Dict[str, Optional[DynamicObstacle]]: Obstacles per name

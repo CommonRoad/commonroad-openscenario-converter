@@ -15,7 +15,10 @@ from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
 
 
 @dataclass
-class PlanningProblemSetBuilder:
+class PPSBuilder:
+    """
+    Planning Problem Set builder
+    """
     # Required
     goal_state_position_length: float = 50
     goal_state_position_width: float = 10
