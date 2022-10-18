@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from os import path
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
@@ -16,7 +16,7 @@ from OpenSCENARIO2CR.util.Serializable import Serializable
 @dataclass(frozen=True)
 class Osc2CrConverterResult(Serializable):
     statistics: ConversionStatistics
-    analysis: Dict[EAnalyzer, Dict[str, AnalyzerResult]]
+    analysis: Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]
     source_file: str
 
     scenario: Optional[Scenario]

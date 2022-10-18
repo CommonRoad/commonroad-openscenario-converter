@@ -4,7 +4,7 @@ import re
 import warnings
 from dataclasses import dataclass, field
 from multiprocessing import Value
-from typing import Dict, Optional, Union, Any, ClassVar, List, Tuple, Callable
+from typing import Dict, Optional, Union, ClassVar, List, Tuple, Callable
 
 import numpy as np
 import spot
@@ -27,7 +27,8 @@ from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
 
 @dataclass(frozen=True)
 class SpotAnalyzerResult(AnalyzerResult):
-    predictions: Dict[int, SetBasedPrediction] = field(default_factory=dict)
+    # predictions[time_step][obstacle_id] -> SetBasedPrediction
+    predictions: Dict[int, Union[AnalyzerErrorResult, Dict[int, SetBasedPrediction]]] = field(default_factory=dict)
 
     def __getstate__(self) -> Dict:
         return self.__dict__.copy()
@@ -40,8 +41,9 @@ class SpotAnalyzerResult(AnalyzerResult):
 class SpotAnalyzer(Analyzer):
     __scenario_id: ClassVar[Value] = Value(ctypes.c_int, 0)
 
-    start_time: float = 0.0
+    time_offset: float = 0.0
     num_time_steps: int = 10
+    stride: Optional[int] = None
 
     compute_occ_m1: bool = True
     compute_occ_m2: bool = True
@@ -59,18 +61,54 @@ class SpotAnalyzer(Analyzer):
 
         assert dataclass_is_complete(self)
 
-        results: Dict[str, AnalyzerResult] = {}
-        start_time_step = round(self.start_time / scenario.dt)
-        start_time = start_time_step * scenario.dt
+        time_step_offset = round(self.time_offset / scenario.dt)
+        time_offset = time_step_offset * scenario.dt
+        if self.stride is not None:
+            assert isinstance(self.stride, int) and self.stride > 0, "Stride must be a positive integer"
+            last_time_step = max([o.prediction.final_time_step for o in obstacles.values()])
+            time_steps = list(range(0, last_time_step + 1, self.stride))
+        else:
+            time_steps = [0]
 
         try:
-            spot_results = self._run_spot_simulation(scenario, start_time, obstacles, obstacles_extra_info)
-            for o_name, o_results in spot_results.items():
-                if isinstance(o_results, AnalyzerErrorResult):
-                    results[o_name] = o_results
-                else:
-                    results[o_name] = self._convert_spot_result_to_analyzer_result(o_results, start_time_step)
-            return results
+            t_scenario = copy.deepcopy(scenario)
+            t_scenario.remove_obstacle(t_scenario.obstacles)
+            predictions: Dict[str, Dict[int, Union[AnalyzerErrorResult, Dict[int, SetBasedPrediction]]]] = {
+                name: {} for name, o in obstacles.items() if o is not None
+            }
+            for t in time_steps:
+                t_obstacles: Dict[str, DynamicObstacle] = {}
+                for o_name, obstacle in obstacles.items():
+                    if obstacle is None:
+                        continue
+                    if obstacle.prediction.initial_time_step <= t <= obstacle.prediction.final_time_step:
+                        t_obstacles[o_name] = DynamicObstacle(
+                            obstacle_id=obstacle.obstacle_id,
+                            obstacle_type=obstacle.obstacle_type,
+                            obstacle_shape=obstacle.obstacle_shape,
+                            initial_state=obstacle.prediction.trajectory.state_at_time_step(t)
+                        )
+                t_scenario.add_objects(list(t_obstacles.values()))
+                for o_name, obstacle in t_obstacles.items():
+                    try:
+                        t_scenario.remove_obstacle(obstacle)
+                        spot_result = self._run_spot_simulation(
+                            scenario=t_scenario,
+                            time_offset=time_offset,
+                            ego_name=o_name,
+                            obstacles=t_obstacles,
+                            obstacles_extra_info=obstacles_extra_info
+                        )
+                        t_scenario.add_objects(obstacle)
+                        if isinstance(spot_result, AnalyzerErrorResult):
+                            predictions[o_name][t] = spot_result
+                        else:
+                            predictions[o_name][t] = self._convert_spot_result_to_predictions(spot_result, t)
+                    except Exception as e:
+                        predictions[o_name][t] = AnalyzerErrorResult.from_exception(e)
+                t_scenario.remove_obstacle(t_scenario.dynamic_obstacles)
+
+            return {o_name: SpotAnalyzerResult(predictions=pred) for o_name, pred in predictions.items()}
         except Exception as e:
             return {o_name: AnalyzerErrorResult.from_exception(e) for o_name in obstacles.keys()}
 
@@ -84,48 +122,42 @@ class SpotAnalyzer(Analyzer):
     def _run_spot_simulation(
             self,
             scenario: Scenario,
-            start_time: float,
+            time_offset: float,
+            ego_name: str,
             obstacles: Dict[str, Optional[DynamicObstacle]],
             obstacles_extra_info: Dict[str, Optional[Vehicle]]
-    ) -> Dict[str, Union[AnalyzerErrorResult, Any]]:
-        spot_results = {}
-        for obstacle_name, obstacle in obstacles.items():
-            try:
-                scenario_id = self.get_next_scenario_id()
-                o_scenario = copy.deepcopy(scenario)
-                o_scenario.remove_obstacle(obstacle)
-                pp = PlanningProblem(
-                    planning_problem_id=obstacle.obstacle_id,
-                    initial_state=obstacle.initial_state,
-                    goal_region=GoalRegion(state_list=[
-                        State(time_step=Interval(start=0, end=obstacle.prediction.final_time_step))
-                    ])
-                )
-                res = spot.registerScenario(
+    ) -> Union[AnalyzerErrorResult, list]:
+        try:
+            ego_obstacle = obstacles[ego_name]
+            scenario_id = self.get_next_scenario_id()
+            pp = PlanningProblem(
+                planning_problem_id=ego_obstacle.obstacle_id,
+                initial_state=ego_obstacle.initial_state,
+                goal_region=GoalRegion(state_list=[State(time_step=Interval(start=0, end=100))])
+            )
+            res = spot.registerScenario(
+                scenario_id,
+                scenario.lanelet_network,
+                scenario.dynamic_obstacles,
+                [pp]
+            )
+            assert res == 0, f"<SpotAnalyzer/run> registerScenario failed with {res}"
+            spot.updateProperties(scenario_id, self._get_update_properties(
+                ego_name, obstacles, obstacles_extra_info
+            ))
+            spot_result = (
+                spot.doOccupancyPrediction(
                     scenario_id,
-                    o_scenario.lanelet_network,
-                    o_scenario.dynamic_obstacles,
-                    [pp]
+                    float(time_offset),
+                    float(scenario.dt),
+                    float(time_offset + scenario.dt * self.num_time_steps),
+                    int(1)
                 )
-                assert res == 0, f"<SpotAnalyzer/run> registerScenario failed with {res}"
-                spot.updateProperties(scenario_id, self._get_update_properties(
-                    obstacle_name, obstacles, obstacles_extra_info
-                ))
-                spot_results[obstacle_name] = (
-                    spot.doOccupancyPrediction(
-                        scenario_id,
-                        float(start_time),
-                        float(o_scenario.dt),
-                        float(start_time + o_scenario.dt * self.num_time_steps),
-                        int(1)
-                    )
-                )
-                spot.removeScenario(scenario_id)
-            except TimeoutError as e:
-                raise e
-            except Exception as e:
-                spot_results[obstacle_name] = AnalyzerErrorResult.from_exception(e)
-        return spot_results
+            )
+            spot.removeScenario(scenario_id)
+            return spot_result
+        except Exception as e:
+            return AnalyzerErrorResult.from_exception(e)
 
     def _get_update_properties(self, ego_name: str, obstacles, obstacles_extra_info) \
             -> Dict[str, Dict[int, Dict[str, Union[bool, float]]]]:
@@ -204,7 +236,8 @@ class SpotAnalyzer(Analyzer):
             update_properties["EgoVehicle"] = {0: ego_properties}
         return update_properties
 
-    def _convert_spot_result_to_analyzer_result(self, spot_result: list, start_time_step: int) -> AnalyzerResult:
+    def _convert_spot_result_to_predictions(self, spot_result: list, start_time_step: int) \
+            -> Dict[int, SetBasedPrediction]:
         """
         Convert the spot return into actual usable obstacle objects
 
@@ -276,7 +309,4 @@ class SpotAnalyzer(Analyzer):
                     raise ValueError(f"Obstacle {o_id}: Last polygon not closed (at time_step={t})")
 
             predictions[o_id] = SetBasedPrediction(start_time_step, occupancy_list[0:])
-        return SpotAnalyzerResult(
-            calc_time=None,
-            predictions=predictions,
-        )
+        return predictions

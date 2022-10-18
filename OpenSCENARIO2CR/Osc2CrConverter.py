@@ -286,7 +286,7 @@ class Osc2CrConverter(Converter):
             obstacles: Dict[str, Optional[DynamicObstacle]],
             ego_vehicle: str,
             keep_ego_vehicle: bool,
-    ) -> Dict[EAnalyzer, Dict[str, AnalyzerResult]]:
+    ) -> Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]:
         analyzers = self.get_analyzer_objects()
         if len(analyzers) == 0:
             return {}

@@ -1,7 +1,7 @@
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from multiprocessing import Manager, Process
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
@@ -17,7 +17,7 @@ class Analyzer:
     timeout: float = 120
 
     def run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
-            obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Dict[str, AnalyzerResult]:
+            obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Tuple[float, Dict[str, AnalyzerResult]]:
         """
         The run method is the main entry point for your analyzer. It is called by the
         scenario runner and expects to receive three arguments:
@@ -34,7 +34,7 @@ class Analyzer:
         :param scenario:Scenario: Get the current scenario
         :param obstacles:Dict[str, Optional[DynamicObstacle]]: Obstacles per name
         :param obstacles_extra_info:Dict[str, Optional[Vehicle]]: Extra obstacle info per name
-        :return: A dictionary of analyzer results per obstacle name
+        :return: A tuple containing the dictionary of analyzer results per obstacle name and the calculation time
         """
         assert dataclass_is_complete(self)
 
@@ -53,14 +53,13 @@ class Analyzer:
                 process.kill()
                 exception_text = "Timed out - NEEDED SIGKILL"
             result = AnalyzerErrorResult(
-                calc_time=exec_time,
                 exception_text=exception_text,
                 traceback_text=""
             )
             results = {o_name: result for o_name in obstacles.keys()}
         else:
-            results = {o_name: replace(res, calc_time=exec_time) for o_name, res in result_dict.items()}
-        return results
+            results = dict(result_dict)
+        return exec_time, results
 
     def __run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
               obstacles_extra_info: Dict[str, Optional[Vehicle]], result_dict: Dict[str, AnalyzerResult]):

@@ -17,7 +17,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 
 
 @dataclass(frozen=True)
-class DrivabilityCheckerResult(AnalyzerResult):
+class DrivabilityAnalyzerResult(AnalyzerResult):
     collision: Optional[bool] = None
     feasibility: Optional[bool] = None
 
@@ -28,8 +28,9 @@ class DrivabilityCheckerResult(AnalyzerResult):
         self.__dict__.update(data)
 
 
-class DrivabilityChecker(Analyzer):
-    def __init__(self):
+class DrivabilityAnalyzer(Analyzer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.vehicle_dynamics = VehicleDynamics.KS(VehicleType.BMW_320i)
         self.dt = 0.1
 
@@ -63,11 +64,18 @@ class DrivabilityChecker(Analyzer):
                     collision_checker.add_collision_object(road_boundary)
                     traj = obstacle.prediction.trajectory
                     vehicle_collision_object = create_collision_object(obstacle)
-                    results[obstacle_name] = DrivabilityCheckerResult(
-                        calc_time=None,
+                    if len(traj.state_list) < 2:
+                        # If only one state is present, it is obviously always feasible
+                        feasibility = True
+                    else:
+                        feasibility = feasibility_checker.trajectory_feasibility(
+                            traj,
+                            self.vehicle_dynamics,
+                            self.dt
+                        )[0]
+                    results[obstacle_name] = DrivabilityAnalyzerResult(
                         collision=collision_checker.collide(vehicle_collision_object),
-                        feasibility=
-                        feasibility_checker.trajectory_feasibility(traj, self.vehicle_dynamics, self.dt)[0]
+                        feasibility=feasibility
                     )
                 except Exception as e:
                     results[obstacle_name] = AnalyzerErrorResult.from_exception(e)

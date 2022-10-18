@@ -16,7 +16,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 
 
 @dataclass(frozen=True)
-class STLMonitorResult(AnalyzerResult):
+class STLAnalyzerResult(AnalyzerResult):
     r_g1: Optional[np.ndarray] = None
     r_g2: Optional[np.ndarray] = None
     r_g3: Optional[np.ndarray] = None
@@ -29,7 +29,7 @@ class STLMonitorResult(AnalyzerResult):
 
 
 @dataclass
-class STLMonitor(Analyzer):
+class STLAnalyzer(Analyzer):
     def _run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
              obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Dict[str, AnalyzerResult]:
         try:
@@ -48,8 +48,7 @@ class STLMonitor(Analyzer):
                     vehicle = world.vehicle_by_id(obstacle.obstacle_id)
                     assert vehicle is not None, \
                         "Vehicle probably has weird trajectory and left lanelet network for at least one timestamp"
-                    results[obstacle_name] = STLMonitorResult(
-                        calc_time=None,
+                    results[obstacle_name] = STLAnalyzerResult(
                         r_g1=RuleEvaluator.create_from_config(world, vehicle, rule="R_G1").evaluate(),
                         r_g2=RuleEvaluator.create_from_config(world, vehicle, rule="R_G2").evaluate(),
                         r_g3=RuleEvaluator.create_from_config(world, vehicle, rule="R_G3").evaluate(),

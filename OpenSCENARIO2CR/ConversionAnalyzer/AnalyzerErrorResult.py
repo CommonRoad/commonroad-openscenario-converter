@@ -27,7 +27,6 @@ class AnalyzerErrorResult(AnalyzerResult):
     @staticmethod
     def from_exception(e: Exception) -> "AnalyzerErrorResult":
         return AnalyzerErrorResult(
-            calc_time=None,
             exception_text=str(e),
             traceback_text=traceback.format_exc(limit=50)
         )
