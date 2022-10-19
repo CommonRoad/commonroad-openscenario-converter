@@ -1,9 +1,11 @@
 import copy
 import ctypes
+import pickle
 import re
 import warnings
 from dataclasses import dataclass, field
-from multiprocessing import Value
+from multiprocessing import Value, Lock
+from os import path
 from typing import Dict, Optional, Union, ClassVar, List, Tuple, Callable
 
 import numpy as np
@@ -22,18 +24,55 @@ from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.util.AbsRel import AbsRel
+from OpenSCENARIO2CR.util.Serializable import Serializable
 from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
 
 
 @dataclass(frozen=True)
 class SpotAnalyzerResult(AnalyzerResult):
-    # predictions[time_step][obstacle_id] -> SetBasedPrediction
-    predictions: Dict[int, Union[AnalyzerErrorResult, Dict[int, SetBasedPrediction]]] = field(default_factory=dict)
+    __lock: ClassVar[Lock] = Lock()
+    __count: ClassVar[Value] = Value(ctypes.c_int, 1)
+    # predictions[time_step][obstacle_id] -> SetBasedPrediction (or int iff Serializable.load_extra_files == False)
+    predictions: Dict[int, Union[AnalyzerErrorResult, Dict[int, Union[SetBasedPrediction, int]]]] = \
+        field(default_factory=dict)
+
+    def __post_init__(self):
+        for pred_per_obstacle in self.predictions.values():
+            if not isinstance(pred_per_obstacle, AnalyzerErrorResult):
+                for pred in pred_per_obstacle.values():
+                    assert isinstance(pred, SetBasedPrediction), str(type(pred))
 
     def __getstate__(self) -> Dict:
-        return self.__dict__.copy()
+        data = self.__dict__.copy()
+        if Serializable.storage_dir is not None and Serializable.store_extra_files:
+            predictions_to_store: List[SetBasedPrediction] = []
+            for pred_per_obstacle in data["predictions"].values():
+                if not isinstance(pred_per_obstacle, AnalyzerErrorResult):
+                    for obstacle_id, pred in pred_per_obstacle.items():
+                        pred_per_obstacle[obstacle_id] = len(predictions_to_store)
+                        predictions_to_store.append(pred)
+
+            with self.__count.get_lock():
+                count = self.__count.value
+                self.__count.value += 1
+            file_path = path.join(Serializable.storage_dir, f"SpotAnalyzerResult_{count:06d}")
+            with open(file_path, "wb") as file:
+                pickle.dump(predictions_to_store, file)
+            data["file_path"] = file_path
+
+        return data
 
     def __setstate__(self, data: Dict):
+        if "file_path" in data:
+            if path.exists(data["file_path"]) and Serializable.import_extra_files:
+                with open(data["file_path"], "rb") as file:
+                    predictions_to_store = pickle.load(file)
+                for pred_per_obstacle in data["predictions"].values():
+                    if not isinstance(pred_per_obstacle, AnalyzerErrorResult):
+                        for obstacle_id, pred in pred_per_obstacle.items():
+                            assert isinstance(pred, int)
+                            pred_per_obstacle[obstacle_id] = predictions_to_store[pred]
+
         self.__dict__.update(data)
 
 
@@ -42,7 +81,7 @@ class SpotAnalyzer(Analyzer):
     __scenario_id: ClassVar[Value] = Value(ctypes.c_int, 0)
 
     time_offset: float = 0.0
-    num_time_steps: int = 10
+    num_time_steps: int = 11
     stride: Optional[int] = None
 
     compute_occ_m1: bool = True
@@ -276,7 +315,7 @@ class SpotAnalyzer(Analyzer):
             assert len(occupancy_all_time_steps) == self.num_time_steps, \
                 f"SPOT result shaped unexpectedly {len(occupancy_all_time_steps)} != {self.num_time_steps}"
             for t in range(self.num_time_steps):
-                occ = Occupancy(t + 1, ShapeGroup([]))
+                occ = Occupancy(start_time_step + t, ShapeGroup([]))
                 occupancy_list.append(occ)
 
             for t, occupancy_at_time_step in enumerate(occupancy_all_time_steps):
@@ -306,7 +345,7 @@ class SpotAnalyzer(Analyzer):
                             shape_group.shapes.append(shape_obj)
                             shape_vertices.clear()
                 if len(shape_vertices) != 0:
-                    raise ValueError(f"Obstacle {o_id}: Last polygon not closed (at time_step={t})")
+                    raise ValueError(f"Last polygon not closed")
 
             predictions[o_id] = SetBasedPrediction(start_time_step, occupancy_list[0:])
         return predictions

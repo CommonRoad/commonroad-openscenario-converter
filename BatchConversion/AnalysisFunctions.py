@@ -1,5 +1,4 @@
 from dataclasses import fields
-from dataclasses import fields
 from enum import Enum
 from typing import Union, Dict, List, Optional
 
@@ -129,14 +128,8 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
                                     scenario_success = False
                                     vehicle_run = False
                                     vehicle_success = False
-                                    continue
                                 else:
                                     count(f"{e_analyzer.name} single-t run")
-                                if len(t_result) != stats.num_obstacle_conversions - 1:
-                                    scenario_success = False
-                                    vehicle_success = False
-                                else:
-                                    count(f"{e_analyzer.name} single-t success")
 
                         if vehicle_run:
                             count(f"{e_analyzer.name} vehicle run")
@@ -207,8 +200,6 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
         elif e_analyzer == EAnalyzer.SPOT:
             print()
             perc("Single timestamps run", f"{e_analyzer.name} single-t run", f"{e_analyzer.name} single-t total")
-            perc("Single timestamps success", f"{e_analyzer.name} single-t success",
-                 f"{e_analyzer.name} single-t total")
 
 
 def print_exception_tracebacks(
@@ -234,6 +225,13 @@ def print_exception_tracebacks_for_analyzer(
         compressed=True,
 ):
     errors: Dict[AnalyzerErrorResult, int] = {}
+
+    def handle_error(source_file, found_error: AnalyzerErrorResult):
+        if not compressed:
+            print(f"{source_file}\n{found_error.traceback_text}")
+        else:
+            errors[found_error] = 1 + errors.get(found_error, 0)
+
     for scenario_path, result in statistics.items():
         if result.without_exception and isinstance(result.conversion_result, Osc2CrConverterResult):
             analysis = result.conversion_result.analysis
@@ -243,15 +241,16 @@ def print_exception_tracebacks_for_analyzer(
                     if isinstance(analyzer_result, AnalyzerErrorResult):
                         error = analyzer_result
                         if granularity == EGranularity.VEHICLE:
-                            if not compressed:
-                                print(f"{result.conversion_result.source_file}\n{analyzer_result.traceback_text}")
-                            else:
-                                errors[analyzer_result] = 1 + errors.get(analyzer_result, 0)
+                            handle_error(result.conversion_result.source_file, error)
+                    elif analyzer == EAnalyzer.SPOT and isinstance(analyzer_result, SpotAnalyzerResult):
+                        for t, result_at_t in analyzer_result.predictions.items():
+                            if isinstance(result_at_t, AnalyzerErrorResult):
+                                error = result_at_t
+                                if granularity == EGranularity.VEHICLE:
+                                    handle_error(result.conversion_result.source_file, error)
+
                 if granularity == EGranularity.SCENARIO and error is not None:
-                    if not compressed:
-                        print(f"{result.conversion_result.source_file}\n{error.traceback_text}\n\n\n")
-                    else:
-                        errors[error] = 1 + errors.get(error, 0)
+                    handle_error(result.conversion_result.source_file, error)
 
     for error, count in errors.items():
         print(f"{count}\n{error.exception_text}\n{error.traceback_text}")
