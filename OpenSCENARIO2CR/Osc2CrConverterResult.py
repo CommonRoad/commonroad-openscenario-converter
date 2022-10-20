@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from multiprocessing import Lock
 from os import path
-from typing import Dict, Optional, Tuple, ClassVar, List
+from typing import Dict, Optional, Tuple, ClassVar
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
@@ -12,7 +12,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerError
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
-from OpenSCENARIO2CR.util.Serializable import Serializable
+from BatchConversion.Serializable import Serializable
 
 
 @dataclass(frozen=True)
@@ -20,8 +20,9 @@ class Osc2CrConverterResult(Serializable):
     __lock: ClassVar[Lock] = Lock()
     statistics: ConversionStatistics
     analysis: Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]
-    source_file: str
-    odr_conversion_error: Optional[AnalyzerErrorResult]
+    xosc_file: str
+    xodr_file: Optional[str]
+    xodr_conversion_error: Optional[AnalyzerErrorResult]
 
     scenario: Optional[Scenario]
     planning_problem_set: Optional[PlanningProblemSet]
@@ -32,7 +33,7 @@ class Osc2CrConverterResult(Serializable):
                 and Serializable.storage_dir is not None and Serializable.store_extra_files:
             del data["scenario"]
             del data["planning_problem_set"]
-            file_path_base = path.join(Serializable.storage_dir, path.splitext(path.basename(self.source_file))[0])
+            file_path_base = path.join(Serializable.storage_dir, path.splitext(path.basename(self.xosc_file))[0])
             with self.__lock:
                 i = 1
                 while path.exists(file_path := file_path_base + f"{i}.xml"):

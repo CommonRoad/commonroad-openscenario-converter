@@ -11,6 +11,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.DrivabilityAnalyzer import DrivabilityAn
 from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.STLAnalyzer import STLAnalyzerResult
 from OpenSCENARIO2CR.ConversionAnalyzer.SpotAnalyzer import SpotAnalyzerResult
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.Osc2CrConverter import EFailureReason
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 
@@ -62,7 +63,7 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
         if not result.without_exception:
             count("exception")
         else:
-            result = result.conversion_result
+            result = result.get_result()
             if isinstance(result, EFailureReason):
                 count("failed")
                 count(f"failed {result.name}")
@@ -72,6 +73,12 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
                 times.append(stats.sim_time)
                 count("vehicle total", stats.num_obstacle_conversions)
                 count("vehicle failed", len(stats.failed_obstacle_conversions))
+                count(f"sim ending cause {stats.sim_ending_cause.name}")
+                if result.xodr_file is not None:
+                    count("odr conversions run")
+                    if result.xodr_conversion_error is None:
+                        count("odr conversions success")
+
                 for e_analyzer, analysis in result.analysis.items():
                     exec_time, analysis = analysis
                     analyzer_times[e_analyzer].append(exec_time)
@@ -152,6 +159,14 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
 
     print(f"{'Total num scenarios':<50s} {counts['total']:5d}")
     print(f"{'Average time':<50s} {np.mean(times):}")
+    print("-" * 80)
+    perc("OpenDRIVE Conversion run rate", "odr conversions run", "success")
+    perc("OpenDRIVE Conversion success rate", "odr conversions success", "success")
+    perc("", "odr conversions success", "odr conversions run")
+    print("-" * 80)
+    print("Sim Ending causes:")
+    for e_ending_cause in ESimEndingCause:
+        perc(f" | {e_ending_cause.name}", f"sim ending cause {e_ending_cause.name}", "success")
     print("\n" + "#" * 80)
     print("Granularity SCENARIO")
     print("-" * 80)
@@ -232,24 +247,27 @@ def print_exception_tracebacks_for_analyzer(
             errors[found_error] = 1 + errors.get(found_error, 0)
 
     for scenario_path, result in statistics.items():
-        if result.without_exception and isinstance(result.conversion_result, Osc2CrConverterResult):
-            analysis = result.conversion_result.analysis
+        if not result.without_exception:
+            continue
+        result = result.get_result()
+        if isinstance(result, Osc2CrConverterResult):
+            analysis = result.analysis
             if analyzer in analysis:
                 error = None
                 for vehicle_name, analyzer_result in analysis[analyzer][1].items():
                     if isinstance(analyzer_result, AnalyzerErrorResult):
                         error = analyzer_result
                         if granularity == EGranularity.VEHICLE:
-                            handle_error(result.conversion_result.source_file, error)
+                            handle_error(result.xosc_file, error)
                     elif analyzer == EAnalyzer.SPOT and isinstance(analyzer_result, SpotAnalyzerResult):
                         for t, result_at_t in analyzer_result.predictions.items():
                             if isinstance(result_at_t, AnalyzerErrorResult):
                                 error = result_at_t
                                 if granularity == EGranularity.VEHICLE:
-                                    handle_error(result.conversion_result.source_file, error)
+                                    handle_error(result.xosc_file, error)
 
                 if granularity == EGranularity.SCENARIO and error is not None:
-                    handle_error(result.conversion_result.source_file, error)
+                    handle_error(result.xosc_file, error)
 
     for error, count in errors.items():
         print(f"{count}\n{error.exception_text}\n{error.traceback_text}")
@@ -283,8 +301,11 @@ def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Opti
 def plot_sim_times(results, n_bins: int = 25, low_pass_filter: float = None, path: Optional[str] = None):
     times = []
     for scenario_path, result in results.items():
-        if result.without_exception and isinstance(result.conversion_result, Osc2CrConverterResult):
-            times.append(result.conversion_result.statistics.sim_time)
+        if not result.without_exception:
+            continue
+        result = result.get_result()
+        if isinstance(result, Osc2CrConverterResult):
+            times.append(result.statistics.sim_time)
     _plot_times(times, n_bins, low_pass_filter, path)
 
 
@@ -292,9 +313,12 @@ def plot_exec_times(results: dict, e_analyzer: EAnalyzer, n_bins: int = 25, low_
                     path: Optional[str] = None):
     times = []
     for scenario_path, result in results.items():
-        if result.without_exception and isinstance(result.conversion_result, Osc2CrConverterResult):
-            if e_analyzer in result.conversion_result.analysis:
-                times.append(result.conversion_result.analysis[e_analyzer][0])
+        if not result.without_exception:
+            continue
+        result = result.get_result()
+        if isinstance(result, Osc2CrConverterResult):
+            if e_analyzer in result.analysis:
+                times.append(result.analysis[e_analyzer][0])
     _plot_times(times, n_bins, low_pass_filter, path)
 
 
@@ -302,8 +326,11 @@ def plot_num_obstacles(results, low_pass_filter: Optional[int] = None, path: Opt
     global plot_color
     values = []
     for scenario_path, result in results.items():
-        if result.without_exception and isinstance(result.conversion_result, Osc2CrConverterResult):
-            values.append(result.conversion_result.statistics.num_obstacle_conversions)
+        if not result.without_exception:
+            continue
+        result = result.get_result()
+        if isinstance(result, Osc2CrConverterResult):
+            values.append(result.statistics.num_obstacle_conversions)
 
     if low_pass_filter is not None:
         fig, axs = plt.subplots(2, 1, sharey="all", tight_layout=True, figsize=(5, 5))

@@ -27,7 +27,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.util.AbsRel import AbsRel
-from OpenSCENARIO2CR.util.Serializable import Serializable
+from BatchConversion.Serializable import Serializable
 from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
 
 
@@ -56,9 +56,9 @@ class SpotAnalyzerResult(AnalyzerResult):
                         predictions_to_store.append(pred)
 
             with self.__count.get_lock():
-                count = self.__count.value
-                self.__count.value += 1
-            file_path = path.join(Serializable.storage_dir, f"SpotAnalyzerResult_{count:06d}")
+                while path.exists(file_path := path.join(Serializable.storage_dir,
+                                                         f"SpotAnalyzerResult_{self.__count.value:06d}")):
+                    self.__count.value += 1
             with open(file_path, "wb") as file:
                 pickle.dump(predictions_to_store, file)
             data["file_path"] = file_path

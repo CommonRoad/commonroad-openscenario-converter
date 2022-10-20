@@ -2,14 +2,13 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict
 
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapper import ESimEndingCause
-from OpenSCENARIO2CR.util.Serializable import Serializable
+from BatchConversion.Serializable import Serializable
 
 CR_MONITOR_TYPE = Optional[Dict[str, Optional[Dict[str, List[float]]]]]
 
 
 @dataclass(frozen=True)
 class ConversionStatistics(Serializable):
-    database_file: Optional[str]
     num_obstacle_conversions: int
     failed_obstacle_conversions: List[str]
     ego_vehicle: str
