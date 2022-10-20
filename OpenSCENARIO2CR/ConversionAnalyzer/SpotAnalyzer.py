@@ -147,7 +147,11 @@ class SpotAnalyzer(Analyzer):
                         predictions[o_name][t] = AnalyzerErrorResult.from_exception(e)
                 t_scenario.remove_obstacle(t_scenario.dynamic_obstacles)
 
-            return {o_name: SpotAnalyzerResult(predictions=pred) for o_name, pred in predictions.items()}
+            res = {o_name: SpotAnalyzerResult(predictions=pred) for o_name, pred in predictions.items()}
+            for o_name in obstacles.keys():
+                if o_name not in res:
+                    res[o_name] = AnalyzerErrorResult("SpotAnalyzer did not create a prediction", "")
+            return res
         except Exception as e:
             return {o_name: AnalyzerErrorResult.from_exception(e) for o_name in obstacles.keys()}
 

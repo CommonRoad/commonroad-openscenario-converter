@@ -1,0 +1,77 @@
+from dataclasses import dataclass
+from typing import Optional
+
+import numpy as np
+from commonroad.common.util import Interval, AngleInterval
+from commonroad.common.validity import is_valid_orientation
+from commonroad.geometry.shape import Rectangle
+from commonroad.planning.goal import GoalRegion
+from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
+from commonroad.scenario.obstacle import DynamicObstacle
+from commonroad.scenario.trajectory import State
+
+from OpenSCENARIO2CR.util.AbsRel import AbsRel
+from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
+
+
+@dataclass
+class PPSBuilder:
+    """
+    Planning Problem Set builder
+    """
+    # Required
+    time_interval: AbsRel[Interval] = AbsRel.relative(Interval(-10, 0))
+
+    position_length_factor: AbsRel[float] = AbsRel.absolute(50)
+    position_width_factor: AbsRel[float] = AbsRel.absolute(10)
+    position_rotation: AbsRel[float] = AbsRel.relative(0)
+    position_center_x: AbsRel[float] = AbsRel.relative(0)
+    position_center_y: AbsRel[float] = AbsRel.relative(0)
+
+    # Optional
+    velocity_interval: Optional[AbsRel[Interval]] = None
+    orientation_interval: Optional[AbsRel[AngleInterval]] = None
+
+    def build(self, obstacle: DynamicObstacle) -> PlanningProblemSet:
+        assert dataclass_is_complete(self)
+
+        initial_state = obstacle.prediction.trajectory.state_list[0]
+        final_state = obstacle.prediction.trajectory.final_state
+
+        goal_state = State()
+
+        position_rotation = self.position_rotation.as_summand(final_state.orientation)
+        while not is_valid_orientation(position_rotation):
+            if position_rotation > 0:
+                position_rotation -= 2 * np.pi
+            else:
+                position_rotation += 2 * np.pi
+        center = np.array((
+            self.position_center_x.as_summand(final_state.position[0]),
+            self.position_center_y.as_summand(final_state.position[1]),
+        ))
+        goal_state.position = Rectangle(
+            length=self.position_length_factor.as_factor(obstacle.obstacle_shape.length),
+            width=self.position_width_factor.as_factor(obstacle.obstacle_shape.width),
+            center=center,
+            orientation=position_rotation
+        )
+
+        goal_state.time_step = self.time_interval.as_summand(final_state.time_step)
+
+        if self.velocity_interval is not None:
+            goal_state.velocity = self.velocity_interval.as_summand(final_state.velocity)
+        if self.orientation_interval is not None:
+            goal_state.orientation = self.orientation_interval.as_summand(final_state.orientation)
+
+        return PlanningProblemSet(
+            [
+                PlanningProblem(
+                    planning_problem_id=obstacle.obstacle_id,
+                    initial_state=initial_state,
+                    goal_region=GoalRegion(
+                        state_list=[goal_state]
+                    )
+                )
+            ]
+        )

@@ -26,7 +26,7 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResul
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
 from OpenSCENARIO2CR.util.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
-from OpenSCENARIO2CR.util.PlanningProblemBuilder import PPSBuilder
+from OpenSCENARIO2CR.util.PPSBuilder import PPSBuilder
 from OpenSCENARIO2CR.util.UtilFunctions import trim_scenario, dataclass_is_complete
 
 
