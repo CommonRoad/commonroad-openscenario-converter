@@ -1,13 +1,14 @@
 from dataclasses import dataclass
 from multiprocessing import Lock
 from os import path
-from typing import Dict, Optional, Tuple, ClassVar
+from typing import Dict, Optional, Tuple, ClassVar, List
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 
+from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
@@ -20,6 +21,7 @@ class Osc2CrConverterResult(Serializable):
     statistics: ConversionStatistics
     analysis: Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]
     source_file: str
+    odr_conversion_error: Optional[AnalyzerErrorResult]
 
     scenario: Optional[Scenario]
     planning_problem_set: Optional[PlanningProblemSet]

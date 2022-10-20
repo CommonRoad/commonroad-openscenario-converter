@@ -16,6 +16,7 @@ from crdesigner.map_conversion.map_conversion_interface import opendrive_to_comm
 
 from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
+from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
@@ -87,7 +88,7 @@ class Osc2CrConverter(Converter):
         if isinstance(implicit_opendrive_path, EFailureReason):
             return implicit_opendrive_path
 
-        scenario, used_odr_file = self._create_scenario(implicit_opendrive_path)
+        scenario, used_odr_file, odr_conversion_error = self._create_scenario(implicit_opendrive_path)
         if isinstance(scenario, EFailureReason):
             return scenario
 
@@ -136,6 +137,7 @@ class Osc2CrConverter(Converter):
                 keep_ego_vehicle=keep_ego_vehicle,
             ),
             source_file=source_file,
+            odr_conversion_error=odr_conversion_error,
             scenario=scenario,
             planning_problem_set=self.pps_builder.build(obstacles[ego_vehicle]),
         )
@@ -162,7 +164,8 @@ class Osc2CrConverter(Converter):
             return path.join(path.dirname(source_file), implicit_odr_file.attrib["filepath"])
         return None
 
-    def _create_scenario(self, implicit_odr_file: Optional[str]) -> Tuple[Scenario, Optional[str]]:
+    def _create_scenario(self, implicit_odr_file: Optional[str]) \
+            -> Tuple[Scenario, Optional[str], Optional[AnalyzerErrorResult]]:
         odr_file: Optional[str] = None
         if self.odr_file_override is not None:
             if path.exists(self.odr_file_override):
@@ -177,9 +180,14 @@ class Osc2CrConverter(Converter):
                 warnings.warn(
                     f"<OpenSCENARIO2CRConverter/_create_scenario> File {implicit_odr_file} does not exist")
 
+        odr_conversion_error = None
         if odr_file is not None:
-            scenario = opendrive_to_commonroad(odr_file)
-            scenario.dt = self.dt_cr
+            try:
+                scenario = opendrive_to_commonroad(odr_file)
+                scenario.dt = self.dt_cr
+            except Exception as e:
+                odr_conversion_error = AnalyzerErrorResult.from_exception(e)
+                scenario = Scenario(self.dt_cr)
         else:
             scenario = Scenario(self.dt_cr)
 
@@ -188,7 +196,7 @@ class Osc2CrConverter(Converter):
         scenario.source = self.source
         scenario.tags = self.tags
 
-        return scenario, odr_file
+        return scenario, odr_file, odr_conversion_error
 
     def _is_object_name_used(self, object_name: str):
         return self.ego_filter is None or self.ego_filter.match(object_name) is None
