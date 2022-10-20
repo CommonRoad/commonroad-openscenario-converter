@@ -4,8 +4,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Dict, Optional, ClassVar
 
-import numpy as np
-
 
 @dataclass(frozen=True)
 class Serializable(ABC):
@@ -38,11 +36,3 @@ class Serializable(ABC):
     @staticmethod
     def str_to_pickle(data: str):
         return pickle.loads(Serializable.str_to_bytes(data))
-
-    @staticmethod
-    def ndarray_to_str(ndarray: np.ndarray) -> str:
-        return Serializable.bytes_to_str(ndarray.tobytes())
-
-    @staticmethod
-    def str_to_ndarray(data: str) -> np.ndarray:
-        return np.frombuffer(Serializable.str_to_bytes(data))

@@ -1,21 +1,22 @@
 import os
+import pickle
 import re
+import warnings
 from concurrent.futures import ProcessPoolExecutor, Future
 from dataclasses import dataclass
-from enum import Enum
-from typing import Optional, Any, Dict, Union, List
+from typing import Optional, Dict, List
 
 from tqdm import tqdm
 
 from BatchConversion.Converter import Converter
+from BatchConversion.Serializable import Serializable
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.util.Serializable import Serializable
 
 
 @dataclass(frozen=True)
 class BatchConversionResult(Serializable):
     exception: Optional[AnalyzerErrorResult]
-    conversion_result: Union[None, Enum, Serializable]
+    result_file: Optional[str]
 
     def __getstate__(self) -> Dict:
         return self.__dict__.copy()
@@ -24,21 +25,26 @@ class BatchConversionResult(Serializable):
         self.__dict__.update(data)
 
     @staticmethod
-    def from_conversion_result(conversion_result: Any) -> "BatchConversionResult":
+    def from_result_file(result_file: str) -> "BatchConversionResult":
         return BatchConversionResult(
             exception=None,
-            conversion_result=conversion_result
+            result_file=os.path.abspath(result_file)
         )
 
     @staticmethod
     def from_exception(e: Exception) -> "BatchConversionResult":
         return BatchConversionResult(
             exception=AnalyzerErrorResult.from_exception(e),
-            conversion_result=None
+            result_file=None
         )
 
+    def get_result(self) -> Serializable:
+        assert self.without_exception
+        with open(self.result_file, "rb") as file:
+            return pickle.load(file)
+
     def __post_init__(self):
-        assert self.exception is not None or self.conversion_result is not None
+        assert self.exception is not None or self.result_file is not None
 
     @property
     def without_exception(self) -> bool:
@@ -79,8 +85,13 @@ class BatchConverter:
                 if file_matcher.match(file) is not None:
                     self.file_list.append(os.path.join(dir_path, file))
 
-    def run_batch_conversion(self, num_worker: Optional[int] = 0, timeout: Optional[int] = None) \
+    def run_batch_conversion(self, num_worker: Optional[int], timeout: Optional[int] = None) \
             -> Dict[str, BatchConversionResult]:
+        assert Serializable.storage_dir is not None
+        assert os.path.exists(Serializable.storage_dir)
+        if not Serializable.store_extra_files:
+            warnings.warn("Running Batch Conversion without storing extra files")
+            input("Do you ")
         if num_worker <= 0:
             num_worker = os.cpu_count()
         with ProcessPoolExecutor(max_workers=num_worker) as pool:
@@ -94,10 +105,10 @@ class BatchConverter:
                     ret[file] = result.result(timeout=timeout)
                 except Exception as e:
                     ret[file] = BatchConversionResult.from_exception(e)
-            return ret
+        return ret
 
     @staticmethod
     def _convert_single(file: str, converter: Converter) -> BatchConversionResult:
-        return BatchConversionResult.from_conversion_result(
-            converter.run_conversion(file)
+        return BatchConversionResult.from_result_file(
+            converter.run_in_batch_conversion(file)
         )

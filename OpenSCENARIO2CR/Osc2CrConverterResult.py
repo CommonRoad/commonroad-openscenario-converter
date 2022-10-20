@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from multiprocessing import Lock
 from os import path
-from typing import Dict, Optional, Tuple, ClassVar, List
+from typing import Dict, Optional, Tuple, ClassVar
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
@@ -12,7 +12,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerError
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
-from OpenSCENARIO2CR.util.Serializable import Serializable
+from BatchConversion.Serializable import Serializable
 
 
 @dataclass(frozen=True)
