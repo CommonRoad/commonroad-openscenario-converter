@@ -72,6 +72,11 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
                 times.append(stats.sim_time)
                 count("vehicle total", stats.num_obstacle_conversions)
                 count("vehicle failed", len(stats.failed_obstacle_conversions))
+                if result.xodr_file is not None:
+                    count("odr conversions run")
+                    if result.xodr_conversion_error is None:
+                        count("odr conversions success")
+
                 for e_analyzer, analysis in result.analysis.items():
                     exec_time, analysis = analysis
                     analyzer_times[e_analyzer].append(exec_time)
@@ -160,6 +165,10 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
     for reason in EFailureReason:
         perc(f" | {reason.name}", f"failed {reason.name}", "failed")
     perc("Conversion exception rate", "exception", "total")
+    print("-" * 80)
+    perc("OpenDRIVE Conversion run rate", "odr conversions run", "success")
+    perc("OpenDRIVE Conversion success rate", "odr conversions success", "success")
+    perc("", "odr conversions success", "odr conversions run")
     for e_analyzer in EAnalyzer:
         print("-" * 80)
         print(f"{e_analyzer.name}")
@@ -240,16 +249,16 @@ def print_exception_tracebacks_for_analyzer(
                     if isinstance(analyzer_result, AnalyzerErrorResult):
                         error = analyzer_result
                         if granularity == EGranularity.VEHICLE:
-                            handle_error(result.conversion_result.source_file, error)
+                            handle_error(result.conversion_result.xosc_file, error)
                     elif analyzer == EAnalyzer.SPOT and isinstance(analyzer_result, SpotAnalyzerResult):
                         for t, result_at_t in analyzer_result.predictions.items():
                             if isinstance(result_at_t, AnalyzerErrorResult):
                                 error = result_at_t
                                 if granularity == EGranularity.VEHICLE:
-                                    handle_error(result.conversion_result.source_file, error)
+                                    handle_error(result.conversion_result.xosc_file, error)
 
                 if granularity == EGranularity.SCENARIO and error is not None:
-                    handle_error(result.conversion_result.source_file, error)
+                    handle_error(result.conversion_result.xosc_file, error)
 
     for error, count in errors.items():
         print(f"{count}\n{error.exception_text}\n{error.traceback_text}")

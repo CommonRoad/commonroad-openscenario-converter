@@ -81,19 +81,19 @@ class Osc2CrConverter(Converter):
             -> Union[Osc2CrConverterResult, EFailureReason]:
         assert dataclass_is_complete(self)
 
-        source_file = path.abspath(source_file)
+        xosc_file = path.abspath(source_file)
 
-        implicit_opendrive_path = self._pre_parse_scenario(source_file)
+        implicit_opendrive_path = self._pre_parse_scenario(xosc_file)
 
         if isinstance(implicit_opendrive_path, EFailureReason):
             return implicit_opendrive_path
 
-        scenario, used_odr_file, odr_conversion_error = self._create_scenario(implicit_opendrive_path)
+        scenario, xodr_file, xodr_conversion_error = self._create_scenario(implicit_opendrive_path)
         if isinstance(scenario, EFailureReason):
             return scenario
 
         dt_sim = self.dt_sim if self.dt_sim is not None else self.dt_cr / 10
-        res: WrapperSimResult = self.sim_wrapper.simulate_scenario(source_file, dt_sim)
+        res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
         if res.ending_cause is ESimEndingCause.FAILURE:
             return EFailureReason.SIMULATION_FAILED_CREATING_OUTPUT
         if len(res.states) == 0:
@@ -112,7 +112,7 @@ class Osc2CrConverter(Converter):
         ])
         extra_information_finder = ObstacleExtraInfoFinder()
         extra_information_finder.obstacles = obstacles
-        extra_information_finder.scenario_path = source_file
+        extra_information_finder.scenario_path = xosc_file
         if len(scenario.lanelet_network.lanelets) > 0:
             scenario.assign_obstacles_to_lanelets()
 
@@ -127,17 +127,17 @@ class Osc2CrConverter(Converter):
                 keep_ego_vehicle=keep_ego_vehicle,
                 ending_cause=ending_cause,
                 sim_time=sim_time,
-                used_odr_file=used_odr_file
             ),
             analysis=self.run_analysis(
-                scenario_path=source_file,
+                scenario_path=xosc_file,
                 scenario=scenario,
                 obstacles=obstacles,
                 ego_vehicle=ego_vehicle,
                 keep_ego_vehicle=keep_ego_vehicle,
             ),
-            source_file=source_file,
-            odr_conversion_error=odr_conversion_error,
+            xosc_file=xosc_file,
+            xodr_file=xodr_file,
+            xodr_conversion_error=xodr_conversion_error,
             scenario=scenario,
             planning_problem_set=self.pps_builder.build(obstacles[ego_vehicle]),
         )
@@ -274,10 +274,8 @@ class Osc2CrConverter(Converter):
             keep_ego_vehicle: bool,
             ending_cause: ESimEndingCause,
             sim_time: float,
-            used_odr_file: Optional[str] = None,
     ) -> ConversionStatistics:
         return ConversionStatistics(
-            database_file=used_odr_file,
             num_obstacle_conversions=len(obstacles),
             failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
             ego_vehicle=ego_vehicle,

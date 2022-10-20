@@ -9,7 +9,6 @@ CR_MONITOR_TYPE = Optional[Dict[str, Optional[Dict[str, List[float]]]]]
 
 @dataclass(frozen=True)
 class ConversionStatistics(Serializable):
-    database_file: Optional[str]
     num_obstacle_conversions: int
     failed_obstacle_conversions: List[str]
     ego_vehicle: str
