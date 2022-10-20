@@ -9,7 +9,10 @@ from os import path
 from typing import Dict, Optional, Union, ClassVar, List, Tuple, Callable
 
 import numpy as np
-import spot
+try:
+    import spot
+except:
+    pass
 from commonroad.common.util import Interval
 from commonroad.geometry.shape import ShapeGroup, Polygon
 from commonroad.planning.goal import GoalRegion

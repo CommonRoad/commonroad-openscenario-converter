@@ -6,8 +6,11 @@ from typing import Dict, Optional
 import numpy as np
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
-from crmonitor.common.world import World
-from crmonitor.evaluation.evaluation import RuleEvaluator
+try:
+    from crmonitor.common.world import World
+    from crmonitor.evaluation.evaluation import RuleEvaluator
+except:
+    pass
 from scenariogeneration.xosc import Vehicle
 
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
