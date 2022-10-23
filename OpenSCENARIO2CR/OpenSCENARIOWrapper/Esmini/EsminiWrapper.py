@@ -211,12 +211,12 @@ class EsminiWrapper(SimWrapper):
             if window_size is not None:
                 self._set_set_window_size(window_size)
             image_regex = re.compile(r"screen_shot_\d{5,}\.tga")
-            ignored_images = set([p for p in os.listdir("") if image_regex.match(p) is not None])
+            ignored_images = set([p for p in os.listdir(".") if image_regex.match(p) is not None])
             while self._sim_finished() is None:
                 self._sim_step(1 / fps)
             self._close_scenario_engine()
             images = sorted(
-                [p for p in os.listdir("") if image_regex.match(p) is not None and p not in ignored_images])
+                [p for p in os.listdir(".") if image_regex.match(p) is not None and p not in ignored_images])
             with imageio.get_writer(gif_file_path, mode="I", fps=fps) as writer:
                 for image in images:
                     writer.append_data(imageio.v3.imread(image))

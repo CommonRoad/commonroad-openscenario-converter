@@ -204,14 +204,7 @@ class EsminiScenarioObjectState(ScenarioObjectState):
 
     @property
     def slip_angle(self) -> float:
-        if not hasattr(self, "_slip_angle"):
-            if np.isclose(self.speed, 0.0):
-                self._slip_angle = 0.0
-            else:
-                slip_angle_x = np.arccos(max(-1, min(self._get_differentiate("x") / self.speed, 1))) - self.h
-                slip_angle_y = np.arcsin(max(-1, min(self._get_differentiate("y") / self.speed, 1))) - self.h
-                self._slip_angle = (slip_angle_x + slip_angle_y) / 2
-        return self._slip_angle
+        return 0.0
 
     @property
     def road_id(self) -> int:

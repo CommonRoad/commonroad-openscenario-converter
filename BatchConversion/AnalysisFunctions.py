@@ -3,9 +3,11 @@ from enum import Enum
 from typing import Union, Dict, List, Optional
 
 import numpy as np
+from commonroad.visualization.mp_renderer import MPRenderer
 from matplotlib import pyplot as plt
 
 from BatchConversion.BatchConverter import BatchConversionResult
+from BatchConversion.Serializable import Serializable
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.DrivabilityAnalyzer import DrivabilityAnalyzerResult
 from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
@@ -15,7 +17,29 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.Osc2CrConverter import EFailureReason
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 
-plot_color = "#0065BD"
+dark_blue = "#005293"
+middle_blue = "#64A0C8"
+blue = "#0065BD"
+orange = "#E37222"
+green = "#A2AD00"
+ivory = "#DAD7CB"
+gray = "#999999"
+
+
+def get_colors(input_data):
+    if isinstance(input_data[0], list):
+        if len(input_data) == 1:
+            return blue
+        elif len(input_data) == 2:
+            return [blue, orange]
+        elif len(input_data) == 3:
+            return [blue, orange, green]
+        elif len(input_data) == 4:
+            return [dark_blue, orange, middle_blue, green]
+        elif len(input_data) == 5:
+            return [dark_blue, orange, middle_blue, green, gray]
+    else:
+        return blue
 
 
 class EGranularity(Enum):
@@ -274,39 +298,65 @@ def print_exception_tracebacks_for_analyzer(
         print("\n" * 3)
 
 
-def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Optional[str]):
-    global plot_color
+def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Optional[str], label=None):
     if low_pass_filter is None:
         fig = plt.figure(figsize=(5, 2.5), tight_layout=True)
-        plt.hist(times, bins=n_bins, color=plot_color)
+        plt.hist(times, bins=n_bins, color=get_colors(times))
+        if label is not None:
+            plt.legend(label)
         plt.xlabel("t [s]")
         plt.ylabel("# scenarios")
         plt.show()
     else:
-        fig, axs = plt.subplots(2, 1, sharey="all", tight_layout=True, figsize=(5, 5))
-        axs[0].hist(times, bins=n_bins, color=plot_color)
+        fig, axs = plt.subplots(2, 1, sharey="all", tight_layout=True, figsize=(10, 5))
+        axs[0].hist(times, bins=n_bins, color=get_colors(times))
         axs[0].set_xlabel("t [s]")
         axs[0].set_ylabel("# scenarios")
 
-        axs[1].hist([t for t in times if t <= low_pass_filter], bins=n_bins, color=plot_color)
+        filtered_times = []
+        if isinstance(times[0], list):
+            for ts in times:
+                single_times = []
+                for t in ts:
+                    if t <= low_pass_filter:
+                        single_times.append(t)
+                filtered_times.append(single_times)
+        else:
+            filtered_times = [t for t in times if t <= low_pass_filter]
+        axs[1].hist(filtered_times, bins=n_bins, color=get_colors(times))
         axs[1].set_xlabel("t [s]")
         axs[1].set_ylabel("# scenarios")
         axs[1].set_xlim((0, low_pass_filter))
+
+        if label is not None:
+            axs[0].legend(label, loc="upper center")
         fig.show()
 
     if path is not None:
         fig.savefig(path)
 
 
-def plot_sim_times(results, n_bins: int = 25, low_pass_filter: float = None, path: Optional[str] = None):
+def plot_sim_times(results, n_bins: int = 25, low_pass_filter: float = None, path: Optional[str] = None, label=None):
     times = []
-    for scenario_path, result in results.items():
-        if not result.without_exception:
-            continue
-        result = result.get_result()
-        if isinstance(result, Osc2CrConverterResult):
-            times.append(result.statistics.sim_time)
-    _plot_times(times, n_bins, low_pass_filter, path)
+    if isinstance(results, list):
+        for res in results:
+            times_for_result = []
+            for scenario_path, result in res.items():
+                if not result.without_exception:
+                    continue
+                result = result.get_result()
+                if isinstance(result, Osc2CrConverterResult):
+                    times_for_result.append(result.statistics.sim_time)
+            times.append(times_for_result)
+    else:
+        for scenario_path, result in results.items():
+            if not result.without_exception:
+                continue
+            result = result.get_result()
+            if isinstance(result, Osc2CrConverterResult):
+                times.append(result.statistics.sim_time)
+
+    _plot_times(times, n_bins, low_pass_filter, path, label)
 
 
 def plot_exec_times(results: dict, e_analyzer: EAnalyzer, n_bins: int = 25, low_pass_filter: Optional[float] = None,
@@ -323,7 +373,6 @@ def plot_exec_times(results: dict, e_analyzer: EAnalyzer, n_bins: int = 25, low_
 
 
 def plot_num_obstacles(results, low_pass_filter: Optional[int] = None, path: Optional[str] = None):
-    global plot_color
     values = []
     for scenario_path, result in results.items():
         if not result.without_exception:
@@ -337,14 +386,14 @@ def plot_num_obstacles(results, low_pass_filter: Optional[int] = None, path: Opt
 
         x = list(range(max(values) + 1))[1:]
         y = [len([None for v in values if v == x_val]) for x_val in x]
-        axs[0].bar(x, y, color=plot_color)
+        axs[0].bar(x, y, color=blue)
         axs[0].set_xlabel("# obstacles")
         axs[0].set_ylabel("# scenarios")
 
         filtered = [v for v in values if v <= low_pass_filter]
         x = list(range(max(filtered) + 1))[1:]
         y = [len([None for v in filtered if v == x_val]) for x_val in x]
-        axs[1].bar(x, y, color=plot_color)
+        axs[1].bar(x, y, color=blue)
         axs[1].set_xlabel("# obstacles")
         axs[1].set_ylabel("# scenarios")
 
@@ -353,9 +402,40 @@ def plot_num_obstacles(results, low_pass_filter: Optional[int] = None, path: Opt
         fig = plt.figure(figsize=(5, 2.5), tight_layout=True)
         x = list(range(max(values) + 1))[1:]
         y = [len([None for v in values if v == x_val]) for x_val in x]
-        plt.bar(x, y, color=plot_color)
+        plt.bar(x, y, color=blue)
         plt.xlabel("# obstacles")
         plt.ylabel("# scenarios")
         fig.show()
     if path is not None:
         fig.savefig(path)
+
+
+def plot_scenarios(results, path: Optional[str] = None):
+    prev = Serializable.import_extra_files
+    Serializable.import_extra_files = False
+    for scenario_path, result in results.items():
+        if not result.without_exception:
+            continue
+        result_without_files = result.get_result()
+        if isinstance(result_without_files, Osc2CrConverterResult):
+            any_error = False
+            for res in result_without_files.analysis.values():
+                for r in res[1].values():
+                    if isinstance(r, AnalyzerErrorResult):
+                        any_error = True
+            if any_error:
+                continue
+            if result_without_files.xodr_conversion_error is not None:
+                continue
+            Serializable.import_extra_files = True
+            result_with_files = result.get_result()
+            rnd = MPRenderer()
+            if result_with_files.scenario is not None:
+                result_with_files.scenario.draw(rnd)
+            if result_with_files.planning_problem_set is not None:
+                result_with_files.planning_problem_set.draw(rnd)
+            rnd.render(filename=path)
+            print(scenario_path)
+            plt.show()
+            Serializable.import_extra_files = False
+    Serializable.import_extra_files = prev

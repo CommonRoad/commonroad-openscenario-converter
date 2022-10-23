@@ -13,6 +13,7 @@ from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario, Tag
 from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
+from scenariogeneration.xosc import Vehicle
 
 from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
@@ -104,15 +105,20 @@ class Osc2CrConverter(Converter):
         ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(res.states.keys()))
         keep_ego_vehicle = self.keep_ego_vehicle
 
-        obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, res.states, res.sim_time)
+        obstacles_extra_info = ObstacleExtraInfoFinder(xosc_file, set(res.states.keys())).run()
+        obstacles_extra_info_finder_error = None
+        if isinstance(obstacles_extra_info, AnalyzerErrorResult):
+            obstacles_extra_info_finder_error = obstacles_extra_info
+            obstacles_extra_info = {o_name: None for o_name in res.states.keys()}
+
+        obstacles = self._create_obstacles_from_state_lists(
+            scenario, ego_vehicle, res.states, res.sim_time, obstacles_extra_info
+        )
 
         scenario.add_objects([
             obstacle for obstacle_name, obstacle in obstacles.items()
             if obstacle is not None and (self.keep_ego_vehicle or ego_vehicle != obstacle_name)
         ])
-        extra_information_finder = ObstacleExtraInfoFinder()
-        extra_information_finder.obstacles = obstacles
-        extra_information_finder.scenario_path = xosc_file
         if len(scenario.lanelet_network.lanelets) > 0:
             scenario.assign_obstacles_to_lanelets()
 
@@ -129,15 +135,16 @@ class Osc2CrConverter(Converter):
                 sim_time=sim_time,
             ),
             analysis=self.run_analysis(
-                scenario_path=xosc_file,
                 scenario=scenario,
                 obstacles=obstacles,
                 ego_vehicle=ego_vehicle,
                 keep_ego_vehicle=keep_ego_vehicle,
+                obstacles_extra_info=obstacles_extra_info
             ),
             xosc_file=xosc_file,
             xodr_file=xodr_file,
             xodr_conversion_error=xodr_conversion_error,
+            obstacles_extra_info_finder_error=obstacles_extra_info_finder_error,
             scenario=scenario,
             planning_problem_set=self.pps_builder.build(obstacles[ego_vehicle]),
         )
@@ -215,6 +222,7 @@ class Osc2CrConverter(Converter):
             ego_vehicle: str,
             states: Dict[str, List[SimScenarioObjectState]],
             sim_time: float,
+            obstacles_extra_info: Dict[str, Optional[Vehicle]]
     ) -> Dict[str, Optional[DynamicObstacle]]:
         final_timestamps = [step * self.dt_cr for step in range(math.floor(sim_time / self.dt_cr) + 1)]
 
@@ -223,6 +231,7 @@ class Osc2CrConverter(Converter):
                 obstacle_id=scenario.generate_object_id(),
                 states=states[obstacle_name],
                 timestamps=final_timestamps,
+                obstacle_extra_info=obstacles_extra_info[obstacle_name]
             )
 
         # Make sure ego vehicle is always the obstacle with the lowest obstacle_id
@@ -236,7 +245,8 @@ class Osc2CrConverter(Converter):
             self,
             obstacle_id: int,
             states: List[SimScenarioObjectState],
-            timestamps: List[float]
+            timestamps: List[float],
+            obstacle_extra_info: Optional[Vehicle],
     ) -> Optional[DynamicObstacle]:
         if len(states) == 0:
             return None
@@ -247,7 +257,7 @@ class Osc2CrConverter(Converter):
         first_used_time_step = round(first_used_timestamp / self.dt_cr)
         last_used_time_step = round(last_used_timestamp / self.dt_cr)
         used_timestamps = sorted([t for t in timestamps if first_used_timestamp <= t <= last_used_timestamp])
-        used_states = [ScenarioObjectState.build_interpolated(states, t) for t in used_timestamps]
+        used_states = [ScenarioObjectState.build_interpolated(states, t, obstacle_extra_info) for t in used_timestamps]
 
         shape = Rectangle(states[0].get_object_length(), states[0].get_object_width())
         trajectory = Trajectory(
@@ -273,7 +283,7 @@ class Osc2CrConverter(Converter):
             ego_vehicle_found_with_filter: bool,
             keep_ego_vehicle: bool,
             ending_cause: ESimEndingCause,
-            sim_time: float,
+            sim_time: float
     ) -> ConversionStatistics:
         return ConversionStatistics(
             num_obstacle_conversions=len(obstacles),
@@ -287,11 +297,11 @@ class Osc2CrConverter(Converter):
 
     def run_analysis(
             self,
-            scenario_path: str,
             scenario: Scenario,
             obstacles: Dict[str, Optional[DynamicObstacle]],
             ego_vehicle: str,
             keep_ego_vehicle: bool,
+            obstacles_extra_info: Dict[str, Optional[Vehicle]],
     ) -> Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]:
         analyzers = self.get_analyzer_objects()
         if len(analyzers) == 0:
@@ -302,7 +312,6 @@ class Osc2CrConverter(Converter):
                 trimmed_scenario.add_objects(obstacles[ego_vehicle])
                 if len(scenario.lanelet_network.lanelets) > 0:
                     scenario.assign_obstacles_to_lanelets()
-            obstacles_extra_info = ObstacleExtraInfoFinder(scenario_path=scenario_path, obstacles=obstacles).run()
             return {
                 e_analyzer: analyzer.run(
                     trimmed_scenario,

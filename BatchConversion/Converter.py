@@ -13,7 +13,7 @@ class Converter(ABC):
 
     def run_in_batch_conversion(self, source_file: str) -> str:
         with self.__lock:
-            file_path_base = path.join(Serializable.storage_dir, "Res_", path.splitext(path.basename(source_file))[0])
+            file_path_base = path.join(Serializable.storage_dir, "Res_" + path.splitext(path.basename(source_file))[0])
             i = 1
             while path.exists(result_file := file_path_base + f"{i}.pickle"):
                 i += 1

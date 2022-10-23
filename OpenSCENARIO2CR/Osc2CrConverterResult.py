@@ -23,6 +23,7 @@ class Osc2CrConverterResult(Serializable):
     xosc_file: str
     xodr_file: Optional[str]
     xodr_conversion_error: Optional[AnalyzerErrorResult]
+    obstacles_extra_info_finder_error: Optional[AnalyzerErrorResult]
 
     scenario: Optional[Scenario]
     planning_problem_set: Optional[PlanningProblemSet]

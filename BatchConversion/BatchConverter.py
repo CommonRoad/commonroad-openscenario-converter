@@ -85,10 +85,11 @@ class BatchConverter:
                 if file_matcher.match(file) is not None:
                     self.file_list.append(os.path.join(dir_path, file))
 
-    def run_batch_conversion(self, num_worker: Optional[int], timeout: Optional[int] = None) \
-            -> Dict[str, BatchConversionResult]:
+    def run_batch_conversion(self, num_worker: Optional[int], timeout: Optional[int] = None):
         assert Serializable.storage_dir is not None
         assert os.path.exists(Serializable.storage_dir)
+        storage_dir = Serializable.storage_dir
+
         if not Serializable.store_extra_files:
             warnings.warn("Running Batch Conversion without storing extra files")
             input("Do you ")
@@ -99,13 +100,17 @@ class BatchConverter:
                 file: pool.submit(BatchConverter._convert_single, file, self.converter)
                 for file in sorted(set(self.file_list))
             }
-            ret = {}
+            results = {}
             for file, result in tqdm(results_async.items()):
                 try:
-                    ret[file] = result.result(timeout=timeout)
+                    results[file] = result.result(timeout=timeout)
                 except Exception as e:
-                    ret[file] = BatchConversionResult.from_exception(e)
-        return ret
+                    results[file] = BatchConversionResult.from_exception(e)
+
+        os.makedirs(storage_dir, exist_ok=True)
+        with open(os.path.join(storage_dir, "statistics.pickle"), "wb") as file:
+            Serializable.storage_dir = storage_dir
+            pickle.dump(results, file)
 
     @staticmethod
     def _convert_single(file: str, converter: Converter) -> BatchConversionResult:
