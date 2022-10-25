@@ -22,11 +22,11 @@ class PPSBuilder:
     # Required
     time_interval: AbsRel[Interval] = AbsRel.addition(Interval(-10, 0))
 
-    position_length_factor: AbsRel[float] = AbsRel.absolute(50)
-    position_width_factor: AbsRel[float] = AbsRel.absolute(10)
-    position_rotation: AbsRel[float] = AbsRel.addition(0)
-    position_center_x: AbsRel[float] = AbsRel.addition(0)
-    position_center_y: AbsRel[float] = AbsRel.addition(0)
+    pos_length: AbsRel[float] = AbsRel.absolute(50)
+    pos_width: AbsRel[float] = AbsRel.absolute(10)
+    pos_rotation: AbsRel[float] = AbsRel.addition(0)
+    pos_center_x: AbsRel[float] = AbsRel.addition(0)
+    pos_center_y: AbsRel[float] = AbsRel.addition(0)
 
     # Optional
     velocity_interval: Optional[AbsRel[Interval]] = None
@@ -40,19 +40,19 @@ class PPSBuilder:
 
         goal_state = State()
 
-        position_rotation = self.position_rotation.get(final_state.orientation)
+        position_rotation = self.pos_rotation.get(final_state.orientation)
         while not is_valid_orientation(position_rotation):
             if position_rotation > 0:
                 position_rotation -= 2 * np.pi
             else:
                 position_rotation += 2 * np.pi
         center = np.array((
-            self.position_center_x.get(final_state.position[0]),
-            self.position_center_y.get(final_state.position[1]),
+            self.pos_center_x.get(final_state.position[0]),
+            self.pos_center_y.get(final_state.position[1]),
         ))
         goal_state.position = Rectangle(
-            length=self.position_length_factor.get(obstacle.obstacle_shape.length),
-            width=self.position_width_factor.get(obstacle.obstacle_shape.width),
+            length=self.pos_length.get(obstacle.obstacle_shape.length),
+            width=self.pos_width.get(obstacle.obstacle_shape.width),
             center=center,
             orientation=position_rotation
         )
