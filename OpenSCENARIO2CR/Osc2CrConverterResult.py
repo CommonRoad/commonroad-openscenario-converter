@@ -31,7 +31,7 @@ class Osc2CrConverterResult(Serializable):
     def __getstate__(self) -> Dict:
         data = self.__dict__.copy()
         if self.scenario is not None and self.planning_problem_set is not None \
-                and Serializable.storage_dir is not None and Serializable.store_extra_files:
+                and Serializable.storage_dir is not None:
             del data["scenario"]
             del data["planning_problem_set"]
             file_path_base = path.join(Serializable.storage_dir, path.splitext(path.basename(self.xosc_file))[0])

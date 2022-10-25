@@ -44,7 +44,7 @@ class SpotAnalyzerResult(AnalyzerResult):
 
     def __getstate__(self) -> Dict:
         data = self.__dict__.copy()
-        if Serializable.storage_dir is not None and Serializable.store_extra_files:
+        if Serializable.storage_dir is not None:
             predictions_to_store: List[SetBasedPrediction] = []
             for pred_per_obstacle in data["predictions"].values():
                 if not isinstance(pred_per_obstacle, AnalyzerErrorResult):

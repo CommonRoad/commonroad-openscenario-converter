@@ -15,6 +15,9 @@ from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerError
 
 @dataclass(frozen=True)
 class BatchConversionResult(Serializable):
+    """
+    Contains either an AnalyzerErrorResult, or the path to an file, where the pickled result is stored
+    """
     exception: Optional[AnalyzerErrorResult]
     result_file: Optional[str]
 
@@ -90,9 +93,6 @@ class BatchConverter:
         assert os.path.exists(Serializable.storage_dir)
         storage_dir = Serializable.storage_dir
 
-        if not Serializable.store_extra_files:
-            warnings.warn("Running Batch Conversion without storing extra files")
-            input("Do you ")
         if num_worker <= 0:
             num_worker = os.cpu_count()
         with ProcessPoolExecutor(max_workers=num_worker) as pool:
