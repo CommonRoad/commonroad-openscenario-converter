@@ -9,6 +9,12 @@ T = TypeVar("T", Interval, AngleInterval, float, int)
 
 @dataclass(frozen=True, init=False)
 class AbsRel(Generic[T]):
+    """
+    A class used for configuration parameters storing absolute or relative values.
+    If _value is used as a relative configuration value, one of the four elementary arithmetic operations is applied to
+    it
+    If _value is used as an absolute configuration value, it is returned without modification
+    """
     __create_key: ClassVar[object] = object()
     _value: T
     _usage: "AbsRel.EUsage"
@@ -18,6 +24,10 @@ class AbsRel(Generic[T]):
         object.__setattr__(self, "_usage", usage)
 
     class EUsage(Enum):
+        """
+        Encapsulate the different usage modes of the AbsRel object
+        """
+
         def apply_value_to_reference(self, value: Union[float, int], reference: float):
             if isinstance(value, int):
                 return int(round(self.formula(float(value), reference)))
@@ -41,6 +51,12 @@ class AbsRel(Generic[T]):
         REL_DIV = (lambda v, r: v / r,)
 
     def get(self, reference_value: float) -> T:
+        """
+        Applying the applicable usage formula and returning the reference value
+
+        :param reference_value:float: The reference value this is relative to (if it is not an absolute AbsRel)
+        :return: The modified _value if relative or _value if absolute
+        """
         if isinstance(self._value, (Interval, AngleInterval)):
             return type(self._value)(
                 start=self._usage.apply_value_to_reference(self._value.start, reference_value),
