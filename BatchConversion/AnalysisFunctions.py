@@ -26,7 +26,10 @@ ivory = "#DAD7CB"
 gray = "#999999"
 
 
-def get_colors(input_data):
+def _get_colors(input_data):
+    """
+    Returning a color palette with the same length as the input_data
+    """
     if isinstance(input_data[0], list):
         if len(input_data) == 1:
             return blue
@@ -47,7 +50,11 @@ class EGranularity(Enum):
     VEHICLE = 2
 
 
-def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
+def analyze_results(results: Dict[str, BatchConversionResult]):
+    """
+    Analyze a dictionary of BatchConversionResults. This will print many general statistics how many scenarios were
+    converted successfully, and about the run Analyzers
+    """
     counts = {}
 
     def count(name: str, amount: int = 1):
@@ -82,7 +89,7 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
     analyzer_times = {e_analyzer: [] for e_analyzer in list(EAnalyzer)}
     rules = [rule.name for rule in fields(STLAnalyzerResult) if rule.type == Optional[np.ndarray]]
 
-    for scenario_path, result in statistics.items():
+    for scenario_path, result in results.items():
         count("total")
         if not result.without_exception:
             count("exception")
@@ -241,11 +248,17 @@ def analyze_statistics(statistics: Dict[str, BatchConversionResult]):
 
 
 def print_exception_tracebacks(
-        statistics: Dict[str, BatchConversionResult],
+        results: Dict[str, BatchConversionResult],
         compressed=True,
 ):
+    """
+    Print the exception tracebacks, that raised inside the Converter and caught by the BatchConverter
+
+    :param results: The result dict returned by the BatchConverter
+    :param compressed:bool: If true print only unique errors and a count how often they were raised.
+    """
     errors: Dict[AnalyzerErrorResult, int] = {}
-    for scenario_path, result in statistics.items():
+    for scenario_path, result in results.items():
         if not result.without_exception:
             if not compressed:
                 print(f"{scenario_path}\n{result.exception.traceback_text}\n\n\n")
@@ -258,10 +271,18 @@ def print_exception_tracebacks(
 
 
 def print_exception_tracebacks_for_analyzer(
-        statistics: Dict[str, BatchConversionResult], analyzer: EAnalyzer,
+        results: Dict[str, BatchConversionResult], analyzer: EAnalyzer,
         granularity: EGranularity = EGranularity.SCENARIO,
         compressed=True,
 ):
+    """
+    Print the exception tracebacks, that were raised inside an Analyzer implementation
+
+    :param results: The result dict returned by the BatchConverter
+    :param analyzer:EAnalyzer: Specify of which analyzer the tracebacks shall be printed
+    :param granularity: Specify the granularity this shall work on
+    :param compressed:bool: If true print only unique errors and a count how often they were raised.
+    """
     errors: Dict[AnalyzerErrorResult, int] = {}
 
     def handle_error(source_file, found_error: AnalyzerErrorResult):
@@ -270,7 +291,7 @@ def print_exception_tracebacks_for_analyzer(
         else:
             errors[found_error] = 1 + errors.get(found_error, 0)
 
-    for scenario_path, result in statistics.items():
+    for scenario_path, result in results.items():
         if not result.without_exception:
             continue
         result = result.get_result()
@@ -301,7 +322,7 @@ def print_exception_tracebacks_for_analyzer(
 def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Optional[str], label=None):
     if low_pass_filter is None:
         fig = plt.figure(figsize=(5, 2.5), tight_layout=True)
-        plt.hist(times, bins=n_bins, color=get_colors(times))
+        plt.hist(times, bins=n_bins, color=_get_colors(times))
         if label is not None:
             plt.legend(label)
         plt.xlabel("t [s]")
@@ -309,7 +330,7 @@ def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Opti
         plt.show()
     else:
         fig, axs = plt.subplots(2, 1, sharey="all", tight_layout=True, figsize=(10, 5))
-        axs[0].hist(times, bins=n_bins, color=get_colors(times))
+        axs[0].hist(times, bins=n_bins, color=_get_colors(times))
         axs[0].set_xlabel("t [s]")
         axs[0].set_ylabel("# scenarios")
 
@@ -323,7 +344,7 @@ def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Opti
                 filtered_times.append(single_times)
         else:
             filtered_times = [t for t in times if t <= low_pass_filter]
-        axs[1].hist(filtered_times, bins=n_bins, color=get_colors(times))
+        axs[1].hist(filtered_times, bins=n_bins, color=_get_colors(times))
         axs[1].set_xlabel("t [s]")
         axs[1].set_ylabel("# scenarios")
         axs[1].set_xlim((0, low_pass_filter))
@@ -336,7 +357,23 @@ def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Opti
         fig.savefig(path)
 
 
-def plot_sim_times(results, n_bins: int = 25, low_pass_filter: float = None, path: Optional[str] = None, label=None):
+def plot_sim_times(
+        results: Union[Dict[str, BatchConversionResult], List[Dict[str, BatchConversionResult]]],
+        n_bins: int = 25,
+        low_pass_filter: Optional[float] = None,
+        path: Optional[str] = None,
+        label: Optional[List[str]] = None
+):
+    """
+    Plot the simulation times in a histogram, it can also combine multiple results in one dict, if those are passed as a
+    list in the results parameter, resulting in a more colorful dict. See the label param if you want to do this
+
+    :param results: The result dict returned by the BatchConverter or a list of such dicts
+    :param n_bins:int: The number of bins used for the histogram
+    :param low_pass_filter:float: If present a second plot with only sim times leq than this will be added
+    :param path:float: If present the plot will be stored here
+    :param label: if multiple results this can be used to specify the labels in the legend of the plot
+    """
     times = []
     if isinstance(results, list):
         for res in results:
@@ -359,8 +396,22 @@ def plot_sim_times(results, n_bins: int = 25, low_pass_filter: float = None, pat
     _plot_times(times, n_bins, low_pass_filter, path, label)
 
 
-def plot_exec_times(results: dict, e_analyzer: EAnalyzer, n_bins: int = 25, low_pass_filter: Optional[float] = None,
-                    path: Optional[str] = None):
+def plot_exec_times(
+        results: Dict[str, BatchConversionResult],
+        e_analyzer: EAnalyzer,
+        n_bins: int = 25,
+        low_pass_filter: Optional[float] = None,
+        path: Optional[str] = None
+):
+    """
+    Plot the execution times for one analyzer in a histogram
+
+    :param results: The result dict returned by the BatchConverter
+    :param e_analyzer:EAnalyzer: Specify the analyzer for which the plots shall be drawn
+    :param n_bins:int: The number of bins used for the histogram
+    :param low_pass_filter:float: If present a second plot with only execution times leq than this will be added
+    :param path:float: If present the plot will be stored here
+    """
     times = []
     for scenario_path, result in results.items():
         if not result.without_exception:
@@ -372,7 +423,18 @@ def plot_exec_times(results: dict, e_analyzer: EAnalyzer, n_bins: int = 25, low_
     _plot_times(times, n_bins, low_pass_filter, path)
 
 
-def plot_num_obstacles(results, low_pass_filter: Optional[int] = None, path: Optional[str] = None):
+def plot_num_obstacles(
+        results: Dict[str, BatchConversionResult],
+        low_pass_filter: Optional[int] = None,
+        path: Optional[str] = None
+):
+    """
+    Plot how many scenarios have a num of obstacles in them
+
+    :param results: The result dict returned by the BatchConverter
+    :param low_pass_filter:float: If present a second plot with only obstacles counts times leq than this will be added
+    :param path:float: If present the plot will be stored here
+    """
     values = []
     for scenario_path, result in results.items():
         if not result.without_exception:
@@ -410,7 +472,14 @@ def plot_num_obstacles(results, low_pass_filter: Optional[int] = None, path: Opt
         fig.savefig(path)
 
 
-def plot_scenarios(results, path: Optional[str] = None):
+def plot_scenarios(results):
+    """
+    Plot an overview of all scenarios where:
+        - a road network was converted successfully
+        - all analyzers ran without an error
+
+    :param results: The result dict returned by the BatchConverter
+    """
     prev = Serializable.import_extra_files
     Serializable.import_extra_files = False
     for scenario_path, result in results.items():
@@ -434,8 +503,6 @@ def plot_scenarios(results, path: Optional[str] = None):
                 result_with_files.scenario.draw(rnd)
             if result_with_files.planning_problem_set is not None:
                 result_with_files.planning_problem_set.draw(rnd)
-            rnd.render(filename=path)
-            print(scenario_path)
             plt.show()
             Serializable.import_extra_files = False
     Serializable.import_extra_files = prev
