@@ -1,16 +1,16 @@
 from dataclasses import dataclass
 from multiprocessing import Lock
 from os import path
-from typing import Dict, Optional, Tuple, ClassVar
+from typing import Dict, Optional, Tuple, ClassVar, Type
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 
+from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
 from BatchConversion.Serializable import Serializable
 
@@ -19,7 +19,7 @@ from BatchConversion.Serializable import Serializable
 class Osc2CrConverterResult(Serializable):
     __lock: ClassVar[Lock] = Lock()
     statistics: ConversionStatistics
-    analysis: Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]
+    analysis: Dict[Type[Analyzer], Tuple[float, Dict[str, AnalyzerResult]]]
     xosc_file: str
     xodr_file: Optional[str]
     xodr_conversion_error: Optional[AnalyzerErrorResult]

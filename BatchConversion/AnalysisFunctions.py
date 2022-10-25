@@ -1,6 +1,6 @@
 from dataclasses import fields
 from enum import Enum
-from typing import Union, Dict, List, Optional
+from typing import Union, Dict, List, Optional, Type
 
 import numpy as np
 from commonroad.visualization.mp_renderer import MPRenderer
@@ -8,11 +8,11 @@ from matplotlib import pyplot as plt
 
 from BatchConversion.BatchConverter import BatchConversionResult
 from BatchConversion.Serializable import Serializable
+from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.ConversionAnalyzer.DrivabilityAnalyzer import DrivabilityAnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
-from OpenSCENARIO2CR.ConversionAnalyzer.STLAnalyzer import STLAnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.SpotAnalyzer import SpotAnalyzerResult
+from OpenSCENARIO2CR.ConversionAnalyzer.DrivabilityAnalyzer import DrivabilityAnalyzerResult, DrivabilityAnalyzer
+from OpenSCENARIO2CR.ConversionAnalyzer.STLAnalyzer import STLAnalyzerResult, STLAnalyzer
+from OpenSCENARIO2CR.ConversionAnalyzer.SpotAnalyzer import SpotAnalyzerResult, SpotAnalyzer
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.Osc2CrConverter import EFailureReason
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
@@ -86,7 +86,7 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
         print(f"{description:<50s} {res} ({part}/{total})")
 
     times = []
-    analyzer_times = {e_analyzer: [] for e_analyzer in list(EAnalyzer)}
+    analyzer_times = {}
     rules = [rule.name for rule in fields(STLAnalyzerResult) if rule.type == Optional[np.ndarray]]
 
     for scenario_path, result in results.items():
@@ -110,13 +110,15 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
                     if result.xodr_conversion_error is None:
                         count("odr conversions success")
 
-                for e_analyzer, analysis in result.analysis.items():
+                for t_analyzer, analysis in result.analysis.items():
                     exec_time, analysis = analysis
-                    analyzer_times[e_analyzer].append(exec_time)
-                    count(f"{e_analyzer.name} scenario total")
-                    count(f"{e_analyzer.name} vehicle total", stats.num_obstacle_conversions)
+                    if t_analyzer not in analyzer_times:
+                        analyzer_times[t_analyzer] = []
+                    analyzer_times[t_analyzer].append(exec_time)
+                    count(f"{t_analyzer.__name__} scenario total")
+                    count(f"{t_analyzer.__name__} vehicle total", stats.num_obstacle_conversions)
                     for rule in rules:
-                        count(f"{e_analyzer.name} vehicle {rule.upper()} total", stats.num_obstacle_conversions)
+                        count(f"{t_analyzer.__name__} vehicle {rule.upper()} total", stats.num_obstacle_conversions)
                     scenario_run = True
                     scenario_success = True
                     rules_run = {rule: True for rule in rules}
@@ -132,7 +134,7 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
                             for rule in rules:
                                 rules_run[rule] = False
                                 rules_success[rule] = False
-                        elif e_analyzer == EAnalyzer.STL:
+                        elif t_analyzer == STLAnalyzer:
                             assert isinstance(analyzer_result, STLAnalyzerResult)
                             for rule in rules:
                                 rule_result = getattr(analyzer_result, rule)
@@ -144,47 +146,47 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
                                     rules_run[rule] = False
                                     rules_success[rule] = False
                                 elif np.min(rule_result) <= 0.0:
-                                    count(f"{e_analyzer.name} vehicle {rule.upper()} run")
+                                    count(f"{t_analyzer.__name__} vehicle {rule.upper()} run")
                                     scenario_success = False
                                     vehicle_success = False
                                     rules_success[rule] = False
                                 else:
-                                    count(f"{e_analyzer.name} vehicle {rule.upper()} run")
-                                    count(f"{e_analyzer.name} vehicle {rule.upper()} success")
-                        elif e_analyzer == EAnalyzer.DRIVABILITY:
+                                    count(f"{t_analyzer.__name__} vehicle {rule.upper()} run")
+                                    count(f"{t_analyzer.__name__} vehicle {rule.upper()} success")
+                        elif t_analyzer == DrivabilityAnalyzer:
                             assert isinstance(analyzer_result, DrivabilityAnalyzerResult)
                             if analyzer_result.collision or not analyzer_result.feasibility:
                                 scenario_success = False
                                 vehicle_success = False
-                        elif e_analyzer == EAnalyzer.SPOT:
+                        elif t_analyzer == SpotAnalyzer:
                             assert isinstance(analyzer_result, SpotAnalyzerResult)
                             for t, t_result in analyzer_result.predictions.items():
-                                count(f"{e_analyzer.name} single-t total")
+                                count(f"{t_analyzer.__name__} single-t total")
                                 if isinstance(t_result, AnalyzerErrorResult):
                                     scenario_run = False
                                     scenario_success = False
                                     vehicle_run = False
                                     vehicle_success = False
                                 else:
-                                    count(f"{e_analyzer.name} single-t run")
+                                    count(f"{t_analyzer.__name__} single-t run")
 
                         if vehicle_run:
-                            count(f"{e_analyzer.name} vehicle run")
+                            count(f"{t_analyzer.__name__} vehicle run")
                         if vehicle_success:
-                            count(f"{e_analyzer.name} vehicle success")
+                            count(f"{t_analyzer.__name__} vehicle success")
 
                     if scenario_run:
-                        count(f"{e_analyzer.name} scenario run")
+                        count(f"{t_analyzer.__name__} scenario run")
                     if scenario_success:
-                        count(f"{e_analyzer.name} scenario success")
+                        count(f"{t_analyzer.__name__} scenario success")
 
-                    if e_analyzer == EAnalyzer.STL:
+                    if t_analyzer == STLAnalyzer:
                         for rule in rules:
-                            count(f"{e_analyzer.name} scenario {rule.upper()} total")
+                            count(f"{t_analyzer.__name__} scenario {rule.upper()} total")
                             if rules_run[rule]:
-                                count(f"{e_analyzer.name} scenario {rule.upper()} run")
+                                count(f"{t_analyzer.__name__} scenario {rule.upper()} run")
                             if rules_success[rule]:
-                                count(f"{e_analyzer.name} scenario {rule.upper()} success")
+                                count(f"{t_analyzer.__name__} scenario {rule.upper()} success")
             else:
                 raise ValueError
 
@@ -206,45 +208,46 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
     for reason in EFailureReason:
         perc(f" | {reason.name}", f"failed {reason.name}", "failed")
     perc("Conversion exception rate", "exception", "total")
-    for e_analyzer in EAnalyzer:
+    for t_analyzer in analyzer_times.keys():
         print("-" * 80)
-        print(f"{e_analyzer.name}")
-        print(f"{'Average time':<50s} {np.mean(analyzer_times[e_analyzer]):}")
-        perc("run rate", f"{e_analyzer.name} scenario run", f"{e_analyzer.name} scenario total")
-        perc("success rate", f"{e_analyzer.name} scenario success", f"{e_analyzer.name} scenario total")
-        perc("", f"{e_analyzer.name} scenario success", f"{e_analyzer.name} scenario run")
-        if e_analyzer == EAnalyzer.STL:
+        print(f"{t_analyzer.__name__}")
+        print(f"{'Average time':<50s} {np.mean(analyzer_times[t_analyzer]):}")
+        perc("run rate", f"{t_analyzer.__name__} scenario run", f"{t_analyzer.__name__} scenario total")
+        perc("success rate", f"{t_analyzer.__name__} scenario success", f"{t_analyzer.__name__} scenario total")
+        perc("", f"{t_analyzer.__name__} scenario success", f"{t_analyzer.__name__} scenario run")
+        if t_analyzer == STLAnalyzer:
             for rule in rules:
                 print()
-                perc(f"{rule.upper()} run rate", f"{e_analyzer.name} scenario {rule.upper()} run",
-                     f"{e_analyzer.name} scenario {rule.upper()} total")
-                perc(f"{rule.upper()} success rate", f"{e_analyzer.name} scenario {rule.upper()} success",
-                     f"{e_analyzer.name} scenario {rule.upper()} total")
-                perc("", f"{e_analyzer.name} scenario {rule.upper()} success",
-                     f"{e_analyzer.name} scenario {rule.upper()} run")
+                perc(f"{rule.upper()} run rate", f"{t_analyzer.__name__} scenario {rule.upper()} run",
+                     f"{t_analyzer.__name__} scenario {rule.upper()} total")
+                perc(f"{rule.upper()} success rate", f"{t_analyzer.__name__} scenario {rule.upper()} success",
+                     f"{t_analyzer.__name__} scenario {rule.upper()} total")
+                perc("", f"{t_analyzer.__name__} scenario {rule.upper()} success",
+                     f"{t_analyzer.__name__} scenario {rule.upper()} run")
     print("\n" + "#" * 80)
     print("Granularity VEHICLE")
     print("-" * 80)
     perc("Conversion success rate", "vehicle failed", "vehicle total", invert=True)
     print("-" * 80)
-    for e_analyzer in EAnalyzer:
+    for t_analyzer in analyzer_times.keys():
         print("-" * 80)
-        print(f"{e_analyzer.name}")
-        perc("run rate", f"{e_analyzer.name} vehicle run", f"{e_analyzer.name} vehicle total")
-        perc("success rate", f"{e_analyzer.name} vehicle success", f"{e_analyzer.name} vehicle total")
-        perc("", f"{e_analyzer.name} vehicle success", f"{e_analyzer.name} vehicle run")
-        if e_analyzer == EAnalyzer.STL:
+        print(f"{t_analyzer.__name__}")
+        perc("run rate", f"{t_analyzer.__name__} vehicle run", f"{t_analyzer.__name__} vehicle total")
+        perc("success rate", f"{t_analyzer.__name__} vehicle success", f"{t_analyzer.__name__} vehicle total")
+        perc("", f"{t_analyzer.__name__} vehicle success", f"{t_analyzer.__name__} vehicle run")
+        if t_analyzer == STLAnalyzer:
             for rule in rules:
                 print()
-                perc(f"{rule.upper()} run rate", f"{e_analyzer.name} vehicle {rule.upper()} run",
-                     f"{e_analyzer.name} vehicle {rule.upper()} total")
-                perc(f"{rule.upper()} success rate", f"{e_analyzer.name} vehicle {rule.upper()} success",
-                     f"{e_analyzer.name} vehicle {rule.upper()} total")
-                perc("", f"{e_analyzer.name} vehicle {rule.upper()} success",
-                     f"{e_analyzer.name} vehicle {rule.upper()} run")
-        elif e_analyzer == EAnalyzer.SPOT:
+                perc(f"{rule.upper()} run rate", f"{t_analyzer.__name__} vehicle {rule.upper()} run",
+                     f"{t_analyzer.__name__} vehicle {rule.upper()} total")
+                perc(f"{rule.upper()} success rate", f"{t_analyzer.__name__} vehicle {rule.upper()} success",
+                     f"{t_analyzer.__name__} vehicle {rule.upper()} total")
+                perc("", f"{t_analyzer.__name__} vehicle {rule.upper()} success",
+                     f"{t_analyzer.__name__} vehicle {rule.upper()} run")
+        elif t_analyzer == SpotAnalyzer:
             print()
-            perc("Single timestamps run", f"{e_analyzer.name} single-t run", f"{e_analyzer.name} single-t total")
+            perc("Single timestamps run", f"{t_analyzer.__name__} single-t run",
+                 f"{t_analyzer.__name__} single-t total")
 
 
 def print_exception_tracebacks(
@@ -252,7 +255,7 @@ def print_exception_tracebacks(
         compressed=True,
 ):
     """
-    Print the exception tracebacks, that raised inside the Converter and caught by the BatchConverter
+    Print the exception tracebacks, that raised inside the Converter and caught by the BatchConverter.
 
     :param results: The result dict returned by the BatchConverter
     :param compressed:bool: If true print only unique errors and a count how often they were raised.
@@ -271,12 +274,12 @@ def print_exception_tracebacks(
 
 
 def print_exception_tracebacks_for_analyzer(
-        results: Dict[str, BatchConversionResult], analyzer: EAnalyzer,
+        results: Dict[str, BatchConversionResult], analyzer: Type[Analyzer],
         granularity: EGranularity = EGranularity.SCENARIO,
         compressed=True,
 ):
     """
-    Print the exception tracebacks, that were raised inside an Analyzer implementation
+    Print the exception tracebacks, that were raised inside an Analyzer implementation.
 
     :param results: The result dict returned by the BatchConverter
     :param analyzer:EAnalyzer: Specify of which analyzer the tracebacks shall be printed
@@ -304,7 +307,7 @@ def print_exception_tracebacks_for_analyzer(
                         error = analyzer_result
                         if granularity == EGranularity.VEHICLE:
                             handle_error(result.xosc_file, error)
-                    elif analyzer == EAnalyzer.SPOT and isinstance(analyzer_result, SpotAnalyzerResult):
+                    elif analyzer == SpotAnalyzer and isinstance(analyzer_result, SpotAnalyzerResult):
                         for t, result_at_t in analyzer_result.predictions.items():
                             if isinstance(result_at_t, AnalyzerErrorResult):
                                 error = result_at_t
@@ -398,7 +401,7 @@ def plot_sim_times(
 
 def plot_exec_times(
         results: Dict[str, BatchConversionResult],
-        e_analyzer: EAnalyzer,
+        t_analyzer: Type[Analyzer],
         n_bins: int = 25,
         low_pass_filter: Optional[float] = None,
         path: Optional[str] = None
@@ -407,7 +410,7 @@ def plot_exec_times(
     Plot the execution times for one analyzer in a histogram
 
     :param results: The result dict returned by the BatchConverter
-    :param e_analyzer:EAnalyzer: Specify the analyzer for which the plots shall be drawn
+    :param t_analyzer:EAnalyzer: Specify the analyzer for which the plots shall be drawn
     :param n_bins:int: The number of bins used for the histogram
     :param low_pass_filter:float: If present a second plot with only execution times leq than this will be added
     :param path:float: If present the plot will be stored here
@@ -418,8 +421,8 @@ def plot_exec_times(
             continue
         result = result.get_result()
         if isinstance(result, Osc2CrConverterResult):
-            if e_analyzer in result.analysis:
-                times.append(result.analysis[e_analyzer][0])
+            if t_analyzer in result.analysis:
+                times.append(result.analysis[t_analyzer][0])
     _plot_times(times, n_bins, low_pass_filter, path)
 
 

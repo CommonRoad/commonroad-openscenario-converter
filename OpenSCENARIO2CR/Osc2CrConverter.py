@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass, field
 from enum import auto, Enum
 from os import path
-from typing import Optional, List, Dict, Tuple, Union, Set
+from typing import Optional, List, Dict, Tuple, Union, Set, Type
 
 from commonroad.geometry.shape import Rectangle
 from commonroad.prediction.prediction import TrajectoryPrediction
@@ -19,7 +19,6 @@ from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
@@ -56,26 +55,26 @@ class Osc2CrConverter(Converter):
     use_implicit_odr_file: bool = False
     trim_scenario: bool = False
     keep_ego_vehicle: bool = True
-    analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = \
-        field(default_factory=lambda: list(EAnalyzer))
+    analyzers: Union[Dict[Type[Analyzer], Optional[Analyzer]], List[Type[Analyzer]]] = \
+        field(default_factory=lambda: list())
 
     # Optional
     dt_sim: Optional[float] = None
     odr_file_override: Optional[str] = None
     ego_filter: Optional[re.Pattern] = None
 
-    def get_analyzer_objects(self) -> Dict[EAnalyzer, Analyzer]:
+    def get_analyzer_objects(self) -> Dict[Type[Analyzer], Analyzer]:
         if self.analyzers is None:
             return {}
         elif isinstance(self.analyzers, list):
-            return {e_analyzer: e_analyzer.analyzer_type() for e_analyzer in self.analyzers}
+            return {t_analyzer: t_analyzer() for t_analyzer in self.analyzers}
         elif isinstance(self.analyzers, dict):
             ret = {}
-            for e_analyzer, analyzer in self.analyzers.items():
+            for t_analyzer, analyzer in self.analyzers.items():
                 if analyzer is not None:
-                    ret[e_analyzer] = analyzer
+                    ret[t_analyzer] = analyzer
                 else:
-                    ret[e_analyzer] = e_analyzer.analyzer_type()
+                    ret[t_analyzer] = t_analyzer()
             return ret
 
     def run_conversion(self, source_file: str) \
@@ -124,6 +123,7 @@ class Osc2CrConverter(Converter):
 
         if self.trim_scenario:
             scenario = trim_scenario(scenario, deep_copy=False)
+        pps = self.pps_builder.build(obstacles[ego_vehicle])
 
         return Osc2CrConverterResult(
             statistics=self.build_statistics(
@@ -146,7 +146,7 @@ class Osc2CrConverter(Converter):
             xodr_conversion_error=xodr_conversion_error,
             obstacles_extra_info_finder_error=obstacles_extra_info_finder_error,
             scenario=scenario,
-            planning_problem_set=self.pps_builder.build(obstacles[ego_vehicle]),
+            planning_problem_set=pps,
         )
 
     @staticmethod
@@ -302,7 +302,7 @@ class Osc2CrConverter(Converter):
             ego_vehicle: str,
             keep_ego_vehicle: bool,
             obstacles_extra_info: Dict[str, Optional[Vehicle]],
-    ) -> Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]:
+    ) -> Dict[Type[Analyzer], Tuple[float, Dict[str, AnalyzerResult]]]:
         analyzers = self.get_analyzer_objects()
         if len(analyzers) == 0:
             return {}
