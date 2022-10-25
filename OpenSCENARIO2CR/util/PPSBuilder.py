@@ -20,13 +20,13 @@ class PPSBuilder:
     Planning Problem Set builder
     """
     # Required
-    time_interval: AbsRel[Interval] = AbsRel.addition(Interval(-10, 0))
+    time_interval: AbsRel[Interval] = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
 
-    pos_length: AbsRel[float] = AbsRel.absolute(50)
-    pos_width: AbsRel[float] = AbsRel.absolute(10)
-    pos_rotation: AbsRel[float] = AbsRel.addition(0)
-    pos_center_x: AbsRel[float] = AbsRel.addition(0)
-    pos_center_y: AbsRel[float] = AbsRel.addition(0)
+    pos_length: AbsRel[float] = AbsRel(50, AbsRel.EUsage.ABS)
+    pos_width: AbsRel[float] = AbsRel(10, AbsRel.EUsage.ABS)
+    pos_rotation: AbsRel[float] = AbsRel(0, AbsRel.EUsage.REL_ADD)
+    pos_center_x: AbsRel[float] = AbsRel(0, AbsRel.EUsage.REL_ADD)
+    pos_center_y: AbsRel[float] = AbsRel(0, AbsRel.EUsage.REL_ADD)
 
     # Optional
     velocity_interval: Optional[AbsRel[Interval]] = None
