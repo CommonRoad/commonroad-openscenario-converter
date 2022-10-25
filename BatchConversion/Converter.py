@@ -9,6 +9,11 @@ from BatchConversion.Serializable import Serializable
 
 
 class Converter(ABC):
+    """
+    The Base class for a converter that can be used with the BatchConverter
+
+    It only needs to implement the run_conversion function
+    """
     __lock: ClassVar[Lock] = Lock()
 
     def run_in_batch_conversion(self, source_file: str) -> str:
@@ -23,4 +28,7 @@ class Converter(ABC):
 
     @abstractmethod
     def run_conversion(self, source_file: str) -> Union[Serializable, Enum]:
+        """
+        The main entry point of a converter. Implement this.
+        """
         raise NotImplementedError
