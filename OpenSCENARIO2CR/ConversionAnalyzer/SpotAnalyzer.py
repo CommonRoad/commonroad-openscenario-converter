@@ -261,11 +261,11 @@ class SpotAnalyzer(Analyzer):
             float_no_fail(ego_properties, "v_max", lambda: abs(_float(extra.dynamics.max_speed)))
             if self.a_comfort_max_factor is not None:
                 float_no_fail(ego_properties, "a_comfort_max",
-                              lambda: abs(self.a_comfort_max_factor.as_factor(_float(extra.dynamics.max_acceleration))))
+                              lambda: abs(self.a_comfort_max_factor.get(_float(extra.dynamics.max_acceleration))))
             if self.a_comfort_min_factor is not None:
                 float_no_fail(ego_properties, "a_comfort_min",
                               lambda: -abs(
-                                  self.a_comfort_min_factor.as_factor(_float(extra.dynamics.max_acceleration))))
+                                  self.a_comfort_min_factor.get(_float(extra.dynamics.max_acceleration))))
             if self.constr_no_backward is not None:
                 ego_properties["constr_no_backward"] = self.constr_no_backward
             if self.constr_no_lane_change is not None:
