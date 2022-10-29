@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Tuple, List, Type, Optional
 
 from commonroad.scenario.obstacle import ObstacleType
@@ -6,18 +7,27 @@ from scenariogeneration.xosc import Vehicle
 
 
 class SimScenarioObjectState:
+    """
+    The Baseclass for classes storing object states that are recorded during the simulation
+    """
+
+    @abstractmethod
     def get_timestamp(self) -> float:
         raise NotImplementedError
 
+    @abstractmethod
     def get_object_length(self) -> float:
         raise NotImplementedError
 
+    @abstractmethod
     def get_object_width(self) -> float:
         raise NotImplementedError
 
+    @abstractmethod
     def get_obstacle_type(self) -> ObstacleType:
         raise NotImplementedError
 
+    @abstractmethod
     def get_scenario_object_state_type(self) -> "Type[ScenarioObjectState]":
         """
         Specifies which subclass of ScenarioObjectState will be build from this
@@ -26,6 +36,13 @@ class SimScenarioObjectState:
 
 
 class ScenarioObjectState:
+    """
+    The baseclass for the scenario object states.
+
+    For each time step in the final scenario one of these objects is created with the two closest
+    SimScenarioObjectStates stored in _closest. Implementations of this class take care of interpolating the two
+    SimScenarioObjectStates and creating a CommonRoad state out of it.
+    """
     _closest: Tuple[SimScenarioObjectState, SimScenarioObjectState]
     _timestamp: float
     _dt1: float
@@ -86,6 +103,7 @@ class ScenarioObjectState:
             obstacle_extra_info=obstacle_extra_info,
         )
 
+    @abstractmethod
     def to_cr_state(self, time_step: int) -> State:
         """
         The to_cr_state function takes a time step and returns the corresponding CR state.

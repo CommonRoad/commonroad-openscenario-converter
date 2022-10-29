@@ -14,7 +14,6 @@ class WrapperSimResult:
         ending_cause cause why the simulation ended
         states_per_vehicle List of simulation states per vehicle
         total_simulation_time total time simulated (Not execution time)
-        error_message Option
     """
     states: Dict[str, List[SimScenarioObjectState]]
     sim_time: float
