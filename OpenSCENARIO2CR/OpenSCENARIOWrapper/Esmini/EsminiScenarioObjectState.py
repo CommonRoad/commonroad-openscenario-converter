@@ -9,6 +9,9 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObje
 
 
 class SEStruct(ct.Structure, SimScenarioObjectState):
+    """
+    Implementation of the SimScenarioObjectState ABC. Objects of this will be recorded while running the simulation
+    """
     _fields_ = [
         ("id", ct.c_int),
         ("model_id", ct.c_int),
@@ -52,6 +55,10 @@ class SEStruct(ct.Structure, SimScenarioObjectState):
         return self.width
 
     def get_obstacle_type(self) -> ObstacleType:
+        """
+        Mapping the obstacle type of OpenSCENARIO to the CommonRoad obstacle type. OSC has a two level system with
+        objectType and objectCategory.
+        """
         if self.objectType == 0:  # TYPE_NONE
             return ObstacleType.UNKNOWN
         elif self.objectType == 1:  # VEHICLE
@@ -94,6 +101,9 @@ class SEStruct(ct.Structure, SimScenarioObjectState):
 
 
 class EsminiScenarioObjectState(ScenarioObjectState):
+    """
+    Class that converts from SEStructs to CommonRoad states
+    """
     @property
     def id(self) -> int:
         if not hasattr(self, "_id"):

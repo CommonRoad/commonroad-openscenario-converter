@@ -15,13 +15,19 @@ from commonroad.common.validity import is_real_number
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiScenarioObjectState import SEStruct
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryBoardElementState, \
-    EStoryBoardElementType, StoryBoardElement
+    EStoryBoardElementLevel, StoryBoardElement
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
 
 
 class EsminiWrapper(SimWrapper):
+    """
+    The implementation of the SimWrapper to simulate, render to gif, and view scenarios in a window based in the
+    Environment Simulator Minimalistic (esmini).
+
+    Due to the possible usage of udp sockets this wrapper will only run sequential which is enforced by the __lock.
+    """
     __lock: Lock = Lock()
 
     _all_sim_elements: Dict[StoryBoardElement, EStoryBoardElementState]
@@ -48,6 +54,9 @@ class EsminiWrapper(SimWrapper):
 
     @property
     def min_time(self) -> float:
+        """
+        Minimum simulation time that is used if grace_period is not None
+        """
         return self._min_time
 
     @min_time.setter
@@ -59,10 +68,17 @@ class EsminiWrapper(SimWrapper):
 
     @property
     def esmini_lib(self) -> ct.CDLL:
+        """
+        The ctypes wrapper of the esmini lib.
+        The object will be created by setting the esmini_lib_bin_path property
+        """
         return self._esmini_lib
 
     @property
     def _esmini_lib_bin_path(self) -> str:
+        """
+        Path to the esmini lib bin directory path: "path/to/esmini/bin"
+        """
         return self._esmini_lib_bin_path_
 
     @_esmini_lib_bin_path.setter
@@ -89,24 +105,12 @@ class EsminiWrapper(SimWrapper):
         else:
             warnings.warn(f"<EsminiWrapper/esmini_lib> Path {new_esmini_lib_bin_path} does not exist")
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state["_esmini_lib"]
-
-        del state["_all_sim_elements"]
-        del state["_scenario_engine_initialized"]
-        del state["_first_frame_run"]
-        del state["_callback_functor"]
-        del state["_sim_end_detected_time"]
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self._esmini_lib_bin_path = state["_esmini_lib_bin_path_"]
-        self._reset()
-
     @property
     def grace_time(self) -> Optional[float]:
+        """
+        If no OpenSCENARIO element is active for this amount of time, and min_time has already passed. Ending the
+        simulation
+        """
         return self._grace_time
 
     @grace_time.setter
@@ -117,15 +121,21 @@ class EsminiWrapper(SimWrapper):
             warnings.warn(f"<EsminiWrapper/grace_time> Tried to set to non real number value {new_grace_time}.")
 
     @property
-    def ignored_level(self) -> Optional[EStoryBoardElementType]:
+    def ignored_level(self) -> Optional[EStoryBoardElementLevel]:
+        """
+        For the end detection using the grace_time ignore any active elements of this level or higher
+        """
         return self._ignored_level
 
     @ignored_level.setter
-    def ignored_level(self, new_ignored_level: Optional[EStoryBoardElementType]):
+    def ignored_level(self, new_ignored_level: Optional[EStoryBoardElementLevel]):
         self._ignored_level = new_ignored_level
 
     @property
     def random_seed(self) -> int:
+        """
+        Run the simulation using this random seed, default is 0
+        """
         return self._random_seed
 
     @random_seed.setter
@@ -137,6 +147,9 @@ class EsminiWrapper(SimWrapper):
 
     @property
     def log_to_console(self) -> bool:
+        """
+        If true esmini will log to console
+        """
         return self._log_to_console
 
     @log_to_console.setter
@@ -148,6 +161,9 @@ class EsminiWrapper(SimWrapper):
 
     @property
     def log_to_file(self) -> Optional[str]:
+        """
+        If true esmini will log to file
+        """
         return self._log_to_file
 
     @log_to_file.setter
@@ -164,6 +180,22 @@ class EsminiWrapper(SimWrapper):
             self._log_to_file = path.abspath(new_log_to_file)
         else:
             warnings.warn(f"<EsminiWrapper/log_to_file> Logging dir {path.dirname(new_log_to_file)} does not exist.")
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["_esmini_lib"]
+
+        del state["_all_sim_elements"]
+        del state["_scenario_engine_initialized"]
+        del state["_first_frame_run"]
+        del state["_callback_functor"]
+        del state["_sim_end_detected_time"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self._esmini_lib_bin_path = state["_esmini_lib_bin_path_"]
+        self._reset()
 
     def simulate_scenario(self, scenario_path: str, sim_dt: float) -> WrapperSimResult:
         with EsminiWrapper.__lock:
@@ -266,7 +298,7 @@ class EsminiWrapper(SimWrapper):
         self._scenario_engine_initialized = False
 
     def __state_change_callback(self, name: bytes, element_type: int, state: int):
-        self._all_sim_elements[StoryBoardElement(name, EStoryBoardElementType(element_type))] = EStoryBoardElementState(
+        self._all_sim_elements[StoryBoardElement(name, EStoryBoardElementLevel(element_type))] = EStoryBoardElementState(
             state)
 
     def _sim_step(self, dt: Optional[float]):
