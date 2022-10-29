@@ -43,7 +43,7 @@ class EsminiWrapper(SimWrapper):
         self._esmini_lib_bin_path = esmini_bin_path
 
         self.min_time = None
-        self.grace_time = None
+        self.grace_period = None
         self.ignored_level = None
         self.random_seed = None
 
@@ -106,24 +106,24 @@ class EsminiWrapper(SimWrapper):
             warnings.warn(f"<EsminiWrapper/esmini_lib> Path {new_esmini_lib_bin_path} does not exist")
 
     @property
-    def grace_time(self) -> Optional[float]:
+    def grace_period(self) -> Optional[float]:
         """
         If no OpenSCENARIO element is active for this amount of time, and min_time has already passed. Ending the
         simulation
         """
-        return self._grace_time
+        return self._grace_period
 
-    @grace_time.setter
-    def grace_time(self, new_grace_time: Optional[float]):
+    @grace_period.setter
+    def grace_period(self, new_grace_time: Optional[float]):
         if new_grace_time is None or is_real_number(new_grace_time):
-            self._grace_time = new_grace_time
+            self._grace_period = new_grace_time
         else:
-            warnings.warn(f"<EsminiWrapper/grace_time> Tried to set to non real number value {new_grace_time}.")
+            warnings.warn(f"<EsminiWrapper/grace_period> Tried to set to non real number value {new_grace_time}.")
 
     @property
     def ignored_level(self) -> Optional[EStoryBoardElementLevel]:
         """
-        For the end detection using the grace_time ignore any active elements of this level or higher
+        For the end detection using the grace_period ignore any active elements of this level or higher
         """
         return self._ignored_level
 
@@ -323,11 +323,11 @@ class EsminiWrapper(SimWrapper):
         if now >= self.max_time:
             self._log("{:.3f}: Max Execution tim reached ".format(now))
             return ESimEndingCause.MAX_TIME_REACHED
-        if self.grace_time is not None and self._all_sim_elements_finished():
+        if self.grace_period is not None and self._all_sim_elements_finished():
             if self._sim_end_detected_time is None:
                 self._sim_end_detected_time = now
-            if now >= self._sim_end_detected_time + self.grace_time and now >= self.min_time:
-                self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_time))
+            if now >= self._sim_end_detected_time + self.grace_period and now >= self.min_time:
+                self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_period))
                 return ESimEndingCause.END_DETECTED
         else:
             self._sim_end_detected_time = None
