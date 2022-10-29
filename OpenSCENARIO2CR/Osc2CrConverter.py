@@ -32,6 +32,9 @@ from OpenSCENARIO2CR.util.UtilFunctions import trim_scenario, dataclass_is_compl
 
 
 class EFailureReason(Enum):
+    """
+    The enum of reasons why the conversion failed
+    """
     SCENARIO_FILE_INVALID_PATH = auto()
     SCENARIO_FILE_IS_CATALOG = auto()
     SCENARIO_FILE_IS_PARAMETER_VALUE_DISTRIBUTION = auto()
@@ -42,15 +45,18 @@ class EFailureReason(Enum):
 
 @dataclass
 class Osc2CrConverter(Converter):
+    """
+    The main class of the OpenSCENARIO to CommonRoad conversion
+    """
     # Required
-    author: str
-    affiliation: str
-    source: str
-    tags: Set[Tag]
+    author: str  # Author of the scenario
+    affiliation: str  # Affiliation of the author of the scenario
+    source: str  # Source of the scenario
+    tags: Set[Tag]  # Tags of the scenario
 
-    dt_cr: float = 0.1
-    sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()
-    pps_builder: PPSBuilder = PPSBuilder()
+    dt_cr: float = 0.1  # Delta time of the CommonRoad scenario
+    sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()  # The used SimWrapper implementation
+    pps_builder: PPSBuilder = PPSBuilder()  # The used PPSBuilder instance
 
     use_implicit_odr_file: bool = False
     trim_scenario: bool = False
@@ -79,6 +85,9 @@ class Osc2CrConverter(Converter):
 
     def run_conversion(self, source_file: str) \
             -> Union[Osc2CrConverterResult, EFailureReason]:
+        """
+        The main function, that runs the SimWrapper, converts its results and runs the specified analyzers on the result
+        """
         assert dataclass_is_complete(self)
 
         xosc_file = path.abspath(source_file)

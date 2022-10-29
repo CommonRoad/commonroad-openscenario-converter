@@ -17,6 +17,13 @@ from BatchConversion.Serializable import Serializable
 
 @dataclass(frozen=True)
 class Osc2CrConverterResult(Serializable):
+    """
+    The result of the Osc2CrConverter it contains the converted scenario and planning problem set as well as general
+    statistics and other useful information.
+
+    For faster import of the results the loading of the scenario and planning problem set can be deactivated using
+    the Serializable interface
+    """
     __lock: ClassVar[Lock] = Lock()
     statistics: ConversionStatistics
     analysis: Dict[Type[Analyzer], Tuple[float, Dict[str, AnalyzerResult]]]
