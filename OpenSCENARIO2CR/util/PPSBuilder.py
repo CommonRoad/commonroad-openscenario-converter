@@ -20,13 +20,13 @@ class PPSBuilder:
     Planning Problem Set builder
     """
     # Required
-    time_interval: AbsRel[Interval] = AbsRel.relative(Interval(-10, 0))
+    time_interval: AbsRel[Interval] = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
 
-    position_length_factor: AbsRel[float] = AbsRel.absolute(50)
-    position_width_factor: AbsRel[float] = AbsRel.absolute(10)
-    position_rotation: AbsRel[float] = AbsRel.relative(0)
-    position_center_x: AbsRel[float] = AbsRel.relative(0)
-    position_center_y: AbsRel[float] = AbsRel.relative(0)
+    pos_length: AbsRel[float] = AbsRel(50, AbsRel.EUsage.ABS)
+    pos_width: AbsRel[float] = AbsRel(10, AbsRel.EUsage.ABS)
+    pos_rotation: AbsRel[float] = AbsRel(0, AbsRel.EUsage.REL_ADD)
+    pos_center_x: AbsRel[float] = AbsRel(0, AbsRel.EUsage.REL_ADD)
+    pos_center_y: AbsRel[float] = AbsRel(0, AbsRel.EUsage.REL_ADD)
 
     # Optional
     velocity_interval: Optional[AbsRel[Interval]] = None
@@ -40,29 +40,29 @@ class PPSBuilder:
 
         goal_state = State()
 
-        position_rotation = self.position_rotation.as_summand(final_state.orientation)
+        position_rotation = self.pos_rotation.get(final_state.orientation)
         while not is_valid_orientation(position_rotation):
             if position_rotation > 0:
                 position_rotation -= 2 * np.pi
             else:
                 position_rotation += 2 * np.pi
         center = np.array((
-            self.position_center_x.as_summand(final_state.position[0]),
-            self.position_center_y.as_summand(final_state.position[1]),
+            self.pos_center_x.get(final_state.position[0]),
+            self.pos_center_y.get(final_state.position[1]),
         ))
         goal_state.position = Rectangle(
-            length=self.position_length_factor.as_factor(obstacle.obstacle_shape.length),
-            width=self.position_width_factor.as_factor(obstacle.obstacle_shape.width),
+            length=self.pos_length.get(obstacle.obstacle_shape.length),
+            width=self.pos_width.get(obstacle.obstacle_shape.width),
             center=center,
             orientation=position_rotation
         )
 
-        goal_state.time_step = self.time_interval.as_summand(final_state.time_step)
+        goal_state.time_step = self.time_interval.get(final_state.time_step)
 
         if self.velocity_interval is not None:
-            goal_state.velocity = self.velocity_interval.as_summand(final_state.velocity)
+            goal_state.velocity = self.velocity_interval.get(final_state.velocity)
         if self.orientation_interval is not None:
-            goal_state.orientation = self.orientation_interval.as_summand(final_state.orientation)
+            goal_state.orientation = self.orientation_interval.get(final_state.orientation)
 
         return PlanningProblemSet(
             [

@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from enum import IntEnum
 
 
-class EStoryBoardElementType(IntEnum):
+class EStoryBoardElementLevel(IntEnum):
+    """
+    Levels of the storyboard elements
+    """
     STORY = 1
     ACT = 2
     MANEUVER_GROUP = 3
@@ -13,6 +16,9 @@ class EStoryBoardElementType(IntEnum):
 
 
 class EStoryBoardElementState(IntEnum):
+    """
+    State of the storyboard elements
+    """
     STANDBY = 1
     RUNNING = 2
     COMPLETE = 3
@@ -21,8 +27,11 @@ class EStoryBoardElementState(IntEnum):
 
 @dataclass(frozen=True)
 class StoryBoardElement:
+    """
+    A storyboard element
+    """
     name: bytes
-    element_type: EStoryBoardElementType
+    element_type: EStoryBoardElementLevel
 
     def __eq__(self, o: object) -> bool:
         return isinstance(o, StoryBoardElement) and self.name == o.name and self.element_type == o.element_type

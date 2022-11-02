@@ -4,7 +4,7 @@ import pickle
 import re
 import warnings
 from dataclasses import dataclass, field
-from multiprocessing import Value, Lock
+from multiprocessing import Value
 from os import path
 from typing import Dict, Optional, Union, ClassVar, List, Tuple, Callable
 
@@ -23,31 +23,32 @@ from commonroad.scenario.scenario import Scenario
 from commonroad.scenario.trajectory import State
 from scenariogeneration.xosc import Vehicle
 
+from BatchConversion.Serializable import Serializable
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.util.AbsRel import AbsRel
-from BatchConversion.Serializable import Serializable
 from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
 
 
 @dataclass(frozen=True)
 class SpotAnalyzerResult(AnalyzerResult):
-    __lock: ClassVar[Lock] = Lock()
+    """
+    The result class for the SpotAnalyzer with the predictions dict containing the information. The key hierarchy is:
+       - Time step for which the scenario ran (containing either an AnalyzerErrorResult, or the prediction information)
+       - Obstacle ID, for which obstacle the SetBasedPrediction is generated for
+
+    With the Serializable Interface it can be controlled if the SetBasedPrediction shall be imported, if decided not
+    to this results in faster import times
+    """
     __count: ClassVar[Value] = Value(ctypes.c_int, 1)
     # predictions[time_step][obstacle_id] -> SetBasedPrediction (or int iff Serializable.load_extra_files == False)
-    predictions: Dict[int, Union[AnalyzerErrorResult, Dict[int, Union[SetBasedPrediction, int]]]] = \
+    predictions: Dict[int, Union[AnalyzerErrorResult, Dict[int, SetBasedPrediction]]] = \
         field(default_factory=dict)
-
-    def __post_init__(self):
-        for pred_per_obstacle in self.predictions.values():
-            if not isinstance(pred_per_obstacle, AnalyzerErrorResult):
-                for pred in pred_per_obstacle.values():
-                    assert isinstance(pred, SetBasedPrediction), str(type(pred))
 
     def __getstate__(self) -> Dict:
         data = self.__dict__.copy()
-        if Serializable.storage_dir is not None and Serializable.store_extra_files:
+        if Serializable.storage_dir is not None:
             predictions_to_store: List[SetBasedPrediction] = []
             for pred_per_obstacle in data["predictions"].values():
                 if not isinstance(pred_per_obstacle, AnalyzerErrorResult):
@@ -81,6 +82,18 @@ class SpotAnalyzerResult(AnalyzerResult):
 
 @dataclass
 class SpotAnalyzer(Analyzer):
+    """
+    The Spot analyzer uses the spot package for Set-based Prediction Of Traffic participants (SPOT)
+
+    The time_offset, num_time_steps and stride parameter determine for which time steps the spot prediction shall
+    take place. The time_offset is added to the initial time step, with the assumption of constant acceleration
+    during that time for all entities in the scenario. The num_time_steps how long the spot prediction will be after
+    the offset (11 time steps with a dt of 0.1 result in 1s of prediction). The stride parameter determines how many
+    initial time steps are considered. With stride == 1 for every timestep a SPOT prediction will take place,
+    for stride == 2 for every second and for stride == None only for the first time step.
+
+    The other parameters determine the behavior of the spot package look at its documentation to get mor information.
+    """
     __scenario_id: ClassVar[Value] = Value(ctypes.c_int, 0)
 
     time_offset: float = 0.0
@@ -264,11 +277,11 @@ class SpotAnalyzer(Analyzer):
             float_no_fail(ego_properties, "v_max", lambda: abs(_float(extra.dynamics.max_speed)))
             if self.a_comfort_max_factor is not None:
                 float_no_fail(ego_properties, "a_comfort_max",
-                              lambda: abs(self.a_comfort_max_factor.as_factor(_float(extra.dynamics.max_acceleration))))
+                              lambda: abs(self.a_comfort_max_factor.get(_float(extra.dynamics.max_acceleration))))
             if self.a_comfort_min_factor is not None:
                 float_no_fail(ego_properties, "a_comfort_min",
                               lambda: -abs(
-                                  self.a_comfort_min_factor.as_factor(_float(extra.dynamics.max_acceleration))))
+                                  self.a_comfort_min_factor.get(_float(extra.dynamics.max_acceleration))))
             if self.constr_no_backward is not None:
                 ego_properties["constr_no_backward"] = self.constr_no_backward
             if self.constr_no_lane_change is not None:

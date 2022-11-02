@@ -9,11 +9,16 @@ from BatchConversion.Serializable import Serializable
 
 
 class Converter(ABC):
+    """
+    The Base class for a converter that can be used with the BatchConverter
+
+    It only needs to implement the run_conversion function
+    """
     __lock: ClassVar[Lock] = Lock()
 
     def run_in_batch_conversion(self, source_file: str) -> str:
         with self.__lock:
-            file_path_base = path.join(Serializable.storage_dir, "Res_", path.splitext(path.basename(source_file))[0])
+            file_path_base = path.join(Serializable.storage_dir, "Res_" + path.splitext(path.basename(source_file))[0])
             i = 1
             while path.exists(result_file := file_path_base + f"{i}.pickle"):
                 i += 1
@@ -23,4 +28,7 @@ class Converter(ABC):
 
     @abstractmethod
     def run_conversion(self, source_file: str) -> Union[Serializable, Enum]:
+        """
+        The main entry point of a converter. Implement this.
+        """
         raise NotImplementedError

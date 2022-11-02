@@ -8,6 +8,9 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
 
 
 class SimWrapper:
+    """
+    The base class of a ScenarioWrapper.
+    """
     def __init__(self, max_time: Optional[float]):
         self.max_time = max_time
 

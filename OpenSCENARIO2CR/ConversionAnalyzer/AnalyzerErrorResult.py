@@ -7,6 +7,9 @@ from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 
 @dataclass(frozen=True)
 class AnalyzerErrorResult(AnalyzerResult):
+    """
+    A result containing a exception text and traceback
+    """
     exception_text: str
     traceback_text: str
 

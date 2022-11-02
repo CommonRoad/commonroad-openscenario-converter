@@ -1,28 +1,36 @@
 from dataclasses import dataclass
 from multiprocessing import Lock
 from os import path
-from typing import Dict, Optional, Tuple, ClassVar
+from typing import Dict, Optional, Tuple, ClassVar, Type
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 
+from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
 from BatchConversion.Serializable import Serializable
 
 
 @dataclass(frozen=True)
 class Osc2CrConverterResult(Serializable):
+    """
+    The result of the Osc2CrConverter it contains the converted scenario and planning problem set as well as general
+    statistics and other useful information.
+
+    For faster import of the results the loading of the scenario and planning problem set can be deactivated using
+    the Serializable interface
+    """
     __lock: ClassVar[Lock] = Lock()
     statistics: ConversionStatistics
-    analysis: Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]
+    analysis: Dict[Type[Analyzer], Tuple[float, Dict[str, AnalyzerResult]]]
     xosc_file: str
     xodr_file: Optional[str]
     xodr_conversion_error: Optional[AnalyzerErrorResult]
+    obstacles_extra_info_finder_error: Optional[AnalyzerErrorResult]
 
     scenario: Optional[Scenario]
     planning_problem_set: Optional[PlanningProblemSet]
@@ -30,7 +38,7 @@ class Osc2CrConverterResult(Serializable):
     def __getstate__(self) -> Dict:
         data = self.__dict__.copy()
         if self.scenario is not None and self.planning_problem_set is not None \
-                and Serializable.storage_dir is not None and Serializable.store_extra_files:
+                and Serializable.storage_dir is not None:
             del data["scenario"]
             del data["planning_problem_set"]
             file_path_base = path.join(Serializable.storage_dir, path.splitext(path.basename(self.xosc_file))[0])

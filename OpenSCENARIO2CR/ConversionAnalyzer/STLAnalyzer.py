@@ -20,9 +20,13 @@ from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 
 @dataclass(frozen=True)
 class STLAnalyzerResult(AnalyzerResult):
-    r_g1: Optional[np.ndarray] = None
-    r_g2: Optional[np.ndarray] = None
-    r_g3: Optional[np.ndarray] = None
+    """
+    Storing the results of the STLAnalyzer. each parameter contains a np.ndarray storing the robustness degree. A
+    value of over 0 represents the compliance to the rule set
+    """
+    r_g1: np.ndarray = None
+    r_g2: np.ndarray = None
+    r_g3: np.ndarray = None
 
     def __getstate__(self) -> Dict:
         return self.__dict__.copy()
@@ -33,6 +37,9 @@ class STLAnalyzerResult(AnalyzerResult):
 
 @dataclass
 class STLAnalyzer(Analyzer):
+    """
+    This class runs the R_G1, R_G2, R_G3 rule set of the STLAnalyzer.
+    """
     def _run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
              obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Dict[str, AnalyzerResult]:
         try:

@@ -5,7 +5,7 @@ import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass, field
 from enum import auto, Enum
 from os import path
-from typing import Optional, List, Dict, Tuple, Union, Set
+from typing import Optional, List, Dict, Tuple, Union, Set, Type
 
 from commonroad.geometry.shape import Rectangle
 from commonroad.prediction.prediction import TrajectoryPrediction
@@ -13,12 +13,12 @@ from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario, Tag
 from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
+from scenariogeneration.xosc import Vehicle
 
 from BatchConversion.Converter import Converter
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
@@ -32,6 +32,9 @@ from OpenSCENARIO2CR.util.UtilFunctions import trim_scenario, dataclass_is_compl
 
 
 class EFailureReason(Enum):
+    """
+    The enum of reasons why the conversion failed
+    """
     SCENARIO_FILE_INVALID_PATH = auto()
     SCENARIO_FILE_IS_CATALOG = auto()
     SCENARIO_FILE_IS_PARAMETER_VALUE_DISTRIBUTION = auto()
@@ -42,43 +45,49 @@ class EFailureReason(Enum):
 
 @dataclass
 class Osc2CrConverter(Converter):
+    """
+    The main class of the OpenSCENARIO to CommonRoad conversion
+    """
     # Required
-    author: str
-    affiliation: str
-    source: str
-    tags: Set[Tag]
+    author: str  # Author of the scenario
+    affiliation: str  # Affiliation of the author of the scenario
+    source: str  # Source of the scenario
+    tags: Set[Tag]  # Tags of the scenario
 
-    dt_cr: float = 0.1
-    sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()
-    pps_builder: PPSBuilder = PPSBuilder()
+    dt_cr: float = 0.1  # Delta time of the CommonRoad scenario
+    sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()  # The used SimWrapper implementation
+    pps_builder: PPSBuilder = PPSBuilder()  # The used PPSBuilder instance
 
     use_implicit_odr_file: bool = False
     trim_scenario: bool = False
     keep_ego_vehicle: bool = True
-    analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = \
-        field(default_factory=lambda: list(EAnalyzer))
+    analyzers: Union[Dict[Type[Analyzer], Optional[Analyzer]], List[Type[Analyzer]]] = \
+        field(default_factory=lambda: list())
 
     # Optional
     dt_sim: Optional[float] = None
     odr_file_override: Optional[str] = None
     ego_filter: Optional[re.Pattern] = None
 
-    def get_analyzer_objects(self) -> Dict[EAnalyzer, Analyzer]:
+    def get_analyzer_objects(self) -> Dict[Type[Analyzer], Analyzer]:
         if self.analyzers is None:
             return {}
         elif isinstance(self.analyzers, list):
-            return {e_analyzer: e_analyzer.analyzer_type() for e_analyzer in self.analyzers}
+            return {t_analyzer: t_analyzer() for t_analyzer in self.analyzers}
         elif isinstance(self.analyzers, dict):
             ret = {}
-            for e_analyzer, analyzer in self.analyzers.items():
+            for t_analyzer, analyzer in self.analyzers.items():
                 if analyzer is not None:
-                    ret[e_analyzer] = analyzer
+                    ret[t_analyzer] = analyzer
                 else:
-                    ret[e_analyzer] = e_analyzer.analyzer_type()
+                    ret[t_analyzer] = t_analyzer()
             return ret
 
     def run_conversion(self, source_file: str) \
             -> Union[Osc2CrConverterResult, EFailureReason]:
+        """
+        The main function, that runs the SimWrapper, converts its results and runs the specified analyzers on the result
+        """
         assert dataclass_is_complete(self)
 
         xosc_file = path.abspath(source_file)
@@ -104,20 +113,26 @@ class Osc2CrConverter(Converter):
         ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(res.states.keys()))
         keep_ego_vehicle = self.keep_ego_vehicle
 
-        obstacles = self._create_obstacles_from_state_lists(scenario, ego_vehicle, res.states, res.sim_time)
+        obstacles_extra_info = ObstacleExtraInfoFinder(xosc_file, set(res.states.keys())).run()
+        obstacles_extra_info_finder_error = None
+        if isinstance(obstacles_extra_info, AnalyzerErrorResult):
+            obstacles_extra_info_finder_error = obstacles_extra_info
+            obstacles_extra_info = {o_name: None for o_name in res.states.keys()}
+
+        obstacles = self._create_obstacles_from_state_lists(
+            scenario, ego_vehicle, res.states, res.sim_time, obstacles_extra_info
+        )
 
         scenario.add_objects([
             obstacle for obstacle_name, obstacle in obstacles.items()
             if obstacle is not None and (self.keep_ego_vehicle or ego_vehicle != obstacle_name)
         ])
-        extra_information_finder = ObstacleExtraInfoFinder()
-        extra_information_finder.obstacles = obstacles
-        extra_information_finder.scenario_path = xosc_file
         if len(scenario.lanelet_network.lanelets) > 0:
             scenario.assign_obstacles_to_lanelets()
 
         if self.trim_scenario:
             scenario = trim_scenario(scenario, deep_copy=False)
+        pps = self.pps_builder.build(obstacles[ego_vehicle])
 
         return Osc2CrConverterResult(
             statistics=self.build_statistics(
@@ -129,17 +144,18 @@ class Osc2CrConverter(Converter):
                 sim_time=sim_time,
             ),
             analysis=self.run_analysis(
-                scenario_path=xosc_file,
                 scenario=scenario,
                 obstacles=obstacles,
                 ego_vehicle=ego_vehicle,
                 keep_ego_vehicle=keep_ego_vehicle,
+                obstacles_extra_info=obstacles_extra_info
             ),
             xosc_file=xosc_file,
             xodr_file=xodr_file,
             xodr_conversion_error=xodr_conversion_error,
+            obstacles_extra_info_finder_error=obstacles_extra_info_finder_error,
             scenario=scenario,
-            planning_problem_set=self.pps_builder.build(obstacles[ego_vehicle]),
+            planning_problem_set=pps,
         )
 
     @staticmethod
@@ -215,6 +231,7 @@ class Osc2CrConverter(Converter):
             ego_vehicle: str,
             states: Dict[str, List[SimScenarioObjectState]],
             sim_time: float,
+            obstacles_extra_info: Dict[str, Optional[Vehicle]]
     ) -> Dict[str, Optional[DynamicObstacle]]:
         final_timestamps = [step * self.dt_cr for step in range(math.floor(sim_time / self.dt_cr) + 1)]
 
@@ -223,6 +240,7 @@ class Osc2CrConverter(Converter):
                 obstacle_id=scenario.generate_object_id(),
                 states=states[obstacle_name],
                 timestamps=final_timestamps,
+                obstacle_extra_info=obstacles_extra_info[obstacle_name]
             )
 
         # Make sure ego vehicle is always the obstacle with the lowest obstacle_id
@@ -236,7 +254,8 @@ class Osc2CrConverter(Converter):
             self,
             obstacle_id: int,
             states: List[SimScenarioObjectState],
-            timestamps: List[float]
+            timestamps: List[float],
+            obstacle_extra_info: Optional[Vehicle],
     ) -> Optional[DynamicObstacle]:
         if len(states) == 0:
             return None
@@ -247,7 +266,7 @@ class Osc2CrConverter(Converter):
         first_used_time_step = round(first_used_timestamp / self.dt_cr)
         last_used_time_step = round(last_used_timestamp / self.dt_cr)
         used_timestamps = sorted([t for t in timestamps if first_used_timestamp <= t <= last_used_timestamp])
-        used_states = [ScenarioObjectState.build_interpolated(states, t) for t in used_timestamps]
+        used_states = [ScenarioObjectState.build_interpolated(states, t, obstacle_extra_info) for t in used_timestamps]
 
         shape = Rectangle(states[0].get_object_length(), states[0].get_object_width())
         trajectory = Trajectory(
@@ -273,7 +292,7 @@ class Osc2CrConverter(Converter):
             ego_vehicle_found_with_filter: bool,
             keep_ego_vehicle: bool,
             ending_cause: ESimEndingCause,
-            sim_time: float,
+            sim_time: float
     ) -> ConversionStatistics:
         return ConversionStatistics(
             num_obstacle_conversions=len(obstacles),
@@ -287,12 +306,12 @@ class Osc2CrConverter(Converter):
 
     def run_analysis(
             self,
-            scenario_path: str,
             scenario: Scenario,
             obstacles: Dict[str, Optional[DynamicObstacle]],
             ego_vehicle: str,
             keep_ego_vehicle: bool,
-    ) -> Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]:
+            obstacles_extra_info: Dict[str, Optional[Vehicle]],
+    ) -> Dict[Type[Analyzer], Tuple[float, Dict[str, AnalyzerResult]]]:
         analyzers = self.get_analyzer_objects()
         if len(analyzers) == 0:
             return {}
@@ -302,7 +321,6 @@ class Osc2CrConverter(Converter):
                 trimmed_scenario.add_objects(obstacles[ego_vehicle])
                 if len(scenario.lanelet_network.lanelets) > 0:
                     scenario.assign_obstacles_to_lanelets()
-            obstacles_extra_info = ObstacleExtraInfoFinder(scenario_path=scenario_path, obstacles=obstacles).run()
             return {
                 e_analyzer: analyzer.run(
                     trimmed_scenario,
