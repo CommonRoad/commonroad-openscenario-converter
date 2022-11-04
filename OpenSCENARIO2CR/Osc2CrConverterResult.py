@@ -8,11 +8,12 @@ from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistin
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 
+from BatchConversion.Serializable import Serializable
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.StoryBoardElement import EStoryBoardElementLevel
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
-from BatchConversion.Serializable import Serializable
 
 
 @dataclass(frozen=True)
@@ -31,6 +32,7 @@ class Osc2CrConverterResult(Serializable):
     xodr_file: Optional[str]
     xodr_conversion_error: Optional[AnalyzerErrorResult]
     obstacles_extra_info_finder_error: Optional[AnalyzerErrorResult]
+    running_storyboard_elements: Optional[Dict[float, Dict[EStoryBoardElementLevel, int]]]
 
     scenario: Optional[Scenario]
     planning_problem_set: Optional[PlanningProblemSet]

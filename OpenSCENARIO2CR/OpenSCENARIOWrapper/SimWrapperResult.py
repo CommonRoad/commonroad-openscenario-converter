@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import SimScenarioObjectState
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.StoryBoardElement import EStoryBoardElementLevel
 
 
 @dataclass(frozen=True)
@@ -14,10 +15,12 @@ class WrapperSimResult:
         ending_cause cause why the simulation ended
         states_per_vehicle List of simulation states per vehicle
         total_simulation_time total time simulated (Not execution time)
+        running_storyboard_elements Dict[sim_time, Dict[element level, count active elements]]
     """
     states: Dict[str, List[SimScenarioObjectState]]
     sim_time: float
     ending_cause: ESimEndingCause
+    running_storyboard_elements: Optional[Dict[float, Dict[EStoryBoardElementLevel, int]]] = None
 
     @staticmethod
     def failure() -> "WrapperSimResult":

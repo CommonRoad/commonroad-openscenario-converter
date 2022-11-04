@@ -31,7 +31,4 @@ class StoryBoardElement:
     A storyboard element
     """
     name: bytes
-    element_type: EStoryBoardElementLevel
-
-    def __eq__(self, o: object) -> bool:
-        return isinstance(o, StoryBoardElement) and self.name == o.name and self.element_type == o.element_type
+    element_level: EStoryBoardElementLevel

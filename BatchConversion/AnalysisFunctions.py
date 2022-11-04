@@ -193,7 +193,7 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
     print(f"{'Total num scenarios':<50s} {counts['total']:5d}")
     print(f"{'Average time':<50s} {np.mean(times):}")
     print("-" * 80)
-    perc("OpenDRIVE Conversion run rate", "odr conversions run", "success")
+    perc("OpenDRIVE file specified rate", "odr conversions run", "success")
     perc("OpenDRIVE Conversion success rate", "odr conversions success", "success")
     perc("", "odr conversions success", "odr conversions run")
     print("-" * 80)
@@ -267,6 +267,32 @@ def print_exception_tracebacks(
                 print(f"{scenario_path}\n{result.exception.traceback_text}\n\n\n")
             else:
                 errors[result.exception] = 1 + errors.get(result.exception, 0)
+
+    for error, count in errors.items():
+        print(f"{count}\n{error.traceback_text}")
+        print("\n" * 3)
+
+
+def print_exception_tracebacks_for_odr(
+        results: Dict[str, BatchConversionResult],
+        compressed=True,
+):
+    """
+    Print the exception tracebacks, that raised inside the Converter and caught by the BatchConverter.
+
+    :param results: The result dict returned by the BatchConverter
+    :param compressed:bool: If true print only unique errors and a count how often they were raised.
+    """
+    errors: Dict[AnalyzerErrorResult, int] = {}
+    for scenario_path, result in results.items():
+        if not result.without_exception:
+            continue
+        result = result.get_result()
+        if isinstance(result, Osc2CrConverterResult) and result.xodr_conversion_error is not None:
+            if not compressed:
+                print(f"{scenario_path}\n{result.xodr_conversion_error.traceback_text}\n\n\n")
+            else:
+                errors[result.xodr_conversion_error] = 1 + errors.get(result.xodr_conversion_error, 0)
 
     for error, count in errors.items():
         print(f"{count}\n{error.traceback_text}")

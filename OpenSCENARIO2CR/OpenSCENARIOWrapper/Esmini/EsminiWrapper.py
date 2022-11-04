@@ -14,10 +14,10 @@ from commonroad.common.validity import is_real_number
 
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiScenarioObjectState import SEStruct
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryBoardElementState, \
-    EStoryBoardElementLevel, StoryBoardElement
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.StoryBoardElement import EStoryBoardElementState, \
+    EStoryBoardElementLevel, StoryBoardElement
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
 
 
@@ -205,9 +205,10 @@ class EsminiWrapper(SimWrapper):
             sim_time = 0.0
             all_states: Dict[int, List[SEStruct]]
             all_states = {object_id: [state] for object_id, state in self._get_scenario_object_states().items()}
+            running_storyboard_elements = {}
             while (cause := self._sim_finished()) is None:
                 self._sim_step(sim_dt)
-                sim_time += sim_dt
+                running_storyboard_elements[sim_time] = self._running_elements_counts()
                 for object_id, new_state in self._get_scenario_object_states().items():
                     if object_id not in all_states:
                         all_states[object_id] = [new_state]
@@ -215,12 +216,14 @@ class EsminiWrapper(SimWrapper):
                         all_states[object_id][-1] = new_state
                     else:
                         all_states[object_id].append(new_state)
+                sim_time += sim_dt
 
             return WrapperSimResult(
                 states={self._get_scenario_object_name(object_id): states for object_id, states in
                         all_states.items()},
                 sim_time=sim_time,
-                ending_cause=cause
+                ending_cause=cause,
+                running_storyboard_elements=running_storyboard_elements
             )
 
     def view_scenario(self, scenario_path: str, window_size: Optional[WindowSize] = None):
@@ -242,13 +245,11 @@ class EsminiWrapper(SimWrapper):
                 return False
             if window_size is not None:
                 self._set_set_window_size(window_size)
-            image_regex = re.compile(r"screen_shot_\d{5,}\.tga")
-            ignored_images = set([p for p in os.listdir(".") if image_regex.match(p) is not None])
             while self._sim_finished() is None:
                 self._sim_step(1 / fps)
             self._close_scenario_engine()
-            images = sorted(
-                [p for p in os.listdir(".") if image_regex.match(p) is not None and p not in ignored_images])
+            image_regex = re.compile(r"screen_shot_\d{5,}\.tga")
+            images = sorted([p for p in os.listdir(".") if image_regex.match(p) is not None and p])
             with imageio.get_writer(gif_file_path, mode="I", fps=fps) as writer:
                 for image in images:
                     writer.append_data(imageio.v3.imread(image))
@@ -298,7 +299,9 @@ class EsminiWrapper(SimWrapper):
         self._scenario_engine_initialized = False
 
     def __state_change_callback(self, name: bytes, element_type: int, state: int):
-        self._all_sim_elements[StoryBoardElement(name, EStoryBoardElementLevel(element_type))] = EStoryBoardElementState(
+        print(EStoryBoardElementLevel(element_type).name, EStoryBoardElementState(state).name)
+        self._all_sim_elements[
+            StoryBoardElement(name, EStoryBoardElementLevel(element_type))] = EStoryBoardElementState(
             state)
 
     def _sim_step(self, dt: Optional[float]):
@@ -336,12 +339,20 @@ class EsminiWrapper(SimWrapper):
 
     def _all_sim_elements_finished(self) -> bool:
         all_relevant: List[EStoryBoardElementState]
-        lvl = self.ignored_level
-        if lvl is not None:
-            all_relevant = [v for k, v in self._all_sim_elements.items() if k.element_type.value > lvl.value]
+        if self.ignored_level is not None:
+            all_relevant = [
+                v for k, v in self._all_sim_elements.items() if k.element_level.value > self.ignored_level.value
+            ]
         else:
             all_relevant = list(self._all_sim_elements.values())
         return all([v is EStoryBoardElementState.COMPLETE for v in all_relevant])
+
+    def _running_elements_counts(self) -> Dict[EStoryBoardElementLevel, int]:
+        ret = {level: 0 for level in EStoryBoardElementLevel}
+        for element, status in self._all_sim_elements.items():
+            if status == EStoryBoardElementState.RUNNING:
+                ret[element.element_level] += 1
+        return ret
 
     def _get_scenario_object_states(self) -> Optional[Dict[int, SEStruct]]:
         if not self._scenario_engine_initialized:

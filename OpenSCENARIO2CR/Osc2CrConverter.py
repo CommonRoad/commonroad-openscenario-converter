@@ -36,6 +36,7 @@ class EFailureReason(Enum):
     The enum of reasons why the conversion failed
     """
     SCENARIO_FILE_INVALID_PATH = auto()
+    SCENARIO_FILE_INVALID_XML_FILE = auto()
     SCENARIO_FILE_IS_CATALOG = auto()
     SCENARIO_FILE_IS_PARAMETER_VALUE_DISTRIBUTION = auto()
     SCENARIO_FILE_CONTAINS_NO_STORYBOARD = auto()
@@ -154,6 +155,7 @@ class Osc2CrConverter(Converter):
             xodr_file=xodr_file,
             xodr_conversion_error=xodr_conversion_error,
             obstacles_extra_info_finder_error=obstacles_extra_info_finder_error,
+            running_storyboard_elements=res.running_storyboard_elements,
             scenario=scenario,
             planning_problem_set=pps,
         )
@@ -162,7 +164,11 @@ class Osc2CrConverter(Converter):
     def _pre_parse_scenario(source_file: str) -> Union[EFailureReason, None, str]:
         if not path.exists(source_file):
             return EFailureReason.SCENARIO_FILE_INVALID_PATH
-        root = ElementTree.parse(source_file).getroot()
+        try:
+            root = ElementTree.parse(source_file).getroot()
+        except ElementTree.ParseError as e:
+            return EFailureReason.SCENARIO_FILE_INVALID_XML_FILE
+
         if root.find("Storyboard") is None:
             if root.find("Catalog") is not None:
                 return EFailureReason.SCENARIO_FILE_IS_CATALOG
