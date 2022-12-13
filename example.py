@@ -15,10 +15,10 @@ from OpenSCENARIO2CR.util.AbsRel import AbsRel
 from OpenSCENARIO2CR.util.PPSBuilder import PPSBuilder
 
 # two examples, you can also download the scenarios from esmini or the openscenario website
-scenario_path = "/scenarios/from_esmini/xosc/pedestrian.xosc"
-# scenario_path = "/scenarios/from_openScenario_standard/DoubleLaneChanger.xosc"
+scenario_path = os.getcwd() + "/scenarios/from_esmini/xosc/pedestrian.xosc"
+# scenario_path =  os.getcwd() + "/scenarios/from_openScenario_standard/DoubleLaneChanger.xosc"
 
-run_viewer = True
+run_viewer = False
 plots_step = 5
 plot_limit = 20  # If non-null the renderer follows the ego vehicle
 following_obstacle_index = 0
@@ -27,7 +27,7 @@ following_obstacle_index = 0
 # Setup EsminiWrapper
 esmini_wrapper = EsminiWrapperProvider().provide_esmini_wrapper()
 esmini_wrapper.min_time = 15
-esmini_wrapper.max_time = 15.0
+esmini_wrapper.max_time = 30.0
 esmini_wrapper.grace_time = 1.0
 esmini_wrapper.ignored_level = EStoryBoardElementLevel.ACT
 esmini_wrapper.log_to_console = True
@@ -98,7 +98,7 @@ scenario.draw(rnd, draw_params={
 pps.draw(rnd)
 rnd.render()
 plt.savefig("overview.png")
-plt.show()
+#plt.show()
 
 times = [70, 85, 110]
 
@@ -119,5 +119,5 @@ for t in times:
     pps.draw(rnd)
     rnd.render()
     plt.savefig(f"step-{t:2d}.png")
-    plt.show()
+    #plt.show()
 
