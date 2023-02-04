@@ -81,7 +81,6 @@ count = 0
 
 scenario = result.scenario
 pps = result.planning_problem_set
-analysis = result.analysis
 stats = result.statistics
 
 lim_y = 30

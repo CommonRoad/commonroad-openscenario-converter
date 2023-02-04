@@ -26,7 +26,6 @@ class Osc2CrConverterResult(Serializable):
     """
     __lock: ClassVar[Lock] = Lock()
     statistics: ConversionStatistics
-    analysis: Dict[Type[Analyzer], Tuple[float, Dict[str, AnalyzerResult]]]
     xosc_file: str
     xodr_file: Optional[str]
     xodr_conversion_error: Optional[AnalyzerErrorResult]

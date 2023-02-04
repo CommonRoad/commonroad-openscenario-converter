@@ -49,39 +49,23 @@ class Osc2CrConverter(Converter):
     The main class of the OpenSCENARIO to CommonRoad conversion
     """
     # Required
-    author: str  # Author of the scenario
-    affiliation: str  # Affiliation of the author of the scenario
-    source: str  # Source of the scenario
-    tags: Set[Tag]  # Tags of the scenario
+    author: str         # Author of the scenario
+    affiliation: str    # Affiliation of the author of the scenario
+    source: str         # Source of the scenario
+    tags: Set[Tag]      # Tags of the scenario
 
-    dt_cr: float = 0.1  # Delta time of the CommonRoad scenario
+    dt_cr: float = 0.1  # Time step size of the CommonRoad scenario
     sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()  # The used SimWrapper implementation
     pps_builder: PPSBuilder = PPSBuilder()  # The used PPSBuilder instance
 
-    use_implicit_odr_file: bool = False
-    trim_scenario: bool = False
-    keep_ego_vehicle: bool = True
-    analyzers: Union[Dict[Type[Analyzer], Optional[Analyzer]], List[Type[Analyzer]]] = \
-        field(default_factory=lambda: list())
+    use_implicit_odr_file: bool = False  # indicating whether the openDRIVE map defined in the openSCENARIO is used
+    trim_scenario: bool = False          # indicating whether the huge mag contained in the scenario is trimmed
+    keep_ego_vehicle: bool = True        # indicating whether the ego vehicle is kept or not in the saved scenario
 
     # Optional
     dt_sim: Optional[float] = None
     odr_file_override: Optional[str] = None
     ego_filter: Optional[re.Pattern] = None
-
-    def get_analyzer_objects(self) -> Dict[Type[Analyzer], Analyzer]:
-        if self.analyzers is None:
-            return {}
-        elif isinstance(self.analyzers, list):
-            return {t_analyzer: t_analyzer() for t_analyzer in self.analyzers}
-        elif isinstance(self.analyzers, dict):
-            ret = {}
-            for t_analyzer, analyzer in self.analyzers.items():
-                if analyzer is not None:
-                    ret[t_analyzer] = analyzer
-                else:
-                    ret[t_analyzer] = t_analyzer()
-            return ret
 
     def run_conversion(self, source_file: str) \
             -> Union[Osc2CrConverterResult, EFailureReason]:
@@ -115,9 +99,6 @@ class Osc2CrConverter(Converter):
 
         obstacles_extra_info = ObstacleExtraInfoFinder(xosc_file, set(res.states.keys())).run()
         obstacles_extra_info_finder_error = None
-        if isinstance(obstacles_extra_info, AnalyzerErrorResult):
-            obstacles_extra_info_finder_error = obstacles_extra_info
-            obstacles_extra_info = {o_name: None for o_name in res.states.keys()}
 
         obstacles = self._create_obstacles_from_state_lists(
             scenario, ego_vehicle, res.states, res.sim_time, obstacles_extra_info
@@ -142,13 +123,6 @@ class Osc2CrConverter(Converter):
                 keep_ego_vehicle=keep_ego_vehicle,
                 ending_cause=ending_cause,
                 sim_time=sim_time,
-            ),
-            analysis=self.run_analysis(
-                scenario=scenario,
-                obstacles=obstacles,
-                ego_vehicle=ego_vehicle,
-                keep_ego_vehicle=keep_ego_vehicle,
-                obstacles_extra_info=obstacles_extra_info
             ),
             xosc_file=xosc_file,
             xodr_file=xodr_file,
@@ -303,28 +277,3 @@ class Osc2CrConverter(Converter):
             sim_ending_cause=ending_cause,
             sim_time=sim_time,
         )
-
-    def run_analysis(
-            self,
-            scenario: Scenario,
-            obstacles: Dict[str, Optional[DynamicObstacle]],
-            ego_vehicle: str,
-            keep_ego_vehicle: bool,
-            obstacles_extra_info: Dict[str, Optional[Vehicle]],
-    ) -> Dict[Type[Analyzer], Tuple[float, Dict[str, AnalyzerResult]]]:
-        analyzers = self.get_analyzer_objects()
-        if len(analyzers) == 0:
-            return {}
-        else:
-            trimmed_scenario = trim_scenario(scenario)
-            if not keep_ego_vehicle:
-                trimmed_scenario.add_objects(obstacles[ego_vehicle])
-                if len(scenario.lanelet_network.lanelets) > 0:
-                    scenario.assign_obstacles_to_lanelets()
-            return {
-                e_analyzer: analyzer.run(
-                    trimmed_scenario,
-                    obstacles,
-                    obstacles_extra_info
-                ) for e_analyzer, analyzer in analyzers.items()
-            }
