@@ -2,10 +2,10 @@ import math
 import re
 import warnings
 import xml.etree.ElementTree as ElementTree
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import auto, Enum
 from os import path
-from typing import Optional, List, Dict, Tuple, Union, Set, Type
+from typing import Optional, List, Dict, Tuple, Union, Set
 
 from commonroad.geometry.shape import Rectangle
 from commonroad.prediction.prediction import TrajectoryPrediction
@@ -16,9 +16,7 @@ from crdesigner.map_conversion.map_conversion_interface import opendrive_to_comm
 from scenariogeneration.xosc import Vehicle
 
 from BatchConversion.Converter import Converter
-from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
@@ -56,21 +54,23 @@ class Osc2CrConverter(Converter):
 
     dt_cr: float = 0.1  # Time step size of the CommonRoad scenario
     sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()  # The used SimWrapper implementation
-    pps_builder: PPSBuilder = PPSBuilder()  # The used PPSBuilder instance
+    pps_builder: PPSBuilder = PPSBuilder()   # The used PPSBuilder instance
 
-    use_implicit_odr_file: bool = False  # indicating whether the openDRIVE map defined in the openSCENARIO is used
-    trim_scenario: bool = False          # indicating whether the huge mag contained in the scenario is trimmed
-    keep_ego_vehicle: bool = True        # indicating whether the ego vehicle is kept or not in the saved scenario
+    use_implicit_odr_file: bool = False      # indicating whether the openDRIVE map defined in the openSCENARIO is used
+    trim_scenario: bool = False              # indicating whether the huge mag contained in the scenario is trimmed
+    keep_ego_vehicle: bool = True            # indicating whether the ego vehicle is kept or not in the saved scenario
 
     # Optional
-    dt_sim: Optional[float] = None
-    odr_file_override: Optional[str] = None
-    ego_filter: Optional[re.Pattern] = None
+    dt_sim: Optional[float] = None           # User-defined time step size for esmini simulation
+    odr_file_override: Optional[str] = None  # User-defined OpenDRIVE map to be used
+    ego_filter: Optional[re.Pattern] = None  # Pattern of recognizing the ego vehicle
 
     def run_conversion(self, source_file: str) \
             -> Union[Osc2CrConverterResult, EFailureReason]:
         """
-        The main function, that runs the SimWrapper, converts its results and runs the specified analyzers on the result
+        The main function, that runs the simulation wrapper (SimWrapper) and converts its results.
+        :param source_file: the given openSCENARIO source file
+        :return converted results if converted successfully. Otherwise, the reason for the failure.
         """
         assert dataclass_is_complete(self)
 
@@ -81,7 +81,7 @@ class Osc2CrConverter(Converter):
         if isinstance(implicit_opendrive_path, EFailureReason):
             return implicit_opendrive_path
 
-        scenario, xodr_file, xodr_conversion_error = self._create_scenario(implicit_opendrive_path)
+        scenario, xodr_file, xodr_conversion_error = self._create_basic_scenario(implicit_opendrive_path)
         if isinstance(scenario, EFailureReason):
             return scenario
 
@@ -134,6 +134,11 @@ class Osc2CrConverter(Converter):
 
     @staticmethod
     def _pre_parse_scenario(source_file: str) -> Union[EFailureReason, None, str]:
+        """
+        Pre-parsing the scenario.
+        :param source_file: the given source file
+        :return: None or failure of the parsing.
+        """
         if not path.exists(source_file):
             return EFailureReason.SCENARIO_FILE_INVALID_PATH
         root = ElementTree.parse(source_file).getroot()
@@ -154,8 +159,13 @@ class Osc2CrConverter(Converter):
             return path.join(path.dirname(source_file), implicit_odr_file.attrib["filepath"])
         return None
 
-    def _create_scenario(self, implicit_odr_file: Optional[str]) \
+    def _create_basic_scenario(self, implicit_odr_file: Optional[str]) \
             -> Tuple[Scenario, Optional[str], Optional[AnalyzerErrorResult]]:
+        """
+        Creating the scenario with basic information and road networks (map)
+        :param implicit_odr_file: the source file of openDRIVE map
+        :return: the scenario with/without map, path of the openDRIVE, the reason of the failure if applicable
+        """
         odr_file: Optional[str] = None
         if self.odr_file_override is not None:
             if path.exists(self.odr_file_override):
@@ -186,12 +196,16 @@ class Osc2CrConverter(Converter):
         scenario.source = self.source
         scenario.tags = self.tags
 
+        # todo: define the rule of naming the scenario id based on the openSCENARIO name
+
         return scenario, odr_file, odr_conversion_error
 
-    def _is_object_name_used(self, object_name: str):
-        return self.ego_filter is None or self.ego_filter.match(object_name) is None
-
     def _find_ego_vehicle(self, vehicle_name_list: List[str]) -> Tuple[str, bool]:
+        """
+        Finding the ego vehicle based on the given pattern if applicable.
+        :param vehicle_name_list: the list of vehicle names
+        :return: ego vehicle found/first vehicle in the list, indication of which situation
+        """
         if self.ego_filter is not None:
             found_ego_vehicles = [name for name in vehicle_name_list if self.ego_filter.match(name) is not None]
             if len(found_ego_vehicles) > 0:
@@ -207,6 +221,15 @@ class Osc2CrConverter(Converter):
             sim_time: float,
             obstacles_extra_info: Dict[str, Optional[Vehicle]]
     ) -> Dict[str, Optional[DynamicObstacle]]:
+        """
+        Creating obstacles based on the given vehicle state lists.
+        :param scenario: basic scenario
+        :param ego_vehicle: name of the ego vehicle
+        :param states: state list
+        :param sim_time: total simulation time (in esmini)
+        :param obstacles_extra_info: extra information about the Vehicle
+        :return: created CommonRoad obstacles
+        """
         final_timestamps = [step * self.dt_cr for step in range(math.floor(sim_time / self.dt_cr) + 1)]
 
         def create_obstacle(obstacle_name: str) -> Optional[DynamicObstacle]:
@@ -268,6 +291,16 @@ class Osc2CrConverter(Converter):
             ending_cause: ESimEndingCause,
             sim_time: float
     ) -> ConversionStatistics:
+        """
+        Building the statistics of the conversion.
+        :param obstacles: created obstacles
+        :param ego_vehicle: name of the ego vehicle
+        :param ego_vehicle_found_with_filter: the way of ego creation
+        :param keep_ego_vehicle: whether the ego vehicle is kept
+        :param ending_cause: why simulation is finished
+        :param sim_time: simulation time in total
+        :return: statistics
+        """
         return ConversionStatistics(
             num_obstacle_conversions=len(obstacles),
             failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
