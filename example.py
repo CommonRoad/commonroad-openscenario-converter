@@ -15,8 +15,9 @@ from OpenSCENARIO2CR.util.AbsRel import AbsRel
 from OpenSCENARIO2CR.util.PPSBuilder import PPSBuilder
 
 # two examples, you can also download the scenarios from esmini or the openscenario website
-scenario_path = os.getcwd() + "/scenarios/from_esmini/xosc/pedestrian.xosc"
-# scenario_path =  os.getcwd() + "/scenarios/from_openScenario_standard/DoubleLaneChanger.xosc"
+# scenario_path = os.getcwd() + "/scenarios/from_esmini/xosc/pedestrian.xosc"
+scenario_path =  os.getcwd() + "/scenarios/from_openScenario_standard/DoubleLaneChanger.xosc"
+# scenario_path = "/home/yuanfei/commonroad2/esmini-demo_ubuntu/esmini-demo/resources/xosc/alks_r157_cut_in_quick_brake.xosc"
 
 run_viewer = False
 plots_step = 5
@@ -100,6 +101,8 @@ rnd.render()
 plt.savefig("overview.png")
 #plt.show()
 
+
+
 times = [70, 85, 110]
 
 for t in times:
@@ -120,4 +123,24 @@ for t in times:
     rnd.render()
     plt.savefig(f"step-{t:2d}.png")
     #plt.show()
+
+
+
+# import necessary classes from different modules
+from commonroad.common.file_writer import CommonRoadFileWriter
+from commonroad.common.file_writer import OverwriteExistingFile
+from commonroad.scenario.scenario import Location
+from commonroad.scenario.scenario import Tag
+
+author = 'Yuanfei Lin'
+affiliation = 'Technical University of Munich, Germany'
+source = 'ks_r157_cut_in_quick_brake.xosc'
+tags = {Tag.CRITICAL, Tag.INTERSTATE}
+
+# write new scenario
+fw = CommonRoadFileWriter(scenario, pps, author, affiliation, source, tags)
+
+
+filename = "OSC_CutIn-1_2_T-1.xml"
+fw.write_to_file(filename, OverwriteExistingFile.ALWAYS)
 
