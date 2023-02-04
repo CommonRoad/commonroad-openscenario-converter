@@ -1,21 +1,32 @@
 import os
+import pickle
 import re
 from concurrent.futures import ProcessPoolExecutor, Future
 from dataclasses import dataclass
-from enum import Enum
-from typing import Optional, Any, Dict, Union, List
+from typing import Optional, Dict, List
 
 from tqdm import tqdm
 
 from BatchConversion.Converter import Converter
+from BatchConversion.Serializable import Serializable
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.util.Serializable import Serializable
 
 
 @dataclass(frozen=True)
 class BatchConversionResult(Serializable):
+    """
+    Contains either an AnalyzerErrorResult, or the path to an file, where the pickled result of the converter run is
+    stored
+    """
     exception: Optional[AnalyzerErrorResult]
-    conversion_result: Union[None, Enum, Serializable]
+    result_file: Optional[str]
+
+    def __post_init__(self):
+        """
+        Enforcing that exactly one of the two parameters is set
+        """
+        assert self.exception is not None or self.result_file is not None and \
+               (self.exception is None or self.result_file is None)
 
     def __getstate__(self) -> Dict:
         return self.__dict__.copy()
@@ -24,21 +35,27 @@ class BatchConversionResult(Serializable):
         self.__dict__.update(data)
 
     @staticmethod
-    def from_conversion_result(conversion_result: Any) -> "BatchConversionResult":
+    def from_result_file(result_file: str) -> "BatchConversionResult":
         return BatchConversionResult(
             exception=None,
-            conversion_result=conversion_result
+            result_file=os.path.abspath(result_file)
         )
 
     @staticmethod
     def from_exception(e: Exception) -> "BatchConversionResult":
         return BatchConversionResult(
             exception=AnalyzerErrorResult.from_exception(e),
-            conversion_result=None
+            result_file=None
         )
 
-    def __post_init__(self):
-        assert self.exception is not None or self.conversion_result is not None
+    def get_result(self) -> Serializable:
+        """
+        Load the result of the conversion run from disk
+        Use this to actually access the data, but it might take a bit of time depending on the conversion run
+        """
+        assert self.without_exception
+        with open(self.result_file, "rb") as file:
+            return pickle.load(file)
 
     @property
     def without_exception(self) -> bool:
@@ -46,6 +63,9 @@ class BatchConversionResult(Serializable):
 
 
 class BatchConverter:
+    """
+    A utility class enabling to run a Converter object on a batch of data on multiple processors in parallel
+    """
 
     def __init__(self, converter: Converter):
         self.file_list = []
@@ -53,6 +73,9 @@ class BatchConverter:
 
     @property
     def file_list(self) -> List[str]:
+        """
+        The file_list the converter will run on
+        """
         return self._file_list
 
     @file_list.setter
@@ -61,14 +84,32 @@ class BatchConverter:
 
     @property
     def converter(self) -> Converter:
+        """
+        The converter that will be used on the batch
+        """
         return self._converter
 
     @converter.setter
     def converter(self, new_converter: Converter):
         self._converter = new_converter
 
-    def discover_files(self, directory: str, file_matcher: re.Pattern, reset_file_list: bool = True,
-                       recursively: bool = True):
+    def discover_files(
+            self,
+            directory: str,
+            file_matcher: re.Pattern,
+            reset_file_list: bool = True,
+            recursively: bool = True
+    ):
+        """
+        Utility method to search a repository and discover files, that can be run in the batch conversion.
+
+        The results will be added to the file_list attribute of the object
+
+        :param directory:str: The directory where to start the search
+        :param file_matcher:re.Pattern: A regular expression to filter the files in the directory
+        :param reset_file_list:bool: If true clean the file_list attribute of the object, if False append to it
+        :param recursively:bool: If true search recursively starting at the directory
+        """
         if reset_file_list:
             self.file_list = list()
         abs_directory = os.path.abspath(directory)
@@ -79,25 +120,38 @@ class BatchConverter:
                 if file_matcher.match(file) is not None:
                     self.file_list.append(os.path.join(dir_path, file))
 
-    def run_batch_conversion(self, num_worker: Optional[int] = 0, timeout: Optional[int] = None) \
-            -> Dict[str, BatchConversionResult]:
+    def run_batch_conversion(self, num_worker: Optional[int], timeout: Optional[int] = None):
+        """
+        Run the batch conversion
+
+        :param num_worker:int: If None or leq than 0, it will default to all available processors
+        :timeout:int: If present a single conversion run will time out if this amount of seconds passed
+        """
+        assert Serializable.storage_dir is not None
+        assert os.path.exists(Serializable.storage_dir)
+        storage_dir = Serializable.storage_dir
+
         if num_worker <= 0:
-            num_worker = os.cpu_count()
+            num_worker = None
         with ProcessPoolExecutor(max_workers=num_worker) as pool:
             results_async: Dict[str, Future] = {
                 file: pool.submit(BatchConverter._convert_single, file, self.converter)
                 for file in sorted(set(self.file_list))
             }
-            ret = {}
+            results = {}
             for file, result in tqdm(results_async.items()):
                 try:
-                    ret[file] = result.result(timeout=timeout)
+                    results[file] = result.result(timeout=timeout)
                 except Exception as e:
-                    ret[file] = BatchConversionResult.from_exception(e)
-            return ret
+                    results[file] = BatchConversionResult.from_exception(e)
+
+        os.makedirs(storage_dir, exist_ok=True)
+        with open(os.path.join(storage_dir, "statistics.pickle"), "wb") as file:
+            Serializable.storage_dir = storage_dir
+            pickle.dump(results, file)
 
     @staticmethod
     def _convert_single(file: str, converter: Converter) -> BatchConversionResult:
-        return BatchConversionResult.from_conversion_result(
-            converter.run_conversion(file)
+        return BatchConversionResult.from_result_file(
+            converter.run_in_batch_conversion(file)
         )

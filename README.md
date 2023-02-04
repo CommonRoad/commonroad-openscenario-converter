@@ -2,27 +2,29 @@
 
 Conversion from OpenSCENARIO to CommonRoad and utilizing the commonroad analysis framework.
 
-# Installation
+## Installation
 
-Create a anaconda python environment >=3.8 (Tested only on 3.9)
+- Create a anaconda python environment >=3.8 (Tested only on 3.9)
 
-```
-pip install -r requirements.txt
-```
+  ```
+  pip install -r requirements.txt
+  ```
 
-Install the commonroad stl monitor with this command:
+- Pull the [CommonRoad Scenario Designer](https://gitlab.lrz.de/cps/commonroad-scenario-designer) under 
+branch `fix_openSCENARIO`. Afterwards install the designer within the same virtual environment following its README.
 
-```
-pip install git+ssh://git@gitlab.lrz.de/cps/commonroad-stl-monitor.git
-```
 
-Pull the [CommonRoad Scenario Designer](https://gitlab.lrz.de/cps/commonroad-scenario-designer) and check out the
-following hash `13365aa714e61278b57ae6046fa9871ecbab527b`
-Afterwards install the designer within the same virtual environment following its README.
+### (Optional): for testing the scenarios
 
-Pull the [SPOT](https://gitlab.lrz.de/cps/spot-cpp) repository and checkout the master, or the
+- Install the commonroad stl monitor with this command:
+
+  ```
+  pip install git+ssh://git@gitlab.lrz.de/cps/commonroad-stl-monitor.git
+  ```
+
+- Pull the [SPOT](https://gitlab.lrz.de/cps/spot-cpp) repository and checkout the master, or the
 hash `9a49ce279f33f441d932ce788de7b69b5481bae2`.
-Afterwards install SPOT with Python Interface (using commonroad-io) within the same virtual environment following its
+Afterwards install SPOT with Python Interface (using `commonroad-io`) within the same virtual environment following its
 README.
 
 ### OpenSCENARIO
@@ -33,13 +35,9 @@ README.
   implemented [here](https://gitlab.lrz.de/cps/commonroad-scenario-designer/-/tree/master),
   see [tutorial](https://gitlab.lrz.de/cps/commonroad-scenario-designer/-/blob/master/tutorials/conversion_examples/example_opendrive_to_commonroad.py)
 - Selected scenarios ([start point](https://gitlab.lrz.de/kosi/wp6/openscenario/-/tree/main/scenarios)):
-    - DoubleLaneChange from openScenario standard examples
-    - Pedestrian example Esmini
+    - **DoubleLaneChange**: from openScenario standard examples, you should first download the openSCENARIO package and then go to `./standard/examples/DoubleLaneChanger.xosc`
+    - **Pedestrian example**: Esmini, see https://github.com/esmini/esmini/tree/master/resources/xosc
 
 ### CommonRoad
 
-- Format: version 2021.02 - [link](https://commonroad-io.readthedocs.io/en/latest/user/getting_started/)
-
-scenario editor hash: `13365aa714e61278b57ae6046fa9871ecbab527b`
-
-#     
+- Format: version 2022.01 - [link](https://commonroad-io.readthedocs.io/en/latest/user/getting_started/)

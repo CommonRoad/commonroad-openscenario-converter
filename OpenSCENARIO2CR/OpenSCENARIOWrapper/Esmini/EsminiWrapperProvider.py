@@ -13,23 +13,36 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapper import EsminiWrapp
 
 
 class EsminiWrapperProvider:
-    def __init__(self, storage_prefix: Optional[str] = None, preferred_version: Optional[str] = "v2.26.5"):
-        self.storage_prefix = path.abspath(path.dirname(__file__)) if storage_prefix is None else storage_prefix
-        self.preferred_version = preferred_version
+    """
+    This class downloads the wanted esmini version from GitHub and creates an EsminiWrapper from it.
+
+    It works on Mac Windows and Linux
+    """
+    def __init__(self):
+        self.storage_prefix = None
+        self.preferred_version = "default"
 
     @property
     def storage_prefix(self) -> str:
+        """
+        Path prefix where the downloaded binaries shall be stored
+        """
         return self._path_prefix
 
     @storage_prefix.setter
-    def storage_prefix(self, new_path_prefix: str):
-        if path.exists(new_path_prefix):
+    def storage_prefix(self, new_path_prefix: Optional[str]):
+        if new_path_prefix is None:
+            self._path_prefix = path.abspath(path.dirname(__file__))
+        elif path.exists(new_path_prefix):
             self._path_prefix = new_path_prefix
         else:
             warnings.warn(f"<EsminiWrapperProvider/storage_prefix> Path not found {new_path_prefix}")
 
     @property
     def preferred_version(self) -> Optional[str]:
+        """
+        The Preferred version of esmini with v2.26.5 being the default, as this is the latest tested version
+        """
         return self._preferred_version
 
     @preferred_version.setter
@@ -37,6 +50,8 @@ class EsminiWrapperProvider:
         r = re.compile(r"v\d+\.\d+\.\d+")
         if new_preferred_version is None:
             self._preferred_version = None
+        elif new_preferred_version.lower() == "default":
+            self._preferred_version = "v2.26.5"
         elif r.fullmatch(new_preferred_version) is not None:
             self._preferred_version = new_preferred_version
         else:

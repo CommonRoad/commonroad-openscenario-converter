@@ -18,8 +18,12 @@ from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
 
 @dataclass(frozen=True)
 class DrivabilityAnalyzerResult(AnalyzerResult):
-    collision: Optional[bool] = None
-    feasibility: Optional[bool] = None
+    """
+    Result class of the DrivabilityAnalyzer.
+    The optimal result values are collision == False stating that the scenario is collision free and feasibility == True
+    """
+    collision: bool = None
+    feasibility: bool = None
 
     def __getstate__(self) -> Dict:
         return self.__dict__.copy()
@@ -29,6 +33,10 @@ class DrivabilityAnalyzerResult(AnalyzerResult):
 
 
 class DrivabilityAnalyzer(Analyzer):
+    """
+    The drivability analyzer uses the commonroad_dc package to analyze the behavior of the vehicles in the scenario
+    """
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.vehicle_dynamics = VehicleDynamics.KS(VehicleType.BMW_320i)

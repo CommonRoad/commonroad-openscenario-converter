@@ -9,6 +9,9 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObje
 
 
 class SEStruct(ct.Structure, SimScenarioObjectState):
+    """
+    Implementation of the SimScenarioObjectState ABC. Objects of this will be recorded while running the simulation
+    """
     _fields_ = [
         ("id", ct.c_int),
         ("model_id", ct.c_int),
@@ -52,6 +55,10 @@ class SEStruct(ct.Structure, SimScenarioObjectState):
         return self.width
 
     def get_obstacle_type(self) -> ObstacleType:
+        """
+        Mapping the obstacle type of OpenSCENARIO to the CommonRoad obstacle type. OSC has a two level system with
+        objectType and objectCategory.
+        """
         if self.objectType == 0:  # TYPE_NONE
             return ObstacleType.UNKNOWN
         elif self.objectType == 1:  # VEHICLE
@@ -94,6 +101,9 @@ class SEStruct(ct.Structure, SimScenarioObjectState):
 
 
 class EsminiScenarioObjectState(ScenarioObjectState):
+    """
+    Class that converts from SEStructs to CommonRoad states
+    """
     @property
     def id(self) -> int:
         if not hasattr(self, "_id"):
@@ -204,14 +214,7 @@ class EsminiScenarioObjectState(ScenarioObjectState):
 
     @property
     def slip_angle(self) -> float:
-        if not hasattr(self, "_slip_angle"):
-            if np.isclose(self.speed, 0.0):
-                self._slip_angle = 0.0
-            else:
-                slip_angle_x = np.arccos(max(-1, min(self._get_differentiate("x") / self.speed, 1))) - self.h
-                slip_angle_y = np.arcsin(max(-1, min(self._get_differentiate("y") / self.speed, 1))) - self.h
-                self._slip_angle = (slip_angle_x + slip_angle_y) / 2
-        return self._slip_angle
+        return 0.0
 
     @property
     def road_id(self) -> int:

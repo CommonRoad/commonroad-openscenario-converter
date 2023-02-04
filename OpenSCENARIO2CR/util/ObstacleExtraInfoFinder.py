@@ -3,29 +3,29 @@ import warnings
 import xml.etree.ElementTree as Et
 from dataclasses import dataclass
 from os import path
-from typing import Dict, Optional
+from typing import Dict, Optional, Set, Union
 
-from commonroad.scenario.obstacle import DynamicObstacle
 from scenariogeneration.xosc import Vehicle, ParseOpenScenario, Scenario, CatalogReference, Catalog
 
+from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
 
 
 @dataclass
 class ObstacleExtraInfoFinder:
     scenario_path: str = None
-    obstacles: Dict[str, Optional[DynamicObstacle]] = None
+    obstacle_names: Set[str] = None
 
-    def run(self) -> Dict[str, Optional[Vehicle]]:
+    def run(self) -> Union[AnalyzerErrorResult, Dict[str, Optional[Vehicle]]]:
         assert dataclass_is_complete(self)
         try:
             scenario: Scenario = ParseOpenScenario(self.scenario_path)
 
-            matched_obstacles: Dict[str, Vehicle] = {o_name: None for o_name in self.obstacles.keys()}
+            matched_obstacles: Dict[str, Vehicle] = {o_name: None for o_name in self.obstacle_names}
             for scenario_object in scenario.entities.scenario_objects:
                 if scenario_object.name not in matched_obstacles.keys():
                     continue
-                if scenario_object.name in self.obstacles.keys() and isinstance(scenario_object.entityobject, Vehicle):
+                if scenario_object.name in self.obstacle_names and isinstance(scenario_object.entityobject, Vehicle):
                     matched_obstacles[scenario_object.name] = scenario_object.entityobject
 
             if all([obstacle is not None for obstacle in matched_obstacles.values()]):
@@ -46,7 +46,7 @@ class ObstacleExtraInfoFinder:
             return matched_obstacles
         except Exception as e:
             warnings.warn(f"<ObstacleExtraInfoFinder/run> {path.basename(self.scenario_path)} failed with {str(e)}")
-            return {o_name: None for o_name in self.obstacles.keys()}
+            return AnalyzerErrorResult.from_exception(e)
 
     def _parse_catalogs(self, scenario: Scenario) -> Dict[str, Et.Element]:
         assert "VehicleCatalog" in Catalog._CATALOGS, "Probably the OpenSCENARIO standard changed"

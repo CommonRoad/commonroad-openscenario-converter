@@ -1,4 +1,5 @@
 import time
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from multiprocessing import Manager, Process
 from typing import Optional, Dict, Tuple
@@ -13,7 +14,13 @@ from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
 
 
 @dataclass
-class Analyzer:
+class Analyzer(ABC):
+    """
+    The base interface for all post conversion analyzer.
+
+    To implement your own analyzer, implement the _run method and make sure it is safe that the analyzer will be killed
+    after the timeout happened
+    """
     timeout: float = 120
 
     def run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
@@ -65,6 +72,7 @@ class Analyzer:
               obstacles_extra_info: Dict[str, Optional[Vehicle]], result_dict: Dict[str, AnalyzerResult]):
         result_dict.update(self._run(scenario, obstacles, obstacles_extra_info))
 
+    @abstractmethod
     def _run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
              obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Dict[str, AnalyzerResult]:
         """
