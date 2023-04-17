@@ -99,6 +99,10 @@ class Osc2CrConverter(Converter):
 
         obstacles_extra_info = ObstacleExtraInfoFinder(xosc_file, set(res.states.keys())).run()
         obstacles_extra_info_finder_error = None
+        if isinstance(obstacles_extra_info, AnalyzerErrorResult):
+            obstacles_extra_info_finder_error = obstacles_extra_info
+            obstacles_extra_info = {o_name: None for o_name in res.states.keys()}
+
 
         obstacles = self._create_obstacles_from_state_lists(
             scenario, ego_vehicle, res.states, res.sim_time, obstacles_extra_info
