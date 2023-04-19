@@ -7,9 +7,9 @@ from enum import auto, Enum
 from os import path
 from typing import Optional, List, Dict, Tuple, Union, Set
 
-from commonroad.geometry.shape import Rectangle
+from commonroad.geometry.shape import Rectangle, Circle
 from commonroad.prediction.prediction import TrajectoryPrediction
-from commonroad.scenario.obstacle import DynamicObstacle
+from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario, Tag
 from commonroad.scenario.trajectory import Trajectory
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
@@ -269,7 +269,15 @@ class Osc2CrConverter(Converter):
         used_timestamps = sorted([t for t in timestamps if first_used_timestamp <= t <= last_used_timestamp])
         used_states = [ScenarioObjectState.build_interpolated(states, t, obstacle_extra_info) for t in used_timestamps]
 
-        shape = Rectangle(states[0].get_object_length(), states[0].get_object_width())
+        obstacle_type = states[0].get_obstacle_type()
+        if obstacle_type == ObstacleType.PEDESTRIAN:
+            # for pedestrian, we consider an overapproximated circular area.
+            # see: Koschi, Markus, et al. "Set-based prediction of pedestrians in urban environments considering
+            # formalized traffic rules." IEEE ITSC, 2018
+            shape = Circle(max(states[0].get_object_length(), states[0].get_object_width()))
+        else:
+            shape = Rectangle(states[0].get_object_length(), states[0].get_object_width())
+
         trajectory = Trajectory(
             first_used_time_step,
             [state.to_cr_state(i + first_used_time_step) for i, state in enumerate(used_states)]
@@ -280,7 +288,7 @@ class Osc2CrConverter(Converter):
 
         return DynamicObstacle(
             obstacle_id=obstacle_id,
-            obstacle_type=states[0].get_obstacle_type(),
+            obstacle_type=obstacle_type,
             obstacle_shape=shape,
             initial_state=trajectory.state_list[0],
             prediction=prediction
