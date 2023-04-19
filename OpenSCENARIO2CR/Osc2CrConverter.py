@@ -274,7 +274,7 @@ class Osc2CrConverter(Converter):
             # for pedestrian, we consider an overapproximated circular area.
             # see: Koschi, Markus, et al. "Set-based prediction of pedestrians in urban environments considering
             # formalized traffic rules." IEEE ITSC, 2018
-            shape = Circle(max(states[0].get_object_length(), states[0].get_object_width()))
+            shape = Circle(max(states[0].get_object_length(), states[0].get_object_width())/2.)
         else:
             shape = Rectangle(states[0].get_object_length(), states[0].get_object_width())
 
