@@ -2,7 +2,7 @@ import math
 import re
 import warnings
 import xml.etree.ElementTree as ElementTree
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import auto, Enum
 from os import path
 from typing import Optional, List, Dict, Tuple, Union, Set
@@ -16,7 +16,10 @@ from crdesigner.map_conversion.map_conversion_interface import opendrive_to_comm
 from scenariogeneration.xosc import Vehicle
 
 from BatchConversion.Converter import Converter
+from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
+from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
+from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
@@ -59,11 +62,27 @@ class Osc2CrConverter(Converter):
     use_implicit_odr_file: bool = False      # indicating whether the openDRIVE map defined in the openSCENARIO is used
     trim_scenario: bool = False              # indicating whether the huge mag contained in the scenario is trimmed
     keep_ego_vehicle: bool = True            # indicating whether the ego vehicle is kept or not in the saved scenario
+    analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = \
+        field(default_factory=lambda: list(EAnalyzer))
 
     # Optional
     dt_sim: Optional[float] = None           # User-defined time step size for esmini simulation
     odr_file_override: Optional[str] = None  # User-defined OpenDRIVE map to be used
     ego_filter: Optional[re.Pattern] = None  # Pattern of recognizing the ego vehicle
+
+    def get_analyzer_objects(self) -> Dict[EAnalyzer, Analyzer]:
+        if self.analyzers is None:
+            return {}
+        elif isinstance(self.analyzers, list):
+            return {e_analyzer: e_analyzer.analyzer_type() for e_analyzer in self.analyzers}
+        elif isinstance(self.analyzers, dict):
+            ret = {}
+            for e_analyzer, analyzer in self.analyzers.items():
+                if analyzer is not None:
+                    ret[e_analyzer] = analyzer
+                else:
+                    ret[e_analyzer] = e_analyzer.analyzer_type()
+            return ret
 
     def run_conversion(self, source_file: str) \
             -> Union[Osc2CrConverterResult, EFailureReason]:
@@ -127,6 +146,13 @@ class Osc2CrConverter(Converter):
                 keep_ego_vehicle=keep_ego_vehicle,
                 ending_cause=ending_cause,
                 sim_time=sim_time,
+            ),
+            analysis=self.run_analysis(
+                scenario=scenario,
+                obstacles=obstacles,
+                ego_vehicle=ego_vehicle,
+                keep_ego_vehicle=keep_ego_vehicle,
+                obstacles_extra_info=obstacles_extra_info
             ),
             xosc_file=xosc_file,
             xodr_file=xodr_file,
@@ -322,3 +348,29 @@ class Osc2CrConverter(Converter):
             sim_ending_cause=ending_cause,
             sim_time=sim_time,
         )
+
+    def run_analysis(
+            self,
+            scenario: Scenario,
+            obstacles: Dict[str, Optional[DynamicObstacle]],
+            ego_vehicle: str,
+            keep_ego_vehicle: bool,
+            obstacles_extra_info: Dict[str, Optional[Vehicle]],
+    ) -> Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]:
+        analyzers = self.get_analyzer_objects()
+        if len(analyzers) == 0:
+            return {}
+        else:
+            trimmed_scenario = trim_scenario(scenario)
+            if not keep_ego_vehicle:
+                trimmed_scenario.add_objects(obstacles[ego_vehicle])
+                if len(scenario.lanelet_network.lanelets) > 0:
+                    scenario.assign_obstacles_to_lanelets()
+            return {
+                e_analyzer: analyzer.run(
+                    trimmed_scenario,
+                    obstacles,
+                    obstacles_extra_info
+                ) for e_analyzer, analyzer in analyzers.items()
+            }
+

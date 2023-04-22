@@ -11,6 +11,7 @@ from commonroad.scenario.scenario import Scenario
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
+from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
 from BatchConversion.Serializable import Serializable
 
@@ -26,6 +27,7 @@ class Osc2CrConverterResult(Serializable):
     """
     __lock: ClassVar[Lock] = Lock()
     statistics: ConversionStatistics
+    analysis: Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]
     xosc_file: str
     xodr_file: Optional[str]
     xodr_conversion_error: Optional[AnalyzerErrorResult]

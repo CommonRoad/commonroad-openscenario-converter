@@ -16,8 +16,14 @@ from OpenSCENARIO2CR.util.PPSBuilder import PPSBuilder
 
 # two examples, you can also download the scenarios from esmini or the openscenario website
 # scenario_path = os.getcwd() + "/scenarios/from_esmini/xosc/pedestrian.xosc"
-scenario_path =  os.getcwd() + "/scenarios/from_openScenario_standard/DoubleLaneChanger.xosc"
+# scenario_path =  os.getcwd() + "/scenarios/from_openScenario_standard/DoubleLaneChanger.xosc"
 # scenario_path = "/home/yuanfei/commonroad2/esmini-demo_ubuntu/esmini-demo/resources/xosc/alks_r157_cut_in_quick_brake.xosc"
+# scenario_path = "/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/example/CutIn.xosc"
+scenario_path = "/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/acc-test.xosc"
+#scenario_path = "/home/yuanfei/Documents/standard_download61fa668a0fbb1_18112/openscenario-v1.1.1/standard/Examples/CutIn.xosc"
+scenario_path = '/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/pedestrian_collision.xosc'
+sc_id = 'pedestrian_collision.xosc'
+#scenario_path = '/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/ltap-od.xosc'
 
 run_viewer = False
 plots_step = 5
@@ -53,10 +59,10 @@ pps_builder.velocity_interval = AbsRel(Interval(-5, 5), AbsRel.EUsage.REL_ADD)
 pps_builder.orientation_interval = None
 
 converter = Osc2CrConverter(
-    author="ADD AUTHOR HERE",
-    affiliation="ADD AFFILIATION HERE",
-    source="ADD SOURCE HERE",
-    tags={Tag.SIMULATED},
+    author="Yuanfei Lin",
+    affiliation="Technical University of Munich",
+    source=sc_id,
+    tags={Tag.SIMULATED, Tag.CRITICAL},
 )
 
 converter.sim_wrapper = esmini_wrapper
@@ -98,7 +104,7 @@ scenario.draw(rnd, draw_params={
 pps.draw(rnd)
 rnd.render()
 plt.savefig("overview.png")
-#plt.show()
+plt.show()
 
 
 
@@ -133,13 +139,13 @@ from commonroad.scenario.scenario import Tag
 
 author = 'Yuanfei Lin'
 affiliation = 'Technical University of Munich, Germany'
-source = 'ks_r157_cut_in_quick_brake.xosc'
+source = 'pedestrian_collision.xosc'
 tags = {Tag.CRITICAL, Tag.INTERSTATE}
 
 # write new scenario
 fw = CommonRoadFileWriter(scenario, pps, author, affiliation, source, tags)
 
 
-filename = "OSC_CutIn-1_2_T-1.xml"
+filename = "OSC_PedestrianCollision-1_1_T-1.xml"
 fw.write_to_file(filename, OverwriteExistingFile.ALWAYS)
 
