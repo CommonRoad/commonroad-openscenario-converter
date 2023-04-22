@@ -87,6 +87,7 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
 
     times = []
     analyzer_times = {}
+    failed_scenarios = {}
     rules = [rule.name for rule in fields(STLAnalyzerResult) if rule.type == Optional[np.ndarray]]
 
     for scenario_path, result in results.items():
@@ -98,6 +99,7 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
             if isinstance(result, EFailureReason):
                 count("failed")
                 count(f"failed {result.name}")
+                failed_scenarios[scenario_path] = result.name
             elif isinstance(result, Osc2CrConverterResult):
                 count("success")
                 stats = result.statistics
@@ -208,6 +210,9 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
     for reason in EFailureReason:
         perc(f" | {reason.name}", f"failed {reason.name}", "failed")
     perc("Conversion exception rate", "exception", "total")
+    print("-" * 80)
+    for path, reason in failed_scenarios.items():
+        print(reason, ':', path)
     for t_analyzer in analyzer_times.keys():
         print("-" * 80)
         print(f"{t_analyzer.__name__}")
