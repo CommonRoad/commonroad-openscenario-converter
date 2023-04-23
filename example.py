@@ -22,10 +22,12 @@ from OpenSCENARIO2CR.util.PPSBuilder import PPSBuilder
 scenario_path = "/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/acc-test.xosc"
 #scenario_path = "/home/yuanfei/Documents/standard_download61fa668a0fbb1_18112/openscenario-v1.1.1/standard/Examples/CutIn.xosc"
 scenario_path = '/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/pedestrian_collision.xosc'
-sc_id = 'pedestrian_collision.xosc'
+sc_id = 'looming-HighWayTest.xosc'
+scenario_path = '/home/yuanfei/commonroad2/openscenario_files/esmini/xosc/looming-HighWayTest.xosc'
 #scenario_path = '/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/ltap-od.xosc'
-
-run_viewer = False
+scenario_path ='/home/yuanfei/commonroad2/openscenario_files/esmini-master/scripts/udp_driver/two_cars_in_open_space.xosc'
+scenario_path = '/home/yuanfei/commonroad2/openscenario_files/OSC-ALKS-scenarios/Scenarios/ALKS_Scenario_4.5_1_CutOutFullyBlocking_TEMPLATE.xosc'
+run_viewer = True
 plots_step = 5
 plot_limit = 20  # If non-null the renderer follows the ego vehicle
 following_obstacle_index = 0
