@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from BatchConversion.Converter import Converter
 from BatchConversion.Serializable import Serializable
-from OpenSCENARIO2CR.conversion_analyzer.AnalyzerErrorResult import AnalyzerErrorResult
+from OpenSCENARIO2CR.analyzer.error import AnalyzerErrorResult
 
 
 @dataclass(frozen=True)

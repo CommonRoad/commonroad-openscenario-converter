@@ -8,10 +8,10 @@ from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistin
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 
-from OpenSCENARIO2CR.conversion_analyzer.analyzer import Analyzer
-from OpenSCENARIO2CR.conversion_analyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.conversion_analyzer.AnalyzerResult import AnalyzerResult
-from OpenSCENARIO2CR.conversion_analyzer.EAnalyzer import EAnalyzer
+from OpenSCENARIO2CR.analyzer.base import Analyzer
+from OpenSCENARIO2CR.analyzer.error import AnalyzerErrorResult
+from OpenSCENARIO2CR.analyzer.result import AnalyzerResult
+from OpenSCENARIO2CR.analyzer.error_analyzer import EAnalyzer
 from OpenSCENARIO2CR.utility.ConversionStatistics import ConversionStatistics
 from BatchConversion.Serializable import Serializable
 

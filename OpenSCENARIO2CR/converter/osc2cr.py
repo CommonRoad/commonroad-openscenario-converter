@@ -2,7 +2,7 @@ import math
 import re
 import warnings
 import xml.etree.ElementTree as ElementTree
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import auto, Enum
 from os import path
 from typing import Optional, List, Dict, Tuple, Union, Set
@@ -17,10 +17,10 @@ from crdesigner.map_conversion.map_conversion_interface import opendrive_to_comm
 from scenariogeneration.xosc import Vehicle
 
 from OpenSCENARIO2CR.converter.base import Converter
-from OpenSCENARIO2CR.conversion_analyzer.analyzer import Analyzer
-from OpenSCENARIO2CR.conversion_analyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.conversion_analyzer.AnalyzerResult import AnalyzerResult
-from OpenSCENARIO2CR.conversion_analyzer.EAnalyzer import EAnalyzer
+from OpenSCENARIO2CR.analyzer.base import Analyzer
+from OpenSCENARIO2CR.analyzer.error import AnalyzerErrorResult
+from OpenSCENARIO2CR.analyzer.result import AnalyzerResult
+from OpenSCENARIO2CR.analyzer.error_analyzer import EAnalyzer
 from OpenSCENARIO2CR.wrapper.base.ending_cause import ESimEndingCause
 from OpenSCENARIO2CR.wrapper.esmini.esmini_wrapper_provider import EsminiWrapperProvider
 from OpenSCENARIO2CR.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState

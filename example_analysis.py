@@ -6,9 +6,9 @@ from BatchConversion.AnalysisFunctions import analyze_results, print_exception_t
     print_exception_tracebacks, plot_sim_times, plot_exec_times, plot_num_obstacles, plot_scenarios, print_exception_tracebacks
 
 from BatchConversion.Serializable import Serializable
-from OpenSCENARIO2CR.conversion_analyzer.DrivabilityAnalyzer import DrivabilityAnalyzer
-from OpenSCENARIO2CR.conversion_analyzer.STLAnalyzer import STLAnalyzer
-from OpenSCENARIO2CR.conversion_analyzer.SpotAnalyzer import SpotAnalyzer
+from OpenSCENARIO2CR.analyzer.DrivabilityAnalyzer import DrivabilityAnalyzer
+from OpenSCENARIO2CR.analyzer.STLAnalyzer import STLAnalyzer
+from OpenSCENARIO2CR.analyzer.SpotAnalyzer import SpotAnalyzer
 
 stats_dir = "./results/2023-04-24_11:22:47"
 do_plot_scenarios = True
