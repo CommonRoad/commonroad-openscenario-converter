@@ -24,8 +24,7 @@ from OpenSCENARIO2CR.conversion_analyzer.EAnalyzer import EAnalyzer
 from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.wrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.wrapper.scenario_object import ScenarioObjectState, SimScenarioObjectState
-from OpenSCENARIO2CR.wrapper.sim_wrapper import SimWrapper
-from OpenSCENARIO2CR.wrapper.sim_wrapper_result import WrapperSimResult
+from OpenSCENARIO2CR.wrapper.sim_wrapper import SimWrapper, WrapperSimResult
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 from OpenSCENARIO2CR.utility.ConversionStatistics import ConversionStatistics
 from OpenSCENARIO2CR.utility.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder

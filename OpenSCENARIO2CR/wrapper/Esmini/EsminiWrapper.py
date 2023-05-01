@@ -16,8 +16,7 @@ from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.wrapper.Esmini.EsminiScenarioObjectState import SEStruct
 from OpenSCENARIO2CR.wrapper.Esmini.StoryBoardElement import EStoryBoardElementState, \
     EStoryBoardElementLevel, StoryBoardElement
-from OpenSCENARIO2CR.wrapper.sim_wrapper import SimWrapper
-from OpenSCENARIO2CR.wrapper.sim_wrapper_result import WrapperSimResult
+from OpenSCENARIO2CR.wrapper.sim_wrapper import SimWrapper, WrapperSimResult
 from OpenSCENARIO2CR.utility.Config import ConverterParams, EsminiParams
 
 class EsminiWrapper(SimWrapper):

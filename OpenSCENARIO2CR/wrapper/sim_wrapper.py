@@ -1,10 +1,40 @@
 import warnings
-from typing import Optional
+from typing import Optional,  Dict, List
+from dataclasses import dataclass
 
 from commonroad.common.validity import is_real_number
 
-from OpenSCENARIO2CR.wrapper.sim_wrapper_result import WrapperSimResult
+from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
+from OpenSCENARIO2CR.wrapper.scenario_object import SimScenarioObjectState
 from OpenSCENARIO2CR.utility.Config import ConverterParams, EsminiParams
+
+
+@dataclass(frozen=True)
+class WrapperSimResult:
+    """
+    Dataclass to store the results of a wrapper simulation run
+
+    Attributes
+        ending_cause cause why the simulation ended
+        states_per_vehicle List of simulation states per vehicle
+        total_simulation_time total time simulated (Not execution time)
+    """
+    states: Dict[str, List[SimScenarioObjectState]]
+    sim_time: float
+    ending_cause: ESimEndingCause
+
+    @staticmethod
+    def failure() -> "WrapperSimResult":
+        """
+        The failure function returns a WrapperSimResult with the ending cause set to FAILURE.
+
+        :return: A wrappersimresult object
+        """
+        return WrapperSimResult(
+            ending_cause=ESimEndingCause.FAILURE,
+            states={},
+            sim_time=0.0,
+        )
 
 
 class SimWrapper:
@@ -63,3 +93,4 @@ class SimWrapper:
         """
         warnings.warn(f"{self.__class__} did not implement to render a scenario to a gif")
         return False
+
