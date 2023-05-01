@@ -71,6 +71,8 @@ class Osc2CrConverter(Converter):
         self.trim_scenario: bool = config.scenario.trim_scenario
         # indicating whether the ego vehicle is kept or not in the saved scenario
         self.keep_ego_vehicle: bool = config.scenario.keep_ego_vehicle
+        # indicating whether the scenario needs to be visualized with esmini
+        self.view_scenario: bool = config.debug.run_viewer
 
         # analyzers of the scenario with CommonRoad tools
         self.analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = \
@@ -127,6 +129,8 @@ class Osc2CrConverter(Converter):
         if isinstance(scenario, EFailureReason):
             return scenario
 
+        if self.view_scenario:
+            self.sim_wrapper.view_scenario(source_file)
         dt_sim = self.dt_sim if self.dt_sim is not None else self.dt_cr / 10
         res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
         if res.ending_cause is ESimEndingCause.FAILURE:

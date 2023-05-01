@@ -28,43 +28,7 @@ sc_id = 'looming-HighWayTest.xosc'
 run_viewer = True
 
 config = ConverterParams()
-converter = Osc2CrConverter(
-config
-)
-if run_viewer:
-    wrapper = EsminiWrapperProvider(config=config).provide_esmini_wrapper()
-    wrapper.grace_time = None
-    wrapper.max_time = 60.0
-    wrapper.ignored_level = EStoryBoardElementLevel.ACT
-    wrapper.view_scenario(scenario_path)
-
-pps_builder = PPSBuilder()
-pps_builder.time_interval = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
-pps_builder.pos_length = AbsRel(50, AbsRel.EUsage.ABS)
-pps_builder.pos_width = AbsRel(10, AbsRel.EUsage.ABS)
-pps_builder.pos_rotation = AbsRel(0, AbsRel.EUsage.REL_ADD)
-pps_builder.pos_center_x = AbsRel(0, AbsRel.EUsage.REL_ADD)
-pps_builder.pos_center_y = AbsRel(0, AbsRel.EUsage.REL_ADD)
-pps_builder.velocity_interval = AbsRel(Interval(-5, 5), AbsRel.EUsage.REL_ADD)
-pps_builder.orientation_interval = None
-
-
-
-converter.sim_wrapper = esmini_wrapper
-converter.pps_builder = pps_builder
-
-converter.dt_cr = 0.1
-converter.keep_ego_vehicle = True
-converter.trim_scenario = False
-converter.use_implicit_odr_file = True
-converter.analyzers = {
-}
-# If you only want to run with default parameters for analyzers you can also use:
-# converter.analyzers = [EAnalyzer.SPOT_ANALYZER, EAnalyzer.DRIVABILITY_CHECKER, EAnalyzer.STL_MONITOR]
-
-converter.dt_sim = 0.01
-converter.odr_file_override = None
-converter.ego_filter = re.compile(r".*ego.*", re.IGNORECASE)
+converter = Osc2CrConverter(config)
 
 result = converter.run_conversion(scenario_path)
 
