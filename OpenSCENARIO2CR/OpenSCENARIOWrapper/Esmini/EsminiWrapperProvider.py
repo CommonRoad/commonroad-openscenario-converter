@@ -10,17 +10,20 @@ from zipfile import ZipFile
 import requests
 
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapper import EsminiWrapper
+from OpenSCENARIO2CR.utility.Config import ConverterParams
 
 
 class EsminiWrapperProvider:
+
     """
     This class downloads the wanted esmini version from GitHub and creates an EsminiWrapper from it.
 
     It works on Mac Windows and Linux
     """
-    def __init__(self):
+    def __init__(self, config: ConverterParams):
         self.storage_prefix = None
-        self.preferred_version = "default"
+        self.preferred_version = config.esmini.version
+        self.config = config
 
     @property
     def storage_prefix(self) -> str:
@@ -41,7 +44,7 @@ class EsminiWrapperProvider:
     @property
     def preferred_version(self) -> Optional[str]:
         """
-        The Preferred version of esmini with v2.26.5 being the default, as this is the latest tested version
+        The Preferred version of esmini with v2.29.3 being the default, as this is the latest tested version
         """
         return self._preferred_version
 
@@ -56,12 +59,12 @@ class EsminiWrapperProvider:
             self._preferred_version = new_preferred_version
         else:
             warnings.warn(
-                f"<EsminiWrapperProvider/preferred_version> Newversion {new_preferred_version} not match {r.pattern}")
+                f"<EsminiWrapperProvider/preferred_version> New version {new_preferred_version} not match {r.pattern}")
 
     def provide_esmini_wrapper(self) -> Optional[EsminiWrapper]:
         if self.preferred_version is not None:
             if self._try_loading_version(self.preferred_version):
-                return EsminiWrapper(self._bin_path(self._esmini_path(self.preferred_version)))
+                return EsminiWrapper(self._bin_path(self._esmini_path(self.preferred_version)), self.config)
             else:
                 print("Failed loading specified esmini version: {}".format(self.preferred_version))
                 quit()
@@ -70,7 +73,7 @@ class EsminiWrapperProvider:
             r = requests.get('https://github.com/esmini/esmini/releases/latest')
             version = r.url.split("/")[-1]
             if self._try_loading_version(version):
-                return EsminiWrapper(self._bin_path(self._esmini_path(version)))
+                return EsminiWrapper(self._bin_path(self._esmini_path(version)), self.config)
         except requests.exceptions.ConnectionError:
             pass
 
@@ -80,7 +83,7 @@ class EsminiWrapperProvider:
         ])
 
         if len(available_versions) > 0:
-            return EsminiWrapper(self._bin_path(available_versions[-1]))
+            return EsminiWrapper(self._bin_path(available_versions[-1]), self.config)
 
         return None
 

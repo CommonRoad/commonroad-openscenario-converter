@@ -13,6 +13,7 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryB
 from OpenSCENARIO2CR.Osc2CrConverter import Osc2CrConverter
 from OpenSCENARIO2CR.utility.AbsRel import AbsRel
 from OpenSCENARIO2CR.utility.PPSBuilder import PPSBuilder
+from OpenSCENARIO2CR.utility.Config import ConverterParams
 
 # two examples, you can also download the scenarios from esmini or the openscenario website
 # scenario_path = os.getcwd() + "/scenarios/from_esmini/xosc/pedestrian.xosc"
@@ -25,23 +26,13 @@ scenario_path = '/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resourc
 sc_id = 'looming-HighWayTest.xosc'
 
 run_viewer = True
-plots_step = 5
-plot_limit = 20  # If non-null the renderer follows the ego vehicle
-following_obstacle_index = 0
 
-
-# Setup EsminiWrapper
-esmini_wrapper = EsminiWrapperProvider().provide_esmini_wrapper()
-esmini_wrapper.min_time = 15
-esmini_wrapper.max_time = 30.0
-esmini_wrapper.grace_time = 1.0
-esmini_wrapper.ignored_level = EStoryBoardElementLevel.ACT
-esmini_wrapper.log_to_console = True
-esmini_wrapper.log_to_file = False
-esmini_wrapper.random_seed = 0
-
+config = ConverterParams()
+converter = Osc2CrConverter(
+config
+)
 if run_viewer:
-    wrapper = EsminiWrapperProvider().provide_esmini_wrapper()
+    wrapper = EsminiWrapperProvider(config=config).provide_esmini_wrapper()
     wrapper.grace_time = None
     wrapper.max_time = 60.0
     wrapper.ignored_level = EStoryBoardElementLevel.ACT
@@ -57,12 +48,7 @@ pps_builder.pos_center_y = AbsRel(0, AbsRel.EUsage.REL_ADD)
 pps_builder.velocity_interval = AbsRel(Interval(-5, 5), AbsRel.EUsage.REL_ADD)
 pps_builder.orientation_interval = None
 
-converter = Osc2CrConverter(
-    author="Yuanfei Lin",
-    affiliation="Technical University of Munich",
-    source=sc_id,
-    tags={Tag.SIMULATED, Tag.CRITICAL},
-)
+
 
 converter.sim_wrapper = esmini_wrapper
 converter.pps_builder = pps_builder

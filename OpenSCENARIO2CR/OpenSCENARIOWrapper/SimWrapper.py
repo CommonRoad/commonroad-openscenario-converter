@@ -5,14 +5,15 @@ from commonroad.common.validity import is_real_number
 
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
+from OpenSCENARIO2CR.utility.Config import ConverterParams
 
 
 class SimWrapper:
     """
     The base class of a ScenarioWrapper.
     """
-    def __init__(self, max_time: Optional[float]):
-        self.max_time = max_time
+    def __init__(self, config: ConverterParams):
+        self.config = config
 
     @property
     def max_time(self) -> float:
@@ -24,7 +25,7 @@ class SimWrapper:
     @max_time.setter
     def max_time(self, new_max_time: Optional[float]):
         if new_max_time is None:
-            self._max_time = 60.0
+            self._max_time = self.config.esmini.max_time
         elif is_real_number(new_max_time):
             self._max_time = new_max_time
         else:

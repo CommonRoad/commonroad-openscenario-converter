@@ -12,10 +12,11 @@ from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario, Tag
 from commonroad.scenario.trajectory import Trajectory
+from commonroad.common.util import Interval
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration.xosc import Vehicle
 
-from BatchConversion.Converter import Converter
+from OpenSCENARIO2CR.OpenSCENARIOWrapper.Converter import Converter
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
@@ -30,6 +31,8 @@ from OpenSCENARIO2CR.utility.ConversionStatistics import ConversionStatistics
 from OpenSCENARIO2CR.utility.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
 from OpenSCENARIO2CR.utility.PPSBuilder import PPSBuilder
 from OpenSCENARIO2CR.utility.UtilFunctions import trim_scenario, dataclass_is_complete
+from OpenSCENARIO2CR.utility.Config import ConverterParams
+from OpenSCENARIO2CR.utility.AbsRel import AbsRel
 
 
 class EFailureReason(Enum):
@@ -49,26 +52,46 @@ class Osc2CrConverter(Converter):
     """
     The main class of the OpenSCENARIO to CommonRoad conversion
     """
-    # Required
-    author: str         # Author of the scenario
-    affiliation: str    # Affiliation of the author of the scenario
-    source: str         # Source of the scenario
-    tags: Set[Tag]      # Tags of the scenario
+    def __init__(self, config: ConverterParams):
 
-    dt_cr: float = 0.1  # Time step size of the CommonRoad scenario
-    sim_wrapper: SimWrapper = EsminiWrapperProvider().provide_esmini_wrapper()  # The used SimWrapper implementation
-    pps_builder: PPSBuilder = PPSBuilder()   # The used PPSBuilder instance
+        self.author: str = config.scenario.author              # Author of the scenario
+        self.affiliation: str = config.scenario.affiliation    # Affiliation of the author of the scenario
+        self.source: str = config.scenario.source              # Source of the scenario
+        self.tags: Set[Tag] = config.scenario.tags             # Tags of the scenario
 
-    use_implicit_odr_file: bool = False      # indicating whether the openDRIVE map defined in the openSCENARIO is used
-    trim_scenario: bool = False              # indicating whether the huge mag contained in the scenario is trimmed
-    keep_ego_vehicle: bool = True            # indicating whether the ego vehicle is kept or not in the saved scenario
-    analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = \
-        field(default_factory=lambda: list(EAnalyzer))
+        self.dt_cr: float = config.scenario.dt_cr              # Time step size of the CommonRoad scenario
 
-    # Optional
-    dt_sim: Optional[float] = None           # User-defined time step size for esmini simulation
-    odr_file_override: Optional[str] = None  # User-defined OpenDRIVE map to be used
-    ego_filter: Optional[re.Pattern] = None  # Pattern of recognizing the ego vehicle
+        self.sim_wrapper: SimWrapper = \
+            EsminiWrapperProvider(config).provide_esmini_wrapper()   # The used SimWrapper implementation
+        self.pps_builder: PPSBuilder = self._initialize_planning_problem_set()   # The used PPSBuilder instance
+
+        # indicating whether the openDRIVE map defined in the openSCENARIO is used
+        self.use_implicit_odr_file: bool = config.esmini.use_implicit_odr_file
+        # indicating whether the huge mag contained in the scenario is trimmed
+        self.trim_scenario: bool = config.scenario.trim_scenario
+        # indicating whether the ego vehicle is kept or not in the saved scenario
+        self.keep_ego_vehicle: bool = config.scenario.keep_ego_vehicle
+
+        # analyzers of the scenario with CommonRoad tools
+        self.analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = \
+            field(default_factory=lambda: list(EAnalyzer))
+
+        self.dt_sim: Optional[float] = config.esmini.dt_sim          # User-defined time step size for esmini simulation
+        self.odr_file_override: Optional[str] = config.esmini.odr_file_override  # User-defined OpenDRIVE map to be used
+        self.ego_filter: Optional[re.Pattern] = config.esmini.ego_filter        # Pattern of recognizing the ego vehicle
+
+    @staticmethod
+    def _initialize_planning_problem_set():
+        planning_problem_set = PPSBuilder()
+        planning_problem_set.time_interval = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_length = AbsRel(50, AbsRel.EUsage.ABS)
+        planning_problem_set.pos_width = AbsRel(10, AbsRel.EUsage.ABS)
+        planning_problem_set.pos_rotation = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_center_x = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_center_y = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.velocity_interval = AbsRel(Interval(-5, 5), AbsRel.EUsage.REL_ADD)
+        planning_problem_set.orientation_interval = None
+        return planning_problem_set
 
     def get_analyzer_objects(self) -> Dict[EAnalyzer, Analyzer]:
         if self.analyzers is None:

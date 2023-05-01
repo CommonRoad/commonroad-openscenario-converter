@@ -19,6 +19,7 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryB
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
+from OpenSCENARIO2CR.utility.Config import ConverterParams
 
 
 class EsminiWrapper(SimWrapper):
@@ -38,17 +39,17 @@ class EsminiWrapper(SimWrapper):
     _callback_functor: ct.CFUNCTYPE
     _sim_end_detected_time: Optional[float]
 
-    def __init__(self, esmini_bin_path: str):
-        super().__init__(max_time=None)
+    def __init__(self, esmini_bin_path: str, config: ConverterParams):
+        super().__init__(config=config)
         self._esmini_lib_bin_path = esmini_bin_path
 
-        self.min_time = None
-        self.grace_period = None
-        self.ignored_level = None
-        self.random_seed = None
+        self.min_time = config.esmini.min_time
+        self.grace_period = config.esmini.grace_period
+        self.ignored_level = config.esmini.ignore_level
+        self.random_seed = config.esmini.ignore_level
 
-        self.log_to_console = None
-        self.log_to_file = None
+        self.log_to_console = config.esmini.log_to_console
+        self.log_to_file = config.esmini.log_to_file
 
         self._reset()
 
