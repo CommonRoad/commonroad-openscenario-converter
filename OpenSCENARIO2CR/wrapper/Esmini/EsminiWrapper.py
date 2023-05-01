@@ -12,15 +12,13 @@ from typing import Optional, List, Dict, Union
 import imageio
 from commonroad.common.validity import is_real_number
 
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiScenarioObjectState import SEStruct
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryBoardElementState, \
+from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
+from OpenSCENARIO2CR.wrapper.Esmini.EsminiScenarioObjectState import SEStruct
+from OpenSCENARIO2CR.wrapper.Esmini.StoryBoardElement import EStoryBoardElementState, \
     EStoryBoardElementLevel, StoryBoardElement
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
-from OpenSCENARIO2CR.utility.Config import ConverterParams
-
+from OpenSCENARIO2CR.wrapper.sim_wrapper import SimWrapper
+from OpenSCENARIO2CR.wrapper.sim_wrapper_result import WrapperSimResult
+from OpenSCENARIO2CR.utility.Config import ConverterParams, EsminiParams
 
 class EsminiWrapper(SimWrapper):
     """
@@ -224,7 +222,7 @@ class EsminiWrapper(SimWrapper):
                 ending_cause=cause
             )
 
-    def view_scenario(self, scenario_path: str, window_size: Optional[WindowSize] = None):
+    def view_scenario(self, scenario_path: str, window_size=None):
         with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
                 warnings.warn("<EsminiWrapper/view_scenario> Failed to initialize scenario engine")
@@ -236,7 +234,7 @@ class EsminiWrapper(SimWrapper):
             self._close_scenario_engine()
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
-                               window_size: Optional[WindowSize] = None) -> bool:
+                               window_size=None) -> bool:
         with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=7, use_threading=False):
                 warnings.warn("<EsminiWrapper/render_scenario_to_gif> Failed to initialize scenario engine")
@@ -289,7 +287,7 @@ class EsminiWrapper(SimWrapper):
         self._scenario_engine_initialized = True
         return True
 
-    def _set_set_window_size(self, window_size: WindowSize):
+    def _set_set_window_size(self, window_size: EsminiParams.WindowSize):
         self.esmini_lib.SE_SetWindowPosAndSize(window_size.x, window_size.y, window_size.width, window_size.height)
 
     def _close_scenario_engine(self):

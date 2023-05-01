@@ -8,8 +8,8 @@ from commonroad.scenario.scenario import Tag
 
 from BatchConversion.BatchConverter import BatchConverter
 from BatchConversion.Serializable import Serializable
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryBoardElementLevel
+from OpenSCENARIO2CR.wrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
+from OpenSCENARIO2CR.wrapper.Esmini.StoryBoardElement import EStoryBoardElementLevel
 from OpenSCENARIO2CR.Osc2CrConverter import Osc2CrConverter
 from OpenSCENARIO2CR.util.AbsRel import AbsRel
 from OpenSCENARIO2CR.util.PPSBuilder import PPSBuilder

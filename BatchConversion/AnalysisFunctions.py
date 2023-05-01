@@ -8,12 +8,12 @@ from matplotlib import pyplot as plt
 
 from BatchConversion.BatchConverter import BatchConversionResult
 from BatchConversion.Serializable import Serializable
-from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
-from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.ConversionAnalyzer.DrivabilityAnalyzer import DrivabilityAnalyzerResult, DrivabilityAnalyzer
-from OpenSCENARIO2CR.ConversionAnalyzer.STLAnalyzer import STLAnalyzerResult, STLAnalyzer
-from OpenSCENARIO2CR.ConversionAnalyzer.SpotAnalyzer import SpotAnalyzerResult, SpotAnalyzer
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
+from OpenSCENARIO2CR.conversion_analyzer.analyzer import Analyzer
+from OpenSCENARIO2CR.conversion_analyzer.AnalyzerErrorResult import AnalyzerErrorResult
+from OpenSCENARIO2CR.conversion_analyzer.DrivabilityAnalyzer import DrivabilityAnalyzerResult, DrivabilityAnalyzer
+from OpenSCENARIO2CR.conversion_analyzer.STLAnalyzer import STLAnalyzerResult, STLAnalyzer
+from OpenSCENARIO2CR.conversion_analyzer.SpotAnalyzer import SpotAnalyzerResult, SpotAnalyzer
+from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
 from OpenSCENARIO2CR.Osc2CrConverter import EFailureReason
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 

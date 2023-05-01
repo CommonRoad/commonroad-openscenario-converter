@@ -16,16 +16,16 @@ from commonroad.common.util import Interval
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration.xosc import Vehicle
 
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Converter import Converter
-from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
-from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.EAnalyzer import EAnalyzer
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
+from OpenSCENARIO2CR.wrapper.converter import Converter
+from OpenSCENARIO2CR.conversion_analyzer.analyzer import Analyzer
+from OpenSCENARIO2CR.conversion_analyzer.AnalyzerErrorResult import AnalyzerErrorResult
+from OpenSCENARIO2CR.conversion_analyzer.AnalyzerResult import AnalyzerResult
+from OpenSCENARIO2CR.conversion_analyzer.EAnalyzer import EAnalyzer
+from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
+from OpenSCENARIO2CR.wrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
+from OpenSCENARIO2CR.wrapper.scenario_object import ScenarioObjectState, SimScenarioObjectState
+from OpenSCENARIO2CR.wrapper.sim_wrapper import SimWrapper
+from OpenSCENARIO2CR.wrapper.sim_wrapper_result import WrapperSimResult
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 from OpenSCENARIO2CR.utility.ConversionStatistics import ConversionStatistics
 from OpenSCENARIO2CR.utility.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
@@ -61,9 +61,12 @@ class Osc2CrConverter(Converter):
 
         self.dt_cr: float = config.scenario.dt_cr              # Time step size of the CommonRoad scenario
 
-        self.sim_wrapper: SimWrapper = \
-            EsminiWrapperProvider(config).provide_esmini_wrapper()   # The used SimWrapper implementation
-        self.pps_builder: PPSBuilder = self._initialize_planning_problem_set()   # The used PPSBuilder instance
+        self.config = config
+
+        # The used SimWrapper implementation
+        self.sim_wrapper: SimWrapper = EsminiWrapperProvider(config).provide_esmini_wrapper()
+        # The used PPSBuilder instance
+        self.pps_builder: PPSBuilder = self._initialize_planning_problem_set()
 
         # indicating whether the openDRIVE map defined in the openSCENARIO is used
         self.use_implicit_odr_file: bool = config.esmini.use_implicit_odr_file
@@ -75,8 +78,7 @@ class Osc2CrConverter(Converter):
         self.view_scenario: bool = config.debug.run_viewer
 
         # analyzers of the scenario with CommonRoad tools
-        self.analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = \
-            field(default_factory=lambda: list(EAnalyzer))
+        self.analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = {}
 
         self.dt_sim: Optional[float] = config.esmini.dt_sim          # User-defined time step size for esmini simulation
         self.odr_file_override: Optional[str] = config.esmini.odr_file_override  # User-defined OpenDRIVE map to be used
@@ -130,7 +132,7 @@ class Osc2CrConverter(Converter):
             return scenario
 
         if self.view_scenario:
-            self.sim_wrapper.view_scenario(source_file)
+            self.sim_wrapper.view_scenario(source_file, self.config.esmini.window_size)
         dt_sim = self.dt_sim if self.dt_sim is not None else self.dt_cr / 10
         res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
         if res.ending_cause is ESimEndingCause.FAILURE:

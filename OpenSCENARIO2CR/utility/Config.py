@@ -6,7 +6,7 @@ import pathlib
 import re
 from omegaconf import OmegaConf
 
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryBoardElementLevel
+from OpenSCENARIO2CR.wrapper.Esmini.StoryBoardElement import EStoryBoardElementLevel
 
 from commonroad.scenario.scenario import Tag
 
@@ -103,6 +103,16 @@ class DebugParams(BaseParam):
 class EsminiParams(BaseParam):
     """Parameters specifying the esmini settings"""
 
+    @dataclass(frozen=True)
+    class WindowSize:
+        """
+        Utility class storing information about the size and position of a window
+        """
+        x: int = 0
+        y: int = 0
+        width: int = 640
+        height: int = 480
+
     # version
     version: str = "default"  # we use v2.29.3 as default version
 
@@ -131,6 +141,9 @@ class EsminiParams(BaseParam):
 
     # filter to select the ego vehicle
     ego_filter: str = re.compile(r".*ego.*", re.IGNORECASE)
+
+    window_size: WindowSize = WindowSize()
+
 
 
 @dataclass

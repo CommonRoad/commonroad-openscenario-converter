@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, List
 
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.ESimEndingCause import ESimEndingCause
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import SimScenarioObjectState
+from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
+from OpenSCENARIO2CR.wrapper.scenario_object import SimScenarioObjectState
 
 
 @dataclass(frozen=True)

@@ -3,9 +3,8 @@ from typing import Optional
 
 from commonroad.common.validity import is_real_number
 
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.WindowSize import WindowSize
-from OpenSCENARIO2CR.utility.Config import ConverterParams
+from OpenSCENARIO2CR.wrapper.sim_wrapper_result import WrapperSimResult
+from OpenSCENARIO2CR.utility.Config import ConverterParams, EsminiParams
 
 
 class SimWrapper:
@@ -14,6 +13,7 @@ class SimWrapper:
     """
     def __init__(self, config: ConverterParams):
         self.config = config
+        self.max_time = config.esmini.max_time
 
     @property
     def max_time(self) -> float:
@@ -41,7 +41,7 @@ class SimWrapper:
         """
         raise NotImplementedError
 
-    def view_scenario(self, scenario_path: str, window_size: Optional[WindowSize] = None):
+    def view_scenario(self, scenario_path: str, window_size: Optional[EsminiParams.WindowSize] = None):
         """
         Render a XOSC file
 
@@ -51,7 +51,7 @@ class SimWrapper:
         warnings.warn(f"{self.__class__} did not implement to view scenario")
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
-                               gif_size: Optional[WindowSize] = None) -> bool:
+                               gif_size=None) -> bool:
         """
         Create a gif of an XOSC file.
 

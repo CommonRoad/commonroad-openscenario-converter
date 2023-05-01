@@ -8,8 +8,8 @@ from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
 from scenariogeneration.xosc import Vehicle
 
-from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerErrorResult import AnalyzerErrorResult
-from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
+from OpenSCENARIO2CR.conversion_analyzer.AnalyzerErrorResult import AnalyzerErrorResult
+from OpenSCENARIO2CR.conversion_analyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.utility.UtilFunctions import dataclass_is_complete
 
 

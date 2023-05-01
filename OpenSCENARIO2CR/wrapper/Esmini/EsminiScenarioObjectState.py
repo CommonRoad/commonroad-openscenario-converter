@@ -5,7 +5,7 @@ import numpy as np
 from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.trajectory import State
 
-from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObjectState, SimScenarioObjectState
+from OpenSCENARIO2CR.wrapper.scenario_object import ScenarioObjectState, SimScenarioObjectState
 
 
 class SEStruct(ct.Structure, SimScenarioObjectState):
