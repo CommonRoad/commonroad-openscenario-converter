@@ -8,9 +8,9 @@ from commonroad.scenario.scenario import Tag
 from commonroad.visualization.mp_renderer import MPRenderer
 
 
-from OpenSCENARIO2CR.wrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
-from OpenSCENARIO2CR.wrapper.Esmini.StoryBoardElement import EStoryBoardElementLevel
-from OpenSCENARIO2CR.Osc2CrConverter import Osc2CrConverter
+from OpenSCENARIO2CR.wrapper.esmini.esmini_wrapper_provider import EsminiWrapperProvider
+from OpenSCENARIO2CR.wrapper.esmini.storyboard_element import EStoryBoardElementLevel
+from OpenSCENARIO2CR.converter.osc2cr import Osc2CrConverter
 from OpenSCENARIO2CR.utility.AbsRel import AbsRel
 from OpenSCENARIO2CR.utility.PPSBuilder import PPSBuilder
 from OpenSCENARIO2CR.utility.Config import ConverterParams

@@ -13,7 +13,7 @@ from OpenSCENARIO2CR.conversion_analyzer.AnalyzerErrorResult import AnalyzerErro
 from OpenSCENARIO2CR.conversion_analyzer.DrivabilityAnalyzer import DrivabilityAnalyzerResult, DrivabilityAnalyzer
 from OpenSCENARIO2CR.conversion_analyzer.STLAnalyzer import STLAnalyzerResult, STLAnalyzer
 from OpenSCENARIO2CR.conversion_analyzer.SpotAnalyzer import SpotAnalyzerResult, SpotAnalyzer
-from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
+from OpenSCENARIO2CR.wrapper.ending_cause import ESimEndingCause
 from OpenSCENARIO2CR.Osc2CrConverter import EFailureReason
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
 

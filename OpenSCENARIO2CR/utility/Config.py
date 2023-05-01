@@ -6,7 +6,7 @@ import pathlib
 import re
 from omegaconf import OmegaConf
 
-from OpenSCENARIO2CR.wrapper.Esmini.StoryBoardElement import EStoryBoardElementLevel
+from OpenSCENARIO2CR.wrapper.esmini.storyboard_element import EStoryBoardElementLevel
 
 from commonroad.scenario.scenario import Tag
 

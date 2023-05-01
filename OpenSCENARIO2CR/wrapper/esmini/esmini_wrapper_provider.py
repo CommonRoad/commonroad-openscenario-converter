@@ -9,7 +9,7 @@ from zipfile import ZipFile
 
 import requests
 
-from OpenSCENARIO2CR.wrapper.Esmini.EsminiWrapper import EsminiWrapper
+from OpenSCENARIO2CR.wrapper.esmini.esmini_wrapper import EsminiWrapper
 from OpenSCENARIO2CR.utility.Config import ConverterParams
 
 

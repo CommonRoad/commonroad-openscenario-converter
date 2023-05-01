@@ -16,16 +16,16 @@ from commonroad.common.util import Interval
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration.xosc import Vehicle
 
-from OpenSCENARIO2CR.wrapper.converter import Converter
+from OpenSCENARIO2CR.converter.base import Converter
 from OpenSCENARIO2CR.conversion_analyzer.analyzer import Analyzer
 from OpenSCENARIO2CR.conversion_analyzer.AnalyzerErrorResult import AnalyzerErrorResult
 from OpenSCENARIO2CR.conversion_analyzer.AnalyzerResult import AnalyzerResult
 from OpenSCENARIO2CR.conversion_analyzer.EAnalyzer import EAnalyzer
-from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
-from OpenSCENARIO2CR.wrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
-from OpenSCENARIO2CR.wrapper.scenario_object import ScenarioObjectState, SimScenarioObjectState
-from OpenSCENARIO2CR.wrapper.sim_wrapper import SimWrapper, WrapperSimResult
-from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
+from OpenSCENARIO2CR.wrapper.base.ending_cause import ESimEndingCause
+from OpenSCENARIO2CR.wrapper.esmini.esmini_wrapper_provider import EsminiWrapperProvider
+from OpenSCENARIO2CR.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
+from OpenSCENARIO2CR.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
+from OpenSCENARIO2CR.converter.osc2cr_result import Osc2CrConverterResult
 from OpenSCENARIO2CR.utility.ConversionStatistics import ConversionStatistics
 from OpenSCENARIO2CR.utility.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
 from OpenSCENARIO2CR.utility.PPSBuilder import PPSBuilder

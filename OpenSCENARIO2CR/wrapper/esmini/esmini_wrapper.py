@@ -12,11 +12,11 @@ from typing import Optional, List, Dict, Union
 import imageio
 from commonroad.common.validity import is_real_number
 
-from OpenSCENARIO2CR.wrapper.ESimEndingCause import ESimEndingCause
-from OpenSCENARIO2CR.wrapper.Esmini.EsminiScenarioObjectState import SEStruct
-from OpenSCENARIO2CR.wrapper.Esmini.StoryBoardElement import EStoryBoardElementState, \
+from OpenSCENARIO2CR.wrapper.base.ending_cause import ESimEndingCause
+from OpenSCENARIO2CR.wrapper.esmini.esmini_scenario_object import SEStruct
+from OpenSCENARIO2CR.wrapper.esmini.storyboard_element import EStoryBoardElementState, \
     EStoryBoardElementLevel, StoryBoardElement
-from OpenSCENARIO2CR.wrapper.sim_wrapper import SimWrapper, WrapperSimResult
+from OpenSCENARIO2CR.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
 from OpenSCENARIO2CR.utility.Config import ConverterParams, EsminiParams
 
 class EsminiWrapper(SimWrapper):
@@ -316,7 +316,7 @@ class EsminiWrapper(SimWrapper):
             return None
         now = self.esmini_lib.SE_GetSimulationTime()
         if self.esmini_lib.SE_GetQuitFlag() == 1:
-            self._log("{:.3f}: Esmini requested quitting -> Scenario finished completely ".format(now))
+            self._log("{:.3f}: esmini requested quitting -> Scenario finished completely ".format(now))
             return ESimEndingCause.SCENARIO_FINISHED_BY_SIMULATOR
         if now >= self.max_time:
             self._log("{:.3f}: Max Execution tim reached ".format(now))
