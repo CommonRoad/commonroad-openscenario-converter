@@ -3,9 +3,6 @@ from typing import Type
 
 from OpenSCENARIO2CR.ConversionAnalyzer.Analyzer import Analyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.AnalyzerResult import AnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.DrivabilityAnalyzer import DrivabilityAnalyzer, DrivabilityAnalyzerResult
-from OpenSCENARIO2CR.ConversionAnalyzer.STLAnalyzer import STLAnalyzerResult, STLAnalyzer
-from OpenSCENARIO2CR.ConversionAnalyzer.SpotAnalyzer import SpotAnalyzerResult, SpotAnalyzer
 
 
 class EAnalyzer(Enum):
@@ -19,6 +16,3 @@ class EAnalyzer(Enum):
         obj.result_type = result_type
         return obj
 
-    DRIVABILITY = (DrivabilityAnalyzer, DrivabilityAnalyzerResult)
-    STL = (STLAnalyzer, STLAnalyzerResult)
-    SPOT = (SpotAnalyzer, SpotAnalyzerResult)

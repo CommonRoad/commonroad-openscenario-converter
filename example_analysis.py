@@ -10,7 +10,7 @@ from OpenSCENARIO2CR.ConversionAnalyzer.DrivabilityAnalyzer import DrivabilityAn
 from OpenSCENARIO2CR.ConversionAnalyzer.STLAnalyzer import STLAnalyzer
 from OpenSCENARIO2CR.ConversionAnalyzer.SpotAnalyzer import SpotAnalyzer
 
-stats_dir = "./results/2023-04-22_17:04:29"
+stats_dir = "./results/2023-04-24_11:22:47"
 do_plot_scenarios = True
 
 with open(path.join(stats_dir, "statistics.pickle"), "rb") as stats_file:

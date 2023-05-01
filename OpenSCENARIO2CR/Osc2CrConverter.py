@@ -26,10 +26,10 @@ from OpenSCENARIO2CR.OpenSCENARIOWrapper.ScenarioObjectState import ScenarioObje
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapper import SimWrapper
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.SimWrapperResult import WrapperSimResult
 from OpenSCENARIO2CR.Osc2CrConverterResult import Osc2CrConverterResult
-from OpenSCENARIO2CR.util.ConversionStatistics import ConversionStatistics
-from OpenSCENARIO2CR.util.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
-from OpenSCENARIO2CR.util.PPSBuilder import PPSBuilder
-from OpenSCENARIO2CR.util.UtilFunctions import trim_scenario, dataclass_is_complete
+from OpenSCENARIO2CR.utility.ConversionStatistics import ConversionStatistics
+from OpenSCENARIO2CR.utility.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
+from OpenSCENARIO2CR.utility.PPSBuilder import PPSBuilder
+from OpenSCENARIO2CR.utility.UtilFunctions import trim_scenario, dataclass_is_complete
 
 
 class EFailureReason(Enum):

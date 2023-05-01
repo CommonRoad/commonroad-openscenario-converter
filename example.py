@@ -11,8 +11,8 @@ from commonroad.visualization.mp_renderer import MPRenderer
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.EsminiWrapperProvider import EsminiWrapperProvider
 from OpenSCENARIO2CR.OpenSCENARIOWrapper.Esmini.StoryBoardElement import EStoryBoardElementLevel
 from OpenSCENARIO2CR.Osc2CrConverter import Osc2CrConverter
-from OpenSCENARIO2CR.util.AbsRel import AbsRel
-from OpenSCENARIO2CR.util.PPSBuilder import PPSBuilder
+from OpenSCENARIO2CR.utility.AbsRel import AbsRel
+from OpenSCENARIO2CR.utility.PPSBuilder import PPSBuilder
 
 # two examples, you can also download the scenarios from esmini or the openscenario website
 # scenario_path = os.getcwd() + "/scenarios/from_esmini/xosc/pedestrian.xosc"
@@ -23,10 +23,7 @@ scenario_path = "/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resourc
 #scenario_path = "/home/yuanfei/Documents/standard_download61fa668a0fbb1_18112/openscenario-v1.1.1/standard/Examples/CutIn.xosc"
 scenario_path = '/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/pedestrian_collision.xosc'
 sc_id = 'looming-HighWayTest.xosc'
-scenario_path = '/home/yuanfei/commonroad2/openscenario_files/esmini/xosc/looming-HighWayTest.xosc'
-#scenario_path = '/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/ltap-od.xosc'
-scenario_path ='/home/yuanfei/commonroad2/openscenario_files/esmini-master/scripts/udp_driver/two_cars_in_open_space.xosc'
-scenario_path = '/home/yuanfei/commonroad2/openscenario_files/OSC-ALKS-scenarios/Scenarios/ALKS_Scenario_4.5_1_CutOutFullyBlocking_TEMPLATE.xosc'
+
 run_viewer = True
 plots_step = 5
 plot_limit = 20  # If non-null the renderer follows the ego vehicle

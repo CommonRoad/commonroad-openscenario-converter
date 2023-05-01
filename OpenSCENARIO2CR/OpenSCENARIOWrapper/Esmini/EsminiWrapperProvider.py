@@ -51,7 +51,7 @@ class EsminiWrapperProvider:
         if new_preferred_version is None:
             self._preferred_version = None
         elif new_preferred_version.lower() == "default":
-            self._preferred_version = "v2.26.5"
+            self._preferred_version = "v2.29.3"
         elif r.fullmatch(new_preferred_version) is not None:
             self._preferred_version = new_preferred_version
         else:

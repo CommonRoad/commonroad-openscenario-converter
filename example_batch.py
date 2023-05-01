@@ -41,9 +41,9 @@ converter = Osc2CrConverter(
     tags={Tag.SIMULATED},
 )
 
-# directory = '/home/yuanfei/commonroad2/openscenario_files/esmini-master'
+directory = '/home/yuanfei/commonroad2/openscenario_files/esmini-demo'
 # openscenario-v1.1.1
-directory = '/home/yuanfei/commonroad2/openscenario_files/OSC-ALKS-scenarios'
+# directory = '/home/yuanfei/commonroad2/openscenario_files/OSC-ALKS-scenarios'
 converter.sim_wrapper = esmini_wrapper
 converter.pps_builder = pps_builder
 

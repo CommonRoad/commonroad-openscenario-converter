@@ -10,8 +10,8 @@ from commonroad.planning.planning_problem import PlanningProblemSet, PlanningPro
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.trajectory import State
 
-from OpenSCENARIO2CR.util.AbsRel import AbsRel
-from OpenSCENARIO2CR.util.UtilFunctions import dataclass_is_complete
+from OpenSCENARIO2CR.utility.AbsRel import AbsRel
+from OpenSCENARIO2CR.utility.UtilFunctions import dataclass_is_complete
 
 
 @dataclass
