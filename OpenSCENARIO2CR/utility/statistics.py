@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Dict
 
 from OpenSCENARIO2CR.wrapper.esmini.esmini_wrapper import ESimEndingCause
-from BatchConversion.Serializable import Serializable
+from OpenSCENARIO2CR.converter.serializable import Serializable
 
 CR_MONITOR_TYPE = Optional[Dict[str, Optional[Dict[str, List[float]]]]]
 

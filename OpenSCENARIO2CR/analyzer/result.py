@@ -1,7 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 
-from BatchConversion.Serializable import Serializable
+from OpenSCENARIO2CR.converter.serializable import Serializable
 
 
 @dataclass(frozen=True)

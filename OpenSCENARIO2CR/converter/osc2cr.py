@@ -1,4 +1,5 @@
 import math
+import os
 import re
 import warnings
 import xml.etree.ElementTree as ElementTree
@@ -11,8 +12,11 @@ from commonroad.geometry.shape import Rectangle, Circle
 from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario, Tag
+from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.trajectory import Trajectory
 from commonroad.common.util import Interval
+from commonroad.common.file_writer import CommonRoadFileWriter
+from commonroad.common.file_writer import OverwriteExistingFile
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration.xosc import Vehicle
 
@@ -57,8 +61,6 @@ class Osc2CrConverter(Converter):
         self.affiliation: str = config.scenario.affiliation    # Affiliation of the author of the scenario
         self.source: str = config.scenario.source              # Source of the scenario
         self.tags: Set[Tag] = config.scenario.tags             # Tags of the scenario
-
-        self.scenario_id: str = config.scenario.scenario_id    # CommonRoad ID of the scenario
 
         self.dt_cr: float = config.scenario.dt_cr              # Time step size of the CommonRoad scenario
 
@@ -156,7 +158,6 @@ class Osc2CrConverter(Converter):
             obstacles_extra_info_finder_error = obstacles_extra_info
             obstacles_extra_info = {o_name: None for o_name in res.states.keys()}
 
-
         obstacles = self._create_obstacles_from_state_lists(
             scenario, ego_vehicle, res.states, res.sim_time, obstacles_extra_info
         )
@@ -171,6 +172,9 @@ class Osc2CrConverter(Converter):
         if self.trim_scenario:
             scenario = trim_scenario(scenario, deep_copy=False)
         pps = self.pps_builder.build(obstacles[ego_vehicle])
+
+        if self.config.debug.write_to_xml:
+            self.write_to_xml(scenario, pps, os.path.basename(source_file).split('.')[0])
 
         return Osc2CrConverterResult(
             statistics=self.build_statistics(
@@ -259,8 +263,6 @@ class Osc2CrConverter(Converter):
         scenario.affiliation = self.affiliation
         scenario.source = self.source
         scenario.tags = self.tags
-
-        # todo: define the rule of naming the scenario id based on the openSCENARIO name
 
         return scenario, odr_file, odr_conversion_error
 
@@ -353,6 +355,16 @@ class Osc2CrConverter(Converter):
             initial_state=trajectory.state_list[0],
             prediction=prediction
         )
+
+    def write_to_xml(self, scenario: Scenario, pps: PlanningProblemSet, osc_id: str):
+        COUNTRY = 'OSC'  # OpenSCENARIO
+        SCENE = osc_id
+        CONFIG = self.config.scenario.config
+        # T: single trajectories
+        PRED = 'T-' + self.config.scenario.pred
+        file_name = COUNTRY + '_' + SCENE + '_' + CONFIG + '_' + PRED + '.xml'
+        fw = CommonRoadFileWriter(scenario, pps, self.author, self.affiliation, self.source, self.tags)
+        fw.write_to_file(file_name, OverwriteExistingFile.ALWAYS)
 
     @staticmethod
     def build_statistics(

@@ -1,19 +1,18 @@
 from dataclasses import dataclass
 from multiprocessing import Lock
 from os import path
-from typing import Dict, Optional, Tuple, ClassVar, Type
+from typing import Dict, Optional, Tuple, ClassVar
 
 from commonroad.common.file_reader import CommonRoadFileReader
 from commonroad.common.file_writer import CommonRoadFileWriter, OverwriteExistingFile
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.scenario import Scenario
 
-from OpenSCENARIO2CR.analyzer.base import Analyzer
 from OpenSCENARIO2CR.analyzer.error import AnalyzerErrorResult
 from OpenSCENARIO2CR.analyzer.result import AnalyzerResult
 from OpenSCENARIO2CR.analyzer.error_analyzer import EAnalyzer
 from OpenSCENARIO2CR.utility.statistics import ConversionStatistics
-from BatchConversion.Serializable import Serializable
+from OpenSCENARIO2CR.converter.serializable import Serializable
 
 
 @dataclass(frozen=True)

@@ -96,9 +96,11 @@ class DebugParams(BaseParam):
     """Parameters specifying debug-related information"""
 
     # show esmini simulation
-    run_viewer: bool = True
+    run_viewer: bool = False
     # convert the figures to gif
     render_to_gif: bool = False
+    # write the scenario to xml file
+    write_to_xml: bool = True
 
 
 @dataclass
@@ -155,7 +157,7 @@ class ScenarioParams(BaseParam):
     author: str = " "
     affiliation: str = "Technical University of Munich"
     source: str = "OpenSCENARIO"
-    tags = Tag.SIMULATED
+    tags = {Tag.SIMULATED}
 
     # scenario information
     # CommonRoad time step size
@@ -163,8 +165,9 @@ class ScenarioParams(BaseParam):
     keep_ego_vehicle: bool = True
     # trim the map based on the vehicle information
     trim_scenario: bool = False
-    # default scenario id:
-    scenario_id: str = "OSC_Default-1_1_T-1"
+    # default config & pred for specifying the scenario name:
+    config: str = '1'  # 1-9
+    pred: str = '1'
 
 
 @dataclass

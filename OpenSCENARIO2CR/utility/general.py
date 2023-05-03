@@ -39,3 +39,4 @@ def dataclass_is_complete(dataclass_object) -> bool:
             if not hasattr(dataclass_object, field.name) or getattr(dataclass_object, field.name) is None:
                 return False
     return True
+
