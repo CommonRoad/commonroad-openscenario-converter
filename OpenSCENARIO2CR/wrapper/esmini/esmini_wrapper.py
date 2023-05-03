@@ -17,7 +17,7 @@ from OpenSCENARIO2CR.wrapper.esmini.esmini_scenario_object import SEStruct
 from OpenSCENARIO2CR.wrapper.esmini.storyboard_element import EStoryBoardElementState, \
     EStoryBoardElementLevel, StoryBoardElement
 from OpenSCENARIO2CR.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
-from OpenSCENARIO2CR.utility.Config import ConverterParams, EsminiParams
+from OpenSCENARIO2CR.utility.configuration import ConverterParams, EsminiParams
 
 class EsminiWrapper(SimWrapper):
     """

@@ -98,7 +98,7 @@ class DebugParams(BaseParam):
     # show esmini simulation
     run_viewer: bool = True
     # convert the figures to gif
-    render_to_gif: bool = True
+    render_to_gif: bool = False
 
 
 @dataclass
@@ -145,7 +145,6 @@ class EsminiParams(BaseParam):
     ego_filter: str = re.compile(r".*ego.*", re.IGNORECASE)
 
     window_size: WindowSize = WindowSize()
-
 
 
 @dataclass

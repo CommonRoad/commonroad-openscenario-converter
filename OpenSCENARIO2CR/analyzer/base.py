@@ -10,7 +10,7 @@ from scenariogeneration.xosc import Vehicle
 
 from OpenSCENARIO2CR.analyzer.error import AnalyzerErrorResult
 from OpenSCENARIO2CR.analyzer.result import AnalyzerResult
-from OpenSCENARIO2CR.utility.UtilFunctions import dataclass_is_complete
+from OpenSCENARIO2CR.utility.general import dataclass_is_complete
 
 
 @dataclass

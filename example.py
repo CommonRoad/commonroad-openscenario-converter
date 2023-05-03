@@ -11,9 +11,9 @@ from commonroad.visualization.mp_renderer import MPRenderer
 from OpenSCENARIO2CR.wrapper.esmini.esmini_wrapper_provider import EsminiWrapperProvider
 from OpenSCENARIO2CR.wrapper.esmini.storyboard_element import EStoryBoardElementLevel
 from OpenSCENARIO2CR.converter.osc2cr import Osc2CrConverter
-from OpenSCENARIO2CR.utility.AbsRel import AbsRel
+from OpenSCENARIO2CR.utility.abs_rel import AbsRel
 from OpenSCENARIO2CR.utility.PPSBuilder import PPSBuilder
-from OpenSCENARIO2CR.utility.Config import ConverterParams
+from OpenSCENARIO2CR.utility.configuration import ConverterParams
 
 # two examples, you can also download the scenarios from esmini or the openscenario website
 # scenario_path = os.getcwd() + "/scenarios/from_esmini/xosc/pedestrian.xosc"
@@ -23,6 +23,8 @@ from OpenSCENARIO2CR.utility.Config import ConverterParams
 scenario_path = "/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/acc-test.xosc"
 #scenario_path = "/home/yuanfei/Documents/standard_download61fa668a0fbb1_18112/openscenario-v1.1.1/standard/Examples/CutIn.xosc"
 scenario_path = '/home/yuanfei/commonroad/esmini-demo_ubuntu/esmini-demo/resources/xosc/pedestrian_collision.xosc'
+scenario_path = "/home/yuanfei/Downloads/padestrian_01.xosc"
+# scenario_path = ''
 sc_id = 'looming-HighWayTest.xosc'
 
 run_viewer = True

@@ -10,7 +10,7 @@ from zipfile import ZipFile
 import requests
 
 from OpenSCENARIO2CR.wrapper.esmini.esmini_wrapper import EsminiWrapper
-from OpenSCENARIO2CR.utility.Config import ConverterParams
+from OpenSCENARIO2CR.utility.configuration import ConverterParams
 
 
 class EsminiWrapperProvider:

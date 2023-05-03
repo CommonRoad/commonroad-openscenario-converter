@@ -26,12 +26,12 @@ from OpenSCENARIO2CR.wrapper.esmini.esmini_wrapper_provider import EsminiWrapper
 from OpenSCENARIO2CR.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
 from OpenSCENARIO2CR.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
 from OpenSCENARIO2CR.converter.osc2cr_result import Osc2CrConverterResult
-from OpenSCENARIO2CR.utility.ConversionStatistics import ConversionStatistics
-from OpenSCENARIO2CR.utility.ObstacleExtraInfoFinder import ObstacleExtraInfoFinder
-from OpenSCENARIO2CR.utility.PPSBuilder import PPSBuilder
-from OpenSCENARIO2CR.utility.UtilFunctions import trim_scenario, dataclass_is_complete
-from OpenSCENARIO2CR.utility.Config import ConverterParams
-from OpenSCENARIO2CR.utility.AbsRel import AbsRel
+from OpenSCENARIO2CR.utility.statistics import ConversionStatistics
+from OpenSCENARIO2CR.utility.obstacle_info import ObstacleExtraInfoFinder
+from OpenSCENARIO2CR.utility.pps import PPSBuilder
+from OpenSCENARIO2CR.utility.general import trim_scenario, dataclass_is_complete
+from OpenSCENARIO2CR.utility.configuration import ConverterParams
+from OpenSCENARIO2CR.utility.abs_rel import AbsRel
 
 
 class EFailureReason(Enum):

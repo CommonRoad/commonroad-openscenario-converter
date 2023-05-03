@@ -12,7 +12,7 @@ from OpenSCENARIO2CR.analyzer.base import Analyzer
 from OpenSCENARIO2CR.analyzer.error import AnalyzerErrorResult
 from OpenSCENARIO2CR.analyzer.result import AnalyzerResult
 from OpenSCENARIO2CR.analyzer.error_analyzer import EAnalyzer
-from OpenSCENARIO2CR.utility.ConversionStatistics import ConversionStatistics
+from OpenSCENARIO2CR.utility.statistics import ConversionStatistics
 from BatchConversion.Serializable import Serializable
 
 

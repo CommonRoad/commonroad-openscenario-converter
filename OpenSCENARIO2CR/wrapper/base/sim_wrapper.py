@@ -6,7 +6,7 @@ from commonroad.common.validity import is_real_number
 
 from OpenSCENARIO2CR.wrapper.base.ending_cause import ESimEndingCause
 from OpenSCENARIO2CR.wrapper.base.scenario_object import SimScenarioObjectState
-from OpenSCENARIO2CR.utility.Config import ConverterParams, EsminiParams
+from OpenSCENARIO2CR.utility.configuration import ConverterParams, EsminiParams
 
 
 @dataclass(frozen=True)
