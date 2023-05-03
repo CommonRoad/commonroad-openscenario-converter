@@ -96,7 +96,9 @@ class DebugParams(BaseParam):
     """Parameters specifying debug-related information"""
 
     # show esmini simulation
-    run_viewer: bool = False
+    run_viewer: bool = True
+    # convert the figures to gif
+    render_to_gif: bool = True
 
 
 @dataclass

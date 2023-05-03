@@ -58,6 +58,8 @@ class Osc2CrConverter(Converter):
         self.source: str = config.scenario.source              # Source of the scenario
         self.tags: Set[Tag] = config.scenario.tags             # Tags of the scenario
 
+        self.scenario_id: str = config.scenario.scenario_id    # CommonRoad ID of the scenario
+
         self.dt_cr: float = config.scenario.dt_cr              # Time step size of the CommonRoad scenario
 
         self.config = config
@@ -75,6 +77,7 @@ class Osc2CrConverter(Converter):
         self.keep_ego_vehicle: bool = config.scenario.keep_ego_vehicle
         # indicating whether the scenario needs to be visualized with esmini
         self.view_scenario: bool = config.debug.run_viewer
+        self.render_to_gif: bool = config.debug.render_to_gif
 
         # analyzers of the scenario with CommonRoad tools
         self.analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = {}
@@ -132,6 +135,9 @@ class Osc2CrConverter(Converter):
 
         if self.view_scenario:
             self.sim_wrapper.view_scenario(source_file, self.config.esmini.window_size)
+        if self.render_to_gif:
+            self.sim_wrapper.render_scenario_to_gif(source_file, self.scenario_id + ".gif")
+
         dt_sim = self.dt_sim if self.dt_sim is not None else self.dt_cr / 10
         res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
         if res.ending_cause is ESimEndingCause.FAILURE:
