@@ -356,7 +356,18 @@ class Osc2CrConverter(Converter):
             prediction=prediction
         )
 
-    def write_to_xml(self, scenario: Scenario, pps: PlanningProblemSet, osc_id: str):
+    def write_to_xml(
+            self,
+            scenario: Scenario,
+            pps: PlanningProblemSet,
+            osc_id: str
+    ) -> None:
+        """
+        Writing the CommonRoad scenario to xml file together with the planning problem set
+        :param scenario: CommonRoad scenario
+        :param pps: planning problem set
+        :param osc_id: OpenSCENARIO ID
+        """
         COUNTRY = 'OSC'  # OpenSCENARIO
         SCENE = osc_id
         CONFIG = self.config.scenario.config
