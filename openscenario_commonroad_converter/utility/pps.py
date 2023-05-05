@@ -8,10 +8,10 @@ from commonroad.geometry.shape import Rectangle
 from commonroad.planning.goal import GoalRegion
 from commonroad.planning.planning_problem import PlanningProblemSet, PlanningProblem
 from commonroad.scenario.obstacle import DynamicObstacle
-from commonroad.scenario.trajectory import State
+from commonroad.scenario.state import CustomState, InitialState
 
-from OpenSCENARIO2CR.utility.abs_rel import AbsRel
-from OpenSCENARIO2CR.utility.general import dataclass_is_complete
+from openscenario_commonroad_converter.utility.abs_rel import AbsRel
+from openscenario_commonroad_converter.utility.general import dataclass_is_complete
 
 
 @dataclass
@@ -35,10 +35,16 @@ class PPSBuilder:
     def build(self, obstacle: DynamicObstacle) -> PlanningProblemSet:
         assert dataclass_is_complete(self)
 
-        initial_state = obstacle.prediction.trajectory.state_list[0]
+        first_state = obstacle.prediction.trajectory.state_list[0]
         final_state = obstacle.prediction.trajectory.final_state
+        initial_state = InitialState(position=first_state.position,
+                                     velocity=first_state.velocity,
+                                     orientation=first_state.orientation,
+                                     yaw_rate=first_state.yaw_rate,
+                                     slip_angle=first_state.slip_angle,
+                                     time_step=first_state.time_step)
 
-        goal_state = State()
+        goal_state = CustomState()
 
         position_rotation = self.pos_rotation.get(final_state.orientation)
         while not is_valid_orientation(position_rotation):

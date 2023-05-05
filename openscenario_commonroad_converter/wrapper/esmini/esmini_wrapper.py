@@ -12,12 +12,12 @@ from typing import Optional, List, Dict, Union
 import imageio
 from commonroad.common.validity import is_real_number
 
-from OpenSCENARIO2CR.wrapper.base.ending_cause import ESimEndingCause
-from OpenSCENARIO2CR.wrapper.esmini.esmini_scenario_object import SEStruct
-from OpenSCENARIO2CR.wrapper.esmini.storyboard_element import EStoryBoardElementState, \
+from openscenario_commonroad_converter.wrapper.base.ending_cause import ESimEndingCause
+from openscenario_commonroad_converter.wrapper.esmini.esmini_scenario_object import SEStruct
+from openscenario_commonroad_converter.wrapper.esmini.storyboard_element import EStoryBoardElementState, \
     EStoryBoardElementLevel, StoryBoardElement
-from OpenSCENARIO2CR.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
-from OpenSCENARIO2CR.utility.configuration import ConverterParams, EsminiParams
+from openscenario_commonroad_converter.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
+from openscenario_commonroad_converter.utility.configuration import ConverterParams, EsminiParams
 
 class EsminiWrapper(SimWrapper):
     """
@@ -321,14 +321,14 @@ class EsminiWrapper(SimWrapper):
         if now >= self.max_time:
             self._log("{:.3f}: Max Execution tim reached ".format(now))
             return ESimEndingCause.MAX_TIME_REACHED
-        if self.grace_period is not None and self._all_sim_elements_finished():
-            if self._sim_end_detected_time is None:
-                self._sim_end_detected_time = now
-            if now >= self._sim_end_detected_time + self.grace_period and now >= self.min_time:
-                self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_period))
-                return ESimEndingCause.END_DETECTED
-        else:
-            self._sim_end_detected_time = None
+        # if self.grace_period is not None and self._all_sim_elements_finished():
+        #     if self._sim_end_detected_time is None:
+        #         self._sim_end_detected_time = now
+        #     if now >= self._sim_end_detected_time + self.grace_period and now >= self.min_time:
+        #         self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_period))
+        #         return ESimEndingCause.END_DETECTED
+        # else:
+        #     self._sim_end_detected_time = None
 
         return None
 

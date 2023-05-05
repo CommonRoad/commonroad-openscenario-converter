@@ -1,5 +1,5 @@
 
-from OpenSCENARIO2CR.utility.configuration import ConverterParams
+from openscenario_commonroad_converter.utility.configuration import ConverterParams
 
 # two examples, you can also download the scenarios from esmini or the openscenario website
 # scenario_path = os.getcwd() + "/scenarios/from_esmini/xosc/pedestrian.xosc"
@@ -17,7 +17,7 @@ sc_id = 'looming-HighWayTest.xosc'
 run_viewer = True
 
 config = ConverterParams()
-from OpenSCENARIO2CR.converter.osc2cr import Osc2CrConverter
+from openscenario_commonroad_converter.converter.osc2cr import Osc2CrConverter
 
 converter = Osc2CrConverter(config)
 

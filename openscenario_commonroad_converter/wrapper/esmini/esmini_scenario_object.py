@@ -5,7 +5,7 @@ import numpy as np
 from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.state import CustomState
 
-from OpenSCENARIO2CR.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
+from openscenario_commonroad_converter.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
 
 
 class SEStruct(ct.Structure, SimScenarioObjectState):
@@ -92,7 +92,7 @@ class SEStruct(ct.Structure, SimScenarioObjectState):
                 11: ObstacleType.UNKNOWN,  # CROSSWALK
                 12: ObstacleType.PILLAR,  # STREETLAMP
                 13: ObstacleType.UNKNOWN,  # GANTRY
-                14: ObstacleType.ROAD_BOUNDARY,  # SOUNDBARRIER 
+                14: ObstacleType.ROAD_BOUNDARY,  # SOUNDBARRIER
                 15: ObstacleType.UNKNOWN,  # WIND
                 16: ObstacleType.UNKNOWN,  # ROADMARK
             }.get(self.objectCategory, ObstacleType.UNKNOWN)
@@ -307,8 +307,8 @@ class EsminiScenarioObjectState(ScenarioObjectState):
             # acceleration=self.acceleration,
             # roll_angle=self.r,
             # pitch_angle=self.p,
-            # yaw_rate=self.h_rate,
+            yaw_rate=self.h_rate,
             # roll_rate=self.r_rate,
             # pitch_rate=self.p_rate,
-            # slip_angle=self.slip_angle,
+            slip_angle=self.slip_angle,
         )

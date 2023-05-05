@@ -1,8 +1,8 @@
 from enum import Enum
 from typing import Type
 
-from OpenSCENARIO2CR.analyzer.base import Analyzer
-from OpenSCENARIO2CR.analyzer.result import AnalyzerResult
+from openscenario_commonroad_converter.analyzer.base import Analyzer
+from openscenario_commonroad_converter.analyzer.result import AnalyzerResult
 
 
 class EAnalyzer(Enum):

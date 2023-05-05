@@ -7,8 +7,8 @@ from typing import Dict, Optional, Set, Union
 
 from scenariogeneration.xosc import Vehicle, ParseOpenScenario, Scenario, CatalogReference, Catalog
 
-from OpenSCENARIO2CR.analyzer.error import AnalyzerErrorResult
-from OpenSCENARIO2CR.utility.general import dataclass_is_complete
+from openscenario_commonroad_converter.analyzer.error import AnalyzerErrorResult
+from openscenario_commonroad_converter.utility.general import dataclass_is_complete
 
 
 @dataclass
