@@ -121,7 +121,7 @@ class DebugParams(BaseParam):
     # show esmini simulation
     run_viewer: bool = False
     # convert the figures to gif
-    render_to_gif: bool = True
+    render_to_gif: bool = False
     # write the scenario to xml file
     write_to_xml: bool = True
 
