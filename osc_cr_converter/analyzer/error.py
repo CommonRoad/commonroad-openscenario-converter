@@ -2,7 +2,7 @@ import traceback
 from dataclasses import dataclass, fields
 from typing import Dict
 
-from openscenario_commonroad_converter.analyzer.result import AnalyzerResult
+from osc_cr_converter.analyzer.result import AnalyzerResult
 
 
 @dataclass(frozen=True)

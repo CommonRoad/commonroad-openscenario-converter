@@ -4,9 +4,9 @@ from dataclasses import dataclass
 
 from commonroad.common.validity import is_real_number
 
-from openscenario_commonroad_converter.wrapper.base.ending_cause import ESimEndingCause
-from openscenario_commonroad_converter.wrapper.base.scenario_object import SimScenarioObjectState
-from openscenario_commonroad_converter.utility.configuration import ConverterParams, EsminiParams
+from osc_cr_converter.wrapper.base.ending_cause import ESimEndingCause
+from osc_cr_converter.wrapper.base.scenario_object import SimScenarioObjectState
+from osc_cr_converter.utility.configuration import ConverterParams, EsminiParams
 
 
 @dataclass(frozen=True)

@@ -12,12 +12,12 @@ from typing import Optional, List, Dict, Union
 import imageio
 from commonroad.common.validity import is_real_number
 
-from openscenario_commonroad_converter.wrapper.base.ending_cause import ESimEndingCause
-from openscenario_commonroad_converter.wrapper.esmini.esmini_scenario_object import SEStruct
-from openscenario_commonroad_converter.wrapper.esmini.storyboard_element import EStoryBoardElementState, \
+from osc_cr_converter.wrapper.base.ending_cause import ESimEndingCause
+from osc_cr_converter.wrapper.esmini.esmini_scenario_object import SEStruct
+from osc_cr_converter.wrapper.esmini.storyboard_element import EStoryBoardElementState, \
     EStoryBoardElementLevel, StoryBoardElement
-from openscenario_commonroad_converter.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
-from openscenario_commonroad_converter.utility.configuration import ConverterParams, EsminiParams
+from osc_cr_converter.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
+from osc_cr_converter.utility.configuration import ConverterParams, EsminiParams
 
 class EsminiWrapper(SimWrapper):
     """

@@ -7,7 +7,7 @@ import re
 import os
 from omegaconf import OmegaConf
 
-from openscenario_commonroad_converter.wrapper.esmini.storyboard_element import EStoryBoardElementLevel
+from osc_cr_converter.wrapper.esmini.storyboard_element import EStoryBoardElementLevel
 
 from commonroad.scenario.scenario import Tag
 

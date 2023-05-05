@@ -9,8 +9,8 @@ from zipfile import ZipFile
 
 import requests
 
-from openscenario_commonroad_converter.wrapper.esmini.esmini_wrapper import EsminiWrapper
-from openscenario_commonroad_converter.utility.configuration import ConverterParams
+from osc_cr_converter.wrapper.esmini.esmini_wrapper import EsminiWrapper
+from osc_cr_converter.utility.configuration import ConverterParams
 
 
 class EsminiWrapperProvider:

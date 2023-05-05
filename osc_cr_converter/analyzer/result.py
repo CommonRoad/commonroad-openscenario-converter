@@ -1,7 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 
-from openscenario_commonroad_converter.converter.serializable import Serializable
+from osc_cr_converter.converter.serializable import Serializable
 
 
 @dataclass(frozen=True)

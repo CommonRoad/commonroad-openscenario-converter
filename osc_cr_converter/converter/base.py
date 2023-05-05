@@ -5,7 +5,7 @@ from multiprocessing import Lock
 from os import path
 from typing import Union, ClassVar
 
-from openscenario_commonroad_converter.converter.serializable import Serializable
+from osc_cr_converter.converter.serializable import Serializable
 
 
 class Converter(ABC):

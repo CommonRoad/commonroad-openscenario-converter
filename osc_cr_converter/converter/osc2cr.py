@@ -20,22 +20,22 @@ from commonroad.common.file_writer import OverwriteExistingFile
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration.xosc import Vehicle
 
-from openscenario_commonroad_converter.converter.base import Converter
-from openscenario_commonroad_converter.analyzer.base import Analyzer
-from openscenario_commonroad_converter.analyzer.error import AnalyzerErrorResult
-from openscenario_commonroad_converter.analyzer.result import AnalyzerResult
-from openscenario_commonroad_converter.analyzer.error_analyzer import EAnalyzer
-from openscenario_commonroad_converter.wrapper.base.ending_cause import ESimEndingCause
-from openscenario_commonroad_converter.wrapper.esmini.esmini_wrapper_provider import EsminiWrapperProvider
-from openscenario_commonroad_converter.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
-from openscenario_commonroad_converter.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
-from openscenario_commonroad_converter.converter.result import Osc2CrConverterResult
-from openscenario_commonroad_converter.utility.statistics import ConversionStatistics
-from openscenario_commonroad_converter.utility.obstacle_info import ObstacleExtraInfoFinder
-from openscenario_commonroad_converter.utility.pps import PPSBuilder
-from openscenario_commonroad_converter.utility.general import trim_scenario, dataclass_is_complete
-from openscenario_commonroad_converter.utility.configuration import ConverterParams
-from openscenario_commonroad_converter.utility.abs_rel import AbsRel
+from osc_cr_converter.converter.base import Converter
+from osc_cr_converter.analyzer.base import Analyzer
+from osc_cr_converter.analyzer.error import AnalyzerErrorResult
+from osc_cr_converter.analyzer.result import AnalyzerResult
+from osc_cr_converter.analyzer.error_analyzer import EAnalyzer
+from osc_cr_converter.wrapper.base.ending_cause import ESimEndingCause
+from osc_cr_converter.wrapper.esmini.esmini_wrapper_provider import EsminiWrapperProvider
+from osc_cr_converter.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
+from osc_cr_converter.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
+from osc_cr_converter.converter.result import Osc2CrConverterResult
+from osc_cr_converter.utility.statistics import ConversionStatistics
+from osc_cr_converter.utility.obstacle_info import ObstacleExtraInfoFinder
+from osc_cr_converter.utility.pps import PPSBuilder
+from osc_cr_converter.utility.general import trim_scenario, dataclass_is_complete
+from osc_cr_converter.utility.configuration import ConverterParams
+from osc_cr_converter.utility.abs_rel import AbsRel
 
 
 class EFailureReason(Enum):
