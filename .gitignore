@@ -8,3 +8,4 @@ log.txt
 *.xml
 *.pickle
 *.tga
+/output

@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Union, Any, Dict, Set, Optional
 import pathlib
 import re
+import os
 from omegaconf import OmegaConf
 
 from OpenSCENARIO2CR.wrapper.esmini.storyboard_element import EStoryBoardElementLevel
@@ -92,13 +93,35 @@ class BaseParam:
 
 
 @dataclass
+class GeneralParams(BaseParam):
+    """Parameters specifying the general setup"""
+
+    # path of the root
+    # name of the OpenSCENARIO file and its path
+    name_xosc: str = None
+
+    # path for the output files
+    path_output_abs: str = os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")) + "/output/"
+
+    def __init__(self):
+        super().__init__()
+        os.makedirs(self.path_output_abs, exist_ok=True)
+
+    @property
+    def path_output(self):
+        path_output = self.path_output_abs + self.name_xosc + '/'
+        os.makedirs(path_output, exist_ok=True)
+        return path_output
+
+
+@dataclass
 class DebugParams(BaseParam):
     """Parameters specifying debug-related information"""
 
     # show esmini simulation
     run_viewer: bool = False
     # convert the figures to gif
-    render_to_gif: bool = False
+    render_to_gif: bool = True
     # write the scenario to xml file
     write_to_xml: bool = True
 
@@ -173,6 +196,7 @@ class ScenarioParams(BaseParam):
 @dataclass
 class ConverterParams(BaseParam):
     """Configuration parameters for OpenSCENARIO2CommonRoad converter."""
+    general: GeneralParams = field(default_factory=GeneralParams)
     debug: DebugParams = field(default_factory=DebugParams)
     esmini: EsminiParams = field(default_factory=EsminiParams)
     scenario: ScenarioParams = field(default_factory=ScenarioParams)

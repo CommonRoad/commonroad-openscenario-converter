@@ -122,6 +122,9 @@ class Osc2CrConverter(Converter):
         :param source_file: the given openSCENARIO source file
         :return converted results if converted successfully. Otherwise, the reason for the failure.
         """
+
+        self.config.general.name_xosc = os.path.basename(source_file).split('.')[0]
+
         assert dataclass_is_complete(self)
 
         xosc_file = path.abspath(source_file)
@@ -138,7 +141,9 @@ class Osc2CrConverter(Converter):
         if self.view_scenario:
             self.sim_wrapper.view_scenario(source_file, self.config.esmini.window_size)
         if self.render_to_gif:
-            self.sim_wrapper.render_scenario_to_gif(source_file, self.scenario_id + ".gif")
+            self.sim_wrapper.render_scenario_to_gif(source_file,
+                                                    self.config.general.path_output + self.config.general.name_xosc
+                                                    + ".gif")
 
         dt_sim = self.dt_sim if self.dt_sim is not None else self.dt_cr / 10
         res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
@@ -174,7 +179,7 @@ class Osc2CrConverter(Converter):
         pps = self.pps_builder.build(obstacles[ego_vehicle])
 
         if self.config.debug.write_to_xml:
-            self.write_to_xml(scenario, pps, os.path.basename(source_file).split('.')[0])
+            self.write_to_xml(scenario, pps)
 
         return Osc2CrConverterResult(
             statistics=self.build_statistics(
@@ -360,7 +365,6 @@ class Osc2CrConverter(Converter):
             self,
             scenario: Scenario,
             pps: PlanningProblemSet,
-            osc_id: str
     ) -> None:
         """
         Writing the CommonRoad scenario to xml file together with the planning problem set
@@ -369,13 +373,13 @@ class Osc2CrConverter(Converter):
         :param osc_id: OpenSCENARIO ID
         """
         COUNTRY = 'OSC'  # OpenSCENARIO
-        SCENE = osc_id
+        SCENE = self.config.general.name_xosc
         CONFIG = self.config.scenario.config
         # T: single trajectories
         PRED = 'T-' + self.config.scenario.pred
         file_name = COUNTRY + '_' + SCENE + '_' + CONFIG + '_' + PRED + '.xml'
         fw = CommonRoadFileWriter(scenario, pps, self.author, self.affiliation, self.source, self.tags)
-        fw.write_to_file(file_name, OverwriteExistingFile.ALWAYS)
+        fw.write_to_file(self.config.general.path_output + file_name, OverwriteExistingFile.ALWAYS)
 
     @staticmethod
     def build_statistics(
