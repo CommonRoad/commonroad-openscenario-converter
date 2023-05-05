@@ -9,3 +9,4 @@ log.txt
 *.pickle
 *.tga
 /output
+/results
