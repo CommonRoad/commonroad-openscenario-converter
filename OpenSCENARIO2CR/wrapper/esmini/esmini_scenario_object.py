@@ -80,19 +80,19 @@ class SEStruct(ct.Structure, SimScenarioObjectState):
             return {
                 0: ObstacleType.UNKNOWN,  # NONE
                 1: ObstacleType.UNKNOWN,  # OBSTACLE
-                2: ObstacleType.PILLAR,  # POLE
-                3: ObstacleType.PILLAR,  # TREE
+                2: ObstacleType.ROAD_BOUNDARY,  # POLE
+                3: ObstacleType.UNKNOWN,  # TREE
                 4: ObstacleType.UNKNOWN,  # VEGETATION
-                5: ObstacleType.BUILDING,  # BARRIER
+                5: ObstacleType.ROAD_BOUNDARY,  # BARRIER
                 6: ObstacleType.BUILDING,  # BUILDING
                 7: ObstacleType.UNKNOWN,  # PARKINGSPACE
-                8: ObstacleType.UNKNOWN,  # PATCH
-                9: ObstacleType.BUILDING,  # RAILING
+                8: ObstacleType.CONSTRUCTION_ZONE,  # PATCH
+                9: ObstacleType.ROAD_BOUNDARY,  # RAILING
                 10: ObstacleType.MEDIAN_STRIP,  # TRAFFICISLAND
                 11: ObstacleType.UNKNOWN,  # CROSSWALK
                 12: ObstacleType.PILLAR,  # STREETLAMP
-                13: ObstacleType.BUILDING,  # GANTRY
-                14: ObstacleType.BUILDING,  # SOUNDBARRIER
+                13: ObstacleType.UNKNOWN,  # GANTRY
+                14: ObstacleType.ROAD_BOUNDARY,  # SOUNDBARRIER 
                 15: ObstacleType.UNKNOWN,  # WIND
                 16: ObstacleType.UNKNOWN,  # ROADMARK
             }.get(self.objectCategory, ObstacleType.UNKNOWN)
@@ -300,15 +300,15 @@ class EsminiScenarioObjectState(ScenarioObjectState):
         return CustomState(
             time_step=time_step,
             position=position_3d[0:2],
-            position_z=position_3d[2],
-            velocity=self.speed,
-            acceleration=self.acceleration,
             orientation=self.h,
-            roll_angle=self.r,
-            pitch_angle=self.p,
-            yaw_rate=self.h_rate,
-            roll_rate=self.r_rate,
-            pitch_rate=self.p_rate,
+            velocity=self.speed,
             steering_angle=self.steering_angle,
-            slip_angle=self.slip_angle,
+            # position_z=position_3d[2],
+            # acceleration=self.acceleration,
+            # roll_angle=self.r,
+            # pitch_angle=self.p,
+            # yaw_rate=self.h_rate,
+            # roll_rate=self.r_rate,
+            # pitch_rate=self.p_rate,
+            # slip_angle=self.slip_angle,
         )
