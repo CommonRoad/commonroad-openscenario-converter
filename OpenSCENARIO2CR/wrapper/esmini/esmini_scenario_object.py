@@ -3,7 +3,7 @@ from typing import Type
 
 import numpy as np
 from commonroad.scenario.obstacle import ObstacleType
-from commonroad.scenario.trajectory import State
+from commonroad.scenario.state import CustomState
 
 from OpenSCENARIO2CR.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
 
@@ -276,7 +276,7 @@ class EsminiScenarioObjectState(ScenarioObjectState):
             self._height = self._get_interpolated("height")
         return self._height
 
-    def to_cr_state(self, time_step: int) -> State:
+    def to_cr_state(self, time_step: int) -> CustomState:
         c_h, s_h = np.cos(self.h), np.sin(self.h)  # heading
         c_p, s_p = np.cos(self.p), np.sin(self.p)  # pitch
         c_r, s_r = np.cos(self.r), np.sin(self.r)  # roll
@@ -297,7 +297,7 @@ class EsminiScenarioObjectState(ScenarioObjectState):
             self.center_offset_z,
         ))
         position_3d = center + np.matmul(rotation_matrix, offset)
-        return State(
+        return CustomState(
             time_step=time_step,
             position=position_3d[0:2],
             position_z=position_3d[2],
