@@ -1,4 +1,4 @@
-image: continuumio/anaconda3
+image: $CI_REGISTRY/cps/commonroad-scenario-designer/ci:v0.7.5
 
 stages:
 - test
