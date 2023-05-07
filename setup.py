@@ -12,6 +12,7 @@ setup(name='openscenario-commonroad-converter',
       packages=find_packages(),
       install_requires=[
           'commonroad-io>=2022.3',
+          'commonroad-scenario-designer>=0.7.0',
           'matplotlib>=3.5.2',
           'imageio>=2.19.3',
           'enum34>=1.1.10',
