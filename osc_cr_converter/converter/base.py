@@ -18,7 +18,7 @@ from osc_cr_converter.converter.serializable import Serializable
 
 class Converter(ABC):
     """
-    The Base class for a converter that can be used with the BatchConverter
+    The Base class for a converter
 
     It only needs to implement the run_conversion function
     """
