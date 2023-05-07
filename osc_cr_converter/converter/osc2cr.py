@@ -92,9 +92,11 @@ class Osc2CrConverter(Converter):
         # analyzers of the scenario with CommonRoad tools
         self.analyzers: Union[Dict[EAnalyzer, Optional[Analyzer]], List[EAnalyzer]] = {}
 
-        self.dt_sim: Optional[float] = config.esmini.dt_sim          # User-defined time step size for esmini simulation
+        self.dt_sim: Optional[float] = config.esmini.dt_sim  # User-defined time step size for esmini simulation
         self.odr_file_override: Optional[str] = config.esmini.odr_file_override  # User-defined OpenDRIVE map to be used
-        self.ego_filter: Optional[re.Pattern] = config.esmini.ego_filter        # Pattern of recognizing the ego vehicle
+        self.ego_filter: Optional[re.Pattern, str] = config.esmini.ego_filter  # Pattern of recognizing the ego vehicle
+
+        self.conversion_result = None
 
     @staticmethod
     def _initialize_planning_problem_set():
@@ -124,7 +126,7 @@ class Osc2CrConverter(Converter):
             return ret
 
     def run_conversion(self, source_file: str) \
-            -> Union[Osc2CrConverterResult, EFailureReason]:
+            -> Union[Scenario, EFailureReason]:
         """
         The main function, that runs the simulation wrapper (SimWrapper) and converts its results.
         :param source_file: the given openSCENARIO source file
@@ -189,7 +191,7 @@ class Osc2CrConverter(Converter):
         if self.config.debug.write_to_xml:
             self.write_to_xml(scenario, pps)
 
-        return Osc2CrConverterResult(
+        self.conversion_result = Osc2CrConverterResult(
             statistics=self.build_statistics(
                 obstacles=obstacles,
                 ego_vehicle=ego_vehicle,
@@ -212,6 +214,7 @@ class Osc2CrConverter(Converter):
             scenario=scenario,
             planning_problem_set=pps,
         )
+        return self.conversion_result.scenario
 
     @staticmethod
     def _pre_parse_scenario(source_file: str) -> Union[EFailureReason, None, str]:
