@@ -1,4 +1,4 @@
-image: python:3.11
+image: continuumio/anaconda3
 
 stages:
 - test
@@ -13,6 +13,8 @@ stages:
   - cd $CI_PROJECT_DIR/tests && python -m unittest
   - coverage report -m || true
 
+before_script:
+    - apt-get update && apt-get install -y build-essential
 
 test_python39:
   stage: test
