@@ -1,4 +1,4 @@
-image: $CI_REGISTRY/cps/commonroad-scenario-designer/ci:v0.7.5
+image: python:3.11
 
 stages:
 - test
@@ -17,6 +17,7 @@ stages:
 test_python39:
   stage: test
   script:
+    - conda create -n cr39 python=3.9 -y
     - source activate cr39
     - echo $(python --version)
     - *install-and-run
@@ -24,13 +25,15 @@ test_python39:
 test_python10:
   stage: test
   script:
-    - source activate cr310
+    - conda create -n cr10 python=3.10 -y
+    - source activate cr10
     - echo $(python --version)
     - *install-and-run
 
 test_python11:
   stage: test
   script:
-    - source activate cr311
+    - conda create -n cr11 python=3.11 -y
+    - source activate cr11
     - echo $(python --version)
     - *install-and-run
