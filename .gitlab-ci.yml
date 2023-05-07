@@ -1,0 +1,36 @@
+image: $CI_REGISTRY/cps/commonroad-scenario-designer/ci:v0.7.5
+
+stages:
+- test
+- deploy
+
+.install-and-run: &install-and-run
+  # - echo "$DOCKER_REGISTRY_PASS" | docker login $CI_REGISTRY -u ${DOCKER_REGISTRY_USER:-gitlab-ci-token} -p ${DOCKER_REGISTRY_PASS:-$CI_BUILD_TOKEN}
+  # - docker info
+  - pip install tox coverage
+  - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/".insteadOf "git@gitlab.lrz.de:"
+  - pip install -e .
+  - cd $CI_PROJECT_DIR/tests && python -m unittest
+  - coverage report -m || true
+
+
+test_python39:
+  stage: test
+  script:
+    - source activate cr39
+    - echo $(python --version)
+    - *install-and-run
+
+test_python10:
+  stage: test
+  script:
+    - source activate cr310
+    - echo $(python --version)
+    - *install-and-run
+
+test_python11:
+  stage: test
+  script:
+    - source activate cr311
+    - echo $(python --version)
+    - *install-and-run
