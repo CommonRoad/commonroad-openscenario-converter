@@ -1,3 +1,11 @@
+__author__ = "Michael Ratzel, Yuanfei Lin"
+__copyright__ = "TUM Cyber-Physical Systems Group"
+__credits__ = ["KoSi"]
+__version__ = "0.0.1"
+__maintainer__ = "Yuanfei Lin"
+__email__ = "commonroad@lists.lrz.de"
+__status__ = "Pre-alpha"
+
 import ctypes as ct
 import logging
 import math
@@ -18,6 +26,7 @@ from osc_cr_converter.wrapper.esmini.storyboard_element import EStoryBoardElemen
     EStoryBoardElementLevel, StoryBoardElement
 from osc_cr_converter.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResult
 from osc_cr_converter.utility.configuration import ConverterParams, EsminiParams
+
 
 class EsminiWrapper(SimWrapper):
     """

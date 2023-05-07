@@ -1,3 +1,11 @@
+__author__ = "Michael Ratzel, Yuanfei Lin"
+__copyright__ = "TUM Cyber-Physical Systems Group"
+__credits__ = ["KoSi"]
+__version__ = "0.0.1"
+__maintainer__ = "Yuanfei Lin"
+__email__ = "commonroad@lists.lrz.de"
+__status__ = "Pre-alpha"
+
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -6,6 +14,7 @@ from typing import Optional, Dict, Tuple
 
 from commonroad.scenario.obstacle import DynamicObstacle
 from commonroad.scenario.scenario import Scenario
+
 from scenariogeneration.xosc import Vehicle
 
 from osc_cr_converter.analyzer.error import AnalyzerErrorResult
