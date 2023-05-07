@@ -6,3 +6,7 @@ log.txt
 *.gif
 *.png
 *.xml
+*.pickle
+*.tga
+/output
+/results

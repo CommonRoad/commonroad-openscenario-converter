@@ -1,43 +1,35 @@
-# OpenSCENARIO2CR
+# OpenSCENARIO-CommonROAD Converter
 
-Conversion from OpenSCENARIO to CommonRoad and utilizing the commonroad analysis framework.
+Automatic Traffic Scenario Conversion between [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/)
+and [CommonRoad](commonroad.in.tum.de/). Currently, only the conversion from **O**pen**SC**ENARIO to **C**ommon**R**OAD (osc2cr) is developed.
 
-## Installation
+## Using the Converter
+The recommended way of installation if you only want to use the OpenSCENARIO-CommonROAD Converter
+(i.e., you do not want to work with the code directly) is to use the PyPI package:
+```bash
+pip install openscenario-commonroad-converter
+```
+### Development
+For developing purposes, we recommend using [Anaconda](https://www.anaconda.com/) to manage your environment so that
+even if you mess something up, you can always have a safe and clean restart. 
+A guide for managing python environments with Anaconda can be found [here](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
 
-- Create a anaconda python environment >=3.8 (Tested only on 3.9)
+- First, clone the repository. 
+- After installing Anaconda, create a new environment with (>=3.9):
+``` bash
+$ conda create -n commonroad-py39 python=3.9 -y
+```
+- Then, install the dependencies with:
 
-  ```
-  pip install -r requirements.txt
-  ```
+```sh
+$ cd <path-to-this-repo>
+$ pip install .
+$ conda develop .
+```
 
-- Pull the [CommonRoad Scenario Designer](https://gitlab.lrz.de/cps/commonroad-scenario-designer) under 
-branch `fix_openSCENARIO`. Afterwards install the designer within the same virtual environment following its README.
+- To test the installition, run unittest:
+```bash
+$ cd tests
+$ python -m unittest -v
+```
 
-
-### (Optional): for testing the scenarios
-
-- Install the commonroad stl monitor with this command:
-
-  ```
-  pip install git+ssh://git@gitlab.lrz.de/cps/commonroad-stl-monitor.git
-  ```
-
-- Pull the [SPOT](https://gitlab.lrz.de/cps/spot-cpp) repository and checkout the master, or the
-hash `9a49ce279f33f441d932ce788de7b69b5481bae2`.
-Afterwards install SPOT with Python Interface (using `commonroad-io`) within the same virtual environment following its
-README.
-
-### OpenSCENARIO
-
-- Downloads: version v1.1.1 from this [link](https://www.asam.net/standards/detail/openscenario/)
-- [Environment Simulator Minimalistic (esmini)](https://github.com/esmini/esmini)
-- OpenDRIVE2CR: conversion from OpenDRIVE map to CommonRoad is
-  implemented [here](https://gitlab.lrz.de/cps/commonroad-scenario-designer/-/tree/master),
-  see [tutorial](https://gitlab.lrz.de/cps/commonroad-scenario-designer/-/blob/master/tutorials/conversion_examples/example_opendrive_to_commonroad.py)
-- Selected scenarios ([start point](https://gitlab.lrz.de/kosi/wp6/openscenario/-/tree/main/scenarios)):
-    - **DoubleLaneChange**: from openScenario standard examples, you should first download the openSCENARIO package and then go to `./standard/examples/DoubleLaneChanger.xosc`
-    - **Pedestrian example**: Esmini, see https://github.com/esmini/esmini/tree/master/resources/xosc
-
-### CommonRoad
-
-- Format: version 2022.01 - [link](https://commonroad-io.readthedocs.io/en/latest/user/getting_started/)
