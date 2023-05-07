@@ -330,15 +330,8 @@ class EsminiWrapper(SimWrapper):
         if now >= self.max_time:
             self._log("{:.3f}: Max Execution tim reached ".format(now))
             return ESimEndingCause.MAX_TIME_REACHED
-        # if self.grace_period is not None and self._all_sim_elements_finished():
-        #     if self._sim_end_detected_time is None:
-        #         self._sim_end_detected_time = now
-        #     if now >= self._sim_end_detected_time + self.grace_period and now >= self.min_time:
-        #         self._log("{:.3f}: End detected {:.3f}s ago".format(now, self.grace_period))
-        #         return ESimEndingCause.END_DETECTED
-        # else:
-        #     self._sim_end_detected_time = None
-
+        if self._all_sim_elements_finished():
+            return ESimEndingCause.END_DETECTED
         return None
 
     def _all_sim_elements_finished(self) -> bool:
