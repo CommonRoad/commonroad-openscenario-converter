@@ -96,8 +96,6 @@ class Osc2CrConverter(Converter):
         self.odr_file_override: Optional[str] = config.esmini.odr_file_override  # User-defined OpenDRIVE map to be used
         self.ego_filter: Optional[re.Pattern, str] = config.esmini.ego_filter  # Pattern of recognizing the ego vehicle
 
-        self.conversion_result = None
-
     @staticmethod
     def _initialize_planning_problem_set():
         planning_problem_set = PPSBuilder()
@@ -142,11 +140,13 @@ class Osc2CrConverter(Converter):
         implicit_opendrive_path = self._pre_parse_scenario(xosc_file)
 
         if isinstance(implicit_opendrive_path, EFailureReason):
-            return implicit_opendrive_path
+            self.conversion_result = implicit_opendrive_path
+            return self.conversion_result
 
         scenario, xodr_file, xodr_conversion_error = self._create_basic_scenario(implicit_opendrive_path)
         if isinstance(scenario, EFailureReason):
-            return scenario
+            self.conversion_result = scenario
+            return self.conversion_result
 
         if self.view_scenario:
             self.sim_wrapper.view_scenario(source_file, self.config.esmini.window_size)
@@ -158,9 +158,11 @@ class Osc2CrConverter(Converter):
         dt_sim = self.dt_sim if self.dt_sim is not None else self.dt_cr / 10
         res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
         if res.ending_cause is ESimEndingCause.FAILURE:
-            return EFailureReason.SIMULATION_FAILED_CREATING_OUTPUT
+            self.conversion_result = EFailureReason.SIMULATION_FAILED_CREATING_OUTPUT
+            return self.conversion_result
         if len(res.states) == 0:
-            return EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
+            self.conversion_result = EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
+            return self.conversion_result
         sim_time = res.sim_time
         ending_cause = res.ending_cause
 

@@ -23,6 +23,7 @@ class Converter(ABC):
     It only needs to implement the run_conversion function
     """
     __lock: ClassVar[Lock] = Lock()
+    conversion_result = None
 
     def run_in_batch_conversion(self, source_file: str) -> str:
         with self.__lock:
@@ -30,8 +31,9 @@ class Converter(ABC):
             i = 1
             while path.exists(result_file := file_path_base + f"{i}.pickle"):
                 i += 1
+        self.run_conversion(source_file)
         with open(result_file, "wb") as file:
-            pickle.dump(self.run_conversion(source_file), file)
+            pickle.dump(self.conversion_result, file)
         return result_file
 
     @abstractmethod
