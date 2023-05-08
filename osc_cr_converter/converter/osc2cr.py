@@ -96,8 +96,6 @@ class Osc2CrConverter(Converter):
         self.odr_file_override: Optional[str] = config.esmini.odr_file_override  # User-defined OpenDRIVE map to be used
         self.ego_filter: Optional[re.Pattern, str] = config.esmini.ego_filter  # Pattern of recognizing the ego vehicle
 
-        self.conversion_result = None
-
     @staticmethod
     def _initialize_planning_problem_set():
         planning_problem_set = PPSBuilder()
