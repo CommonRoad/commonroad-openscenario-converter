@@ -45,3 +45,5 @@ conversions_to_analyze = {
 # analyse the result
 analyze_results(results_to_analyze)
 
+plot_scenarios(all_results)
+
