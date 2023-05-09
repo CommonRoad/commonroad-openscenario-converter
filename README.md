@@ -1,4 +1,4 @@
-# OpenSCENARIO-CommonROAD Converter
+# CommonROAD-OpenSCENARIO Converter
 ![image info](./docs/figures/converter-banner.gif)
 
 Automatic Traffic Scenario Conversion between [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/)

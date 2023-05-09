@@ -21,8 +21,8 @@ class TestOpenSCENARIOToCommonRoadConversion(unittest.TestCase):
         source_file = os.path.dirname(os.path.realpath(__file__)) + "/../scenarios/" + file_name
         return self.converter.run_conversion(source_file)
 
-    def test_esmini_scenario(self):
-        name = "from_esmini/xosc/pedestrian.xosc"
+    def test_pedestrian_collision(self):
+        name = "from_esmini/xosc/pedestrian_collision.xosc"
         scenario = self.load_and_convert_openscenario(name)
 
         # check whether the conversion is successfully done or not
@@ -35,8 +35,8 @@ class TestOpenSCENARIOToCommonRoadConversion(unittest.TestCase):
         self.assertEqual(len(scenario.dynamic_obstacles), 2)
         self.assertEqual(len(scenario.static_obstacles), 0)
 
-    def test_standard_scenario(self):
-        name = "from_openScenario_standard/DoubleLaneChanger.xosc"
+    def test_cut_in(self):
+        name = "from_esmini/xosc/cut-in_simple.xosc"
         scenario = self.load_and_convert_openscenario(name)
 
         # check whether the conversion is successfully done or not
@@ -46,6 +46,6 @@ class TestOpenSCENARIOToCommonRoadConversion(unittest.TestCase):
         self.assertIsInstance(scenario.lanelet_network, LaneletNetwork)
 
         # test nr of obstacles
-        self.assertEqual(len(scenario.dynamic_obstacles), 3)
+        self.assertEqual(len(scenario.dynamic_obstacles), 2)
         self.assertEqual(len(scenario.static_obstacles), 0)
 
