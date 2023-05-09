@@ -144,7 +144,10 @@ class Osc2CrConverter(Converter):
             self.conversion_result = implicit_opendrive_path
             return self.conversion_result
 
+        map_start_time = time.time()
         scenario, xodr_file, xodr_conversion_error = self._create_basic_scenario(implicit_opendrive_path)
+        runtime = time.time() - map_start_time
+
         if isinstance(scenario, EFailureReason):
             self.conversion_result = scenario
             return self.conversion_result
@@ -165,7 +168,7 @@ class Osc2CrConverter(Converter):
             self.conversion_result = EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
             return self.conversion_result
         sim_time = res.sim_time
-        runtime = res.runtime
+        runtime += res.runtime
         ending_cause = res.ending_cause
 
         additional_time = time.time()
@@ -193,7 +196,7 @@ class Osc2CrConverter(Converter):
         if self.trim_scenario:
             scenario = trim_scenario(scenario, deep_copy=False)
         pps = self.pps_builder.build(obstacles[ego_vehicle])
-        sim_time += time.time() - additional_time
+        runtime += time.time() - additional_time
 
         if self.config.debug.write_to_xml:
             self.write_to_xml(scenario, pps)
