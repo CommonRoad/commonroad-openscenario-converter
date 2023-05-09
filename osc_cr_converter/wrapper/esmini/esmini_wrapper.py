@@ -11,6 +11,7 @@ import logging
 import math
 import os.path
 import re
+from datetime import datetime
 import warnings
 from multiprocessing import Lock
 from os import path
@@ -179,7 +180,10 @@ class EsminiWrapper(SimWrapper):
             self._log_to_file = None
         elif isinstance(new_log_to_file, bool):
             if new_log_to_file:
-                self._log_to_file = path.abspath("log.txt")
+                log_dir =  os.path.dirname(os.path.realpath(__file__)) + "/../../../output/log"
+                os.makedirs(log_dir, exist_ok=True)  # create directory if it doesn't exist
+                self._log_to_file = os.path.join(log_dir,
+                                                 "{}.txt".format(datetime.now().isoformat(sep="_", timespec="seconds")))
                 warnings.warn(f"Using default log file {self._log_to_file}")
             else:
                 self._log_to_file = None
@@ -330,18 +334,7 @@ class EsminiWrapper(SimWrapper):
         if now >= self.max_time:
             self._log("{:.3f}: Max Execution tim reached ".format(now))
             return ESimEndingCause.MAX_TIME_REACHED
-        if self._all_sim_elements_finished():
-            return ESimEndingCause.END_DETECTED
         return None
-
-    def _all_sim_elements_finished(self) -> bool:
-        all_relevant: List[EStoryBoardElementState]
-        lvl = self.ignored_level
-        if lvl is not None:
-            all_relevant = [v for k, v in self._all_sim_elements.items() if k.element_type.value > lvl.value]
-        else:
-            all_relevant = list(self._all_sim_elements.values())
-        return all([v is EStoryBoardElementState.COMPLETE for v in all_relevant])
 
     def _get_scenario_object_states(self) -> Optional[Dict[int, SEStruct]]:
         if not self._scenario_engine_initialized:

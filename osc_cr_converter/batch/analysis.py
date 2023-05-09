@@ -431,11 +431,10 @@ def plot_scenarios(results):
                 continue
             Serializable.import_extra_files = True
             result_with_files = result.get_result()
-            rnd = MPRenderer()
             if result_with_files.scenario is not None:
+                rnd = MPRenderer()
                 result_with_files.scenario.draw(rnd)
-            if result_with_files.planning_problem_set is not None:
-                result_with_files.planning_problem_set.draw(rnd)
+                rnd.render()
             plt.show()
             Serializable.import_extra_files = False
     Serializable.import_extra_files = prev

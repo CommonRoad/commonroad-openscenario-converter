@@ -9,7 +9,7 @@ __status__ = "Pre-alpha"
 import dataclasses
 import inspect
 from dataclasses import dataclass, field
-from typing import Union, Any, Dict, Set, Optional
+from typing import Union, Any, Dict, List, Optional
 import pathlib
 import re
 import os
@@ -106,7 +106,7 @@ class GeneralParams(BaseParam):
 
     # path of the root
     # name of the OpenSCENARIO file and its path
-    name_xosc: str = None
+    name_xosc: str = ''
 
     # path for the output files
     path_output_abs: str = os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")) + "/output/"
@@ -132,6 +132,11 @@ class DebugParams(BaseParam):
     render_to_gif: bool = False
     # write the scenario to xml file
     write_to_xml: bool = True
+
+    # plotting limits for axis
+    plot_limit: Union[List[Union[int, float]], None] = None
+    # with which time steps
+    time_steps: Union[List[int], None] = None
 
 
 @dataclass
@@ -161,8 +166,8 @@ class EsminiParams(BaseParam):
     ignore_level: EStoryBoardElementLevel = EStoryBoardElementLevel.ACT
 
     # logging information
-    log_to_console: bool = True
-    log_to_file: bool = False
+    log_to_console: bool = False
+    log_to_file: bool = True
 
     # run the simulation using this random seed
     random_seed: int = 0
