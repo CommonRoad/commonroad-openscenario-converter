@@ -146,7 +146,7 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
                         count(f"{t_analyzer.__name__} scenario success")
 
             else:
-                raise ValueError
+                continue  # raise ValueError
 
     print(f"{'Total num scenarios':<50s} {counts['total']:5d}")
     print(f"{'Average scenario duration':<50s} {np.mean(sim_times):}")
@@ -331,33 +331,43 @@ def plot_sim_times(
 
     _plot_times(times, n_bins, low_pass_filter, path, label)
 
-
-def plot_exec_times(
-        results: Dict[str, BatchConversionResult],
-        t_analyzer: Type[Analyzer],
+def plot_runtimes(
+        results: Union[Dict[str, BatchConversionResult], List[Dict[str, BatchConversionResult]]],
         n_bins: int = 25,
         low_pass_filter: Optional[float] = None,
-        path: Optional[str] = None
+        path: Optional[str] = None,
+        label: Optional[List[str]] = None
 ):
     """
-    Plot the execution times for one analyzer in a histogram
+    Plot the simulation times in a histogram, it can also combine multiple results in one dict, if those are passed as a
+    list in the results parameter, resulting in a more colorful dict. See the label param if you want to do this
 
-    :param results: The result dict returned by the BatchConverter
-    :param t_analyzer:EAnalyzer: Specify the analyzer for which the plots shall be drawn
+    :param results: The result dict returned by the BatchConverter or a list of such dicts
     :param n_bins:int: The number of bins used for the histogram
-    :param low_pass_filter:float: If present a second plot with only execution times leq than this will be added
+    :param low_pass_filter:float: If present a second plot with only sim times leq than this will be added
     :param path:float: If present the plot will be stored here
+    :param label: if multiple results this can be used to specify the labels in the legend of the plot
     """
     times = []
-    for scenario_path, result in results.items():
-        if not result.without_exception:
-            continue
-        result = result.get_result()
-        if isinstance(result, Osc2CrConverterResult):
-            if t_analyzer in result.analysis:
-                times.append(result.analysis[t_analyzer][0])
-    _plot_times(times, n_bins, low_pass_filter, path)
+    if isinstance(results, list):
+        for res in results:
+            times_for_result = []
+            for scenario_path, result in res.items():
+                if not result.without_exception:
+                    continue
+                result = result.get_result()
+                if isinstance(result, Osc2CrConverterResult):
+                    times_for_result.append(result.statistics.runtime)
+            times.append(times_for_result)
+    else:
+        for scenario_path, result in results.items():
+            if not result.without_exception:
+                continue
+            result = result.get_result()
+            if isinstance(result, Osc2CrConverterResult):
+                times.append(result.statistics.runtime)
 
+    _plot_times(times, n_bins, low_pass_filter, path, label)
 
 def plot_num_obstacles(
         results: Dict[str, BatchConversionResult],

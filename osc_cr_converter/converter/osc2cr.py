@@ -389,7 +389,6 @@ class Osc2CrConverter(Converter):
         Writing the CommonRoad scenario to xml file together with the planning problem set
         :param scenario: CommonRoad scenario
         :param pps: planning problem set
-        :param osc_id: OpenSCENARIO ID
         """
         COUNTRY = 'OSC'  # OpenSCENARIO
         SCENE = self.config.general.name_xosc
