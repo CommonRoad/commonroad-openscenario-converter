@@ -3,7 +3,6 @@ esmini_v*
 __pycache__
 **/.ipynb_checkpoints
 log.txt
-*.gif
 *.xml
 *.pickle
 *.tga
