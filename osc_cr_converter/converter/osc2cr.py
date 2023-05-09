@@ -131,8 +131,8 @@ class Osc2CrConverter(Converter):
         :param source_file: the given openSCENARIO source file
         :return converted results if converted successfully. Otherwise, the reason for the failure.
         """
-
         self.config.general.name_xosc = os.path.basename(source_file).split('.')[0]
+        print(f"* Converting the OpenSCENARIO file: {self.config.general.name_xosc}.xosc")
 
         assert dataclass_is_complete(self)
 
@@ -142,14 +142,17 @@ class Osc2CrConverter(Converter):
 
         if isinstance(implicit_opendrive_path, EFailureReason):
             self.conversion_result = implicit_opendrive_path
+            print(f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
 
-        map_start_time = time.time()
+        start_time = time.time()
         scenario, xodr_file, xodr_conversion_error = self._create_basic_scenario(implicit_opendrive_path)
-        runtime = time.time() - map_start_time
+        runtime = time.time() - start_time
+        print(f"*\t Map conversion takes {runtime:.2f} s")
 
         if isinstance(scenario, EFailureReason):
             self.conversion_result = scenario
+            print(f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
 
         if self.view_scenario:
@@ -163,15 +166,18 @@ class Osc2CrConverter(Converter):
         res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
         if res.ending_cause is ESimEndingCause.FAILURE:
             self.conversion_result = EFailureReason.SIMULATION_FAILED_CREATING_OUTPUT
+            print(f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
         if len(res.states) == 0:
             self.conversion_result = EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
+            print(f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
         sim_time = res.sim_time
         runtime += res.runtime
         ending_cause = res.ending_cause
+        print(f"*\t Esmini simulation takes {res.runtime:.2f} s")
 
-        additional_time = time.time()
+        start_time = time.time()
 
         ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(res.states.keys()))
         keep_ego_vehicle = self.keep_ego_vehicle
@@ -196,7 +202,9 @@ class Osc2CrConverter(Converter):
         if self.trim_scenario:
             scenario = trim_scenario(scenario, deep_copy=False)
         pps = self.pps_builder.build(obstacles[ego_vehicle])
-        runtime += time.time() - additional_time
+        runtime += time.time() - start_time
+        print(f"*\t Other conversion tasks take {time.time() - start_time:.2f} s")
+        print(f"* {self.config.general.name_xosc} is successfully converted 🏆!")
 
         if self.config.debug.write_to_xml:
             self.write_to_xml(scenario, pps)
@@ -423,6 +431,13 @@ class Osc2CrConverter(Converter):
         :param runtime: runtime of converting the scenario
         :return: statistics
         """
+        string = "# ===========  Conversion Statistics  =========== #\n"
+        string += f"# Nr of obstacles: {len(obstacles)}\n"
+        string += f"# Scenario duration: {sim_time:.2f} s\n"
+        string += f"# The ego vehicle is removed \n" if not keep_ego_vehicle else "# the ego vehicle is kept \n"
+        string += f"# The ending cause {ending_cause.name}\n"
+        string += "# ============================================== #"
+        print(string)
         return ConversionStatistics(
             num_obstacle_conversions=len(obstacles),
             failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],
