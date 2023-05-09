@@ -330,18 +330,7 @@ class EsminiWrapper(SimWrapper):
         if now >= self.max_time:
             self._log("{:.3f}: Max Execution tim reached ".format(now))
             return ESimEndingCause.MAX_TIME_REACHED
-        if self._all_sim_elements_finished():
-            return ESimEndingCause.END_DETECTED
         return None
-
-    def _all_sim_elements_finished(self) -> bool:
-        all_relevant: List[EStoryBoardElementState]
-        lvl = self.ignored_level
-        if lvl is not None:
-            all_relevant = [v for k, v in self._all_sim_elements.items() if k.element_type.value > lvl.value]
-        else:
-            all_relevant = list(self._all_sim_elements.values())
-        return all([v is EStoryBoardElementState.COMPLETE for v in all_relevant])
 
     def _get_scenario_object_states(self) -> Optional[Dict[int, SEStruct]]:
         if not self._scenario_engine_initialized:
