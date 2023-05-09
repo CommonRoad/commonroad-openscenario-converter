@@ -9,6 +9,7 @@ __status__ = "Pre-alpha"
 import math
 import os
 import re
+import time
 import warnings
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
@@ -164,7 +165,10 @@ class Osc2CrConverter(Converter):
             self.conversion_result = EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
             return self.conversion_result
         sim_time = res.sim_time
+        runtime = res.runtime
         ending_cause = res.ending_cause
+
+        additional_time = time.time()
 
         ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(res.states.keys()))
         keep_ego_vehicle = self.keep_ego_vehicle
@@ -189,6 +193,7 @@ class Osc2CrConverter(Converter):
         if self.trim_scenario:
             scenario = trim_scenario(scenario, deep_copy=False)
         pps = self.pps_builder.build(obstacles[ego_vehicle])
+        sim_time += time.time() - additional_time
 
         if self.config.debug.write_to_xml:
             self.write_to_xml(scenario, pps)
@@ -201,6 +206,7 @@ class Osc2CrConverter(Converter):
                 keep_ego_vehicle=keep_ego_vehicle,
                 ending_cause=ending_cause,
                 sim_time=sim_time,
+                runtime=runtime
             ),
             analysis=self.run_analysis(
                 scenario=scenario,
@@ -383,7 +389,6 @@ class Osc2CrConverter(Converter):
         Writing the CommonRoad scenario to xml file together with the planning problem set
         :param scenario: CommonRoad scenario
         :param pps: planning problem set
-        :param osc_id: OpenSCENARIO ID
         """
         COUNTRY = 'OSC'  # OpenSCENARIO
         SCENE = self.config.general.name_xosc
@@ -401,7 +406,8 @@ class Osc2CrConverter(Converter):
             ego_vehicle_found_with_filter: bool,
             keep_ego_vehicle: bool,
             ending_cause: ESimEndingCause,
-            sim_time: float
+            sim_time: float,
+            runtime: float
     ) -> ConversionStatistics:
         """
         Building the statistics of the conversion.
@@ -411,6 +417,7 @@ class Osc2CrConverter(Converter):
         :param keep_ego_vehicle: whether the ego vehicle is kept
         :param ending_cause: why simulation is finished
         :param sim_time: simulation time in total
+        :param runtime: runtime of converting the scenario
         :return: statistics
         """
         return ConversionStatistics(
@@ -421,6 +428,7 @@ class Osc2CrConverter(Converter):
             ego_vehicle_removed=not keep_ego_vehicle,
             sim_ending_cause=ending_cause,
             sim_time=sim_time,
+            runtime=runtime
         )
 
     def run_analysis(

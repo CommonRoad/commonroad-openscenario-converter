@@ -29,6 +29,7 @@ class WrapperSimResult:
     """
     states: Dict[str, List[SimScenarioObjectState]]
     sim_time: float
+    runtime: float
     ending_cause: ESimEndingCause
 
     @staticmethod
@@ -42,6 +43,7 @@ class WrapperSimResult:
             ending_cause=ESimEndingCause.FAILURE,
             states={},
             sim_time=0.0,
+            runtime=0.0
         )
 
 

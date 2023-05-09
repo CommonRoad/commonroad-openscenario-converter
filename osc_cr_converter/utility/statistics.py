@@ -24,6 +24,7 @@ class ConversionStatistics(Serializable):
     ego_vehicle_removed: bool
     sim_ending_cause: ESimEndingCause
     sim_time: float
+    runtime: float
 
     def __getstate__(self) -> dict:
         return self.__dict__.copy()

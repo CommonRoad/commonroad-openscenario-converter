@@ -128,7 +128,7 @@ class BatchConverter:
                 if file_matcher.match(file) is not None:
                     self.file_list.append(os.path.join(dir_path, file))
 
-    def run_batch_conversion(self, num_worker: Optional[int], timeout: Optional[int] = None):
+    def run_batch_conversion(self, num_worker: Optional[int]=0, timeout: Optional[int] = None):
         """
         Run the batch conversion
 

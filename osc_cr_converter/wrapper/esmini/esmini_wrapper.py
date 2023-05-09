@@ -11,6 +11,7 @@ import logging
 import math
 import os.path
 import re
+import time
 from datetime import datetime
 import warnings
 from multiprocessing import Lock
@@ -214,6 +215,7 @@ class EsminiWrapper(SimWrapper):
                 warnings.warn("<EsminiWrapper/simulate_scenario> Failed to initialize scenario engine")
                 return WrapperSimResult.failure()
             sim_time = 0.0
+            runtime_start = time.time()
             all_states: Dict[int, List[SEStruct]]
             all_states = {object_id: [state] for object_id, state in self._get_scenario_object_states().items()}
             while (cause := self._sim_finished()) is None:
@@ -226,11 +228,12 @@ class EsminiWrapper(SimWrapper):
                         all_states[object_id][-1] = new_state
                     else:
                         all_states[object_id].append(new_state)
-
+            runtime = time.time() - runtime_start
             return WrapperSimResult(
                 states={self._get_scenario_object_name(object_id): states for object_id, states in
                         all_states.items()},
                 sim_time=sim_time,
+                runtime=runtime,
                 ending_cause=cause
             )
 

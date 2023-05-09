@@ -131,7 +131,7 @@ class DebugParams(BaseParam):
     # convert the figures to gif
     render_to_gif: bool = False
     # write the scenario to xml file
-    write_to_xml: bool = True
+    write_to_xml: bool = False
 
     # plotting limits for axis
     plot_limit: Union[List[Union[int, float]], None] = None
@@ -158,7 +158,7 @@ class EsminiParams(BaseParam):
 
     # lower and upper time limits for the simulation duration
     min_time: float = 5.
-    max_time: float = 120.
+    max_time: float = 60.
 
     # additional time interval after the completion of the last triggered
     # act or storyboard (defined by the ignore level)
