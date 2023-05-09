@@ -9,6 +9,7 @@ __status__ = "Pre-alpha"
 import math
 import os
 import re
+import time
 import warnings
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
@@ -167,6 +168,8 @@ class Osc2CrConverter(Converter):
         runtime = res.runtime
         ending_cause = res.ending_cause
 
+        additional_time = time.time()
+
         ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(res.states.keys()))
         keep_ego_vehicle = self.keep_ego_vehicle
 
@@ -190,6 +193,7 @@ class Osc2CrConverter(Converter):
         if self.trim_scenario:
             scenario = trim_scenario(scenario, deep_copy=False)
         pps = self.pps_builder.build(obstacles[ego_vehicle])
+        sim_time += time.time() - additional_time
 
         if self.config.debug.write_to_xml:
             self.write_to_xml(scenario, pps)
