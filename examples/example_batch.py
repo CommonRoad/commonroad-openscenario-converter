@@ -11,7 +11,10 @@ from osc_cr_converter.batch.converter import BatchConverter
 from osc_cr_converter.batch.analysis import analyze_results, plot_scenarios
 
 # directory of the scenario to be batch-processed
-directory = os.path.dirname(os.path.realpath(__file__)) + '/../scenarios/'
+# directory = os.path.dirname(os.path.realpath(__file__)) + '/../scenarios/'
+# directory = '/home/yuanfei/commonroad2/openscenario_files/esmini-demo/resources/xosc'
+# directory = '/home/yuanfei/commonroad2/openscenario_files/openscenario-v1.1.1/'
+directory = '/home/yuanfei/commonroad2/openscenario_files/OSC-ALKS-scenarios/'
 output_dir = os.path.dirname(os.path.realpath(__file__)) + '/../output/batch/'
 
 # initialize the converter
@@ -28,7 +31,7 @@ os.makedirs(storage_dir, exist_ok=True)
 Serializable.storage_dir = storage_dir
 
 # run batch conversion
-batch_converter.run_batch_conversion(num_worker=1)
+batch_converter.run_batch_conversion(num_worker=0)
 
 # obtain the statistic
 with open(os.path.join(storage_dir, "statistics.pickle"), "rb") as stats_file:
@@ -36,14 +39,8 @@ with open(os.path.join(storage_dir, "statistics.pickle"), "rb") as stats_file:
     Serializable.import_extra_files = False
     all_results = pickle.load(stats_file)
 
-results_to_analyze = all_results
-
-conversions_to_analyze = {
-    scenario_path: result.get_result() for scenario_path, result in all_results.items() if result.without_exception
-}
-
-# analyse the result
-analyze_results(results_to_analyze)
-
-plot_scenarios(all_results)
+if all_results:
+    # analyse the result
+    analyze_results(all_results)
+    plot_scenarios(all_results)
 
