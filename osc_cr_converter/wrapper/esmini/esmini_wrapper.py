@@ -11,6 +11,7 @@ import logging
 import math
 import os.path
 import re
+from datetime import datetime
 import warnings
 from multiprocessing import Lock
 from os import path
@@ -179,7 +180,10 @@ class EsminiWrapper(SimWrapper):
             self._log_to_file = None
         elif isinstance(new_log_to_file, bool):
             if new_log_to_file:
-                self._log_to_file = path.abspath("log.txt")
+                log_dir =  os.path.dirname(os.path.realpath(__file__)) + "/../../../output/log"
+                os.makedirs(log_dir, exist_ok=True)  # create directory if it doesn't exist
+                self._log_to_file = os.path.join(log_dir,
+                                                 "{}.txt".format(datetime.now().isoformat(sep="_", timespec="seconds")))
                 warnings.warn(f"Using default log file {self._log_to_file}")
             else:
                 self._log_to_file = None

@@ -166,8 +166,8 @@ class EsminiParams(BaseParam):
     ignore_level: EStoryBoardElementLevel = EStoryBoardElementLevel.ACT
 
     # logging information
-    log_to_console: bool = True
-    log_to_file: bool = False
+    log_to_console: bool = False
+    log_to_file: bool = True
 
     # run the simulation using this random seed
     random_seed: int = 0
