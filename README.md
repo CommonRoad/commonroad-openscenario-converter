@@ -1,5 +1,5 @@
 # OpenSCENARIO-CommonROAD Converter
-![image info](./docs/figures/converter-banner.png)
+![image info](./docs/figures/converter-banner.gif)
 Automatic Traffic Scenario Conversion between [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/)
 and [CommonRoad](commonroad.in.tum.de/). Currently, only the conversion from **O**pen**SC**ENARIO to **C**ommon**R**OAD (osc2cr) is developed.
 
