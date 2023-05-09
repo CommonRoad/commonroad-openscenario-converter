@@ -89,7 +89,8 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
             res = "  NaN  "
         print(f"{description:<50s} {res} ({part}/{total})")
 
-    times = []
+    sim_times = []
+    runtimes = []
     analyzer_times = {}
     failed_scenarios = {}
 
@@ -106,7 +107,8 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
             elif isinstance(result, Osc2CrConverterResult):
                 count("success")
                 stats = result.statistics
-                times.append(stats.sim_time)
+                sim_times.append(stats.sim_time)
+                runtimes.append(stats.runtime)
                 count("vehicle total", stats.num_obstacle_conversions)
                 count("vehicle failed", len(stats.failed_obstacle_conversions))
                 count(f"sim ending cause {stats.sim_ending_cause.name}")
@@ -147,7 +149,8 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
                 raise ValueError
 
     print(f"{'Total num scenarios':<50s} {counts['total']:5d}")
-    print(f"{'Average time':<50s} {np.mean(times):}")
+    print(f"{'Average scenario duration':<50s} {np.mean(sim_times):}")
+    print(f"{'Average runtime':<50s} {np.mean(runtimes):}")
     print("-" * 80)
     perc("OpenDRIVE Conversion run rate", "odr conversions run", "success")
     perc("OpenDRIVE Conversion success rate", "odr conversions success", "success")

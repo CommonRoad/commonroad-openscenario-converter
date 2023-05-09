@@ -164,6 +164,7 @@ class Osc2CrConverter(Converter):
             self.conversion_result = EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
             return self.conversion_result
         sim_time = res.sim_time
+        runtime = res.runtime
         ending_cause = res.ending_cause
 
         ego_vehicle, ego_vehicle_found_with_filter = self._find_ego_vehicle(list(res.states.keys()))
@@ -201,6 +202,7 @@ class Osc2CrConverter(Converter):
                 keep_ego_vehicle=keep_ego_vehicle,
                 ending_cause=ending_cause,
                 sim_time=sim_time,
+                runtime=runtime
             ),
             analysis=self.run_analysis(
                 scenario=scenario,
@@ -401,7 +403,8 @@ class Osc2CrConverter(Converter):
             ego_vehicle_found_with_filter: bool,
             keep_ego_vehicle: bool,
             ending_cause: ESimEndingCause,
-            sim_time: float
+            sim_time: float,
+            runtime: float
     ) -> ConversionStatistics:
         """
         Building the statistics of the conversion.
@@ -411,6 +414,7 @@ class Osc2CrConverter(Converter):
         :param keep_ego_vehicle: whether the ego vehicle is kept
         :param ending_cause: why simulation is finished
         :param sim_time: simulation time in total
+        :param runtime: runtime of converting the scenario
         :return: statistics
         """
         return ConversionStatistics(
@@ -421,6 +425,7 @@ class Osc2CrConverter(Converter):
             ego_vehicle_removed=not keep_ego_vehicle,
             sim_ending_cause=ending_cause,
             sim_time=sim_time,
+            runtime=runtime
         )
 
     def run_analysis(
