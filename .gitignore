@@ -8,3 +8,6 @@ log.txt
 *.tga
 /output
 /results
+build/*
+dist/*
+*.egg-info/
