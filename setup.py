@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-setup(name='openscenario-commonroad-converter',
+setup(name='commonroad-openscenario-converter',
       version='0.0.1',
       description='Converter between OpenSCENARIO and CommonRoad formats',
       keywords="scenario description, autonomous driving",
@@ -24,5 +24,13 @@ setup(name='openscenario-commonroad-converter',
           'tests': [
               'pytest>=7.1'
           ]
-      })
+      },
+      classifiers=[
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "License :: OSI Approved :: BSD License",
+        "Operating System :: POSIX :: Linux",
+      ]
+)
 
