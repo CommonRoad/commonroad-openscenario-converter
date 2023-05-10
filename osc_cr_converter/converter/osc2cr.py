@@ -405,8 +405,8 @@ class Osc2CrConverter(Converter):
         SCENE = self.config.general.name_xosc
         CONFIG = self.config.scenario.config
         # T: single trajectories
-        PRED = 'T-' + self.config.scenario.pred
-        file_name = COUNTRY + '_' + SCENE + '_' + CONFIG + '_' + PRED + '.xml'
+        PRED = self.config.scenario.pred
+        file_name = COUNTRY + '_' + SCENE + '_' + CONFIG + '_' + 'T-' + PRED + '.xml'
         fw = CommonRoadFileWriter(scenario, pps, self.author, self.affiliation, self.source, self.tags)
         fw.write_to_file(self.config.general.path_output + file_name, OverwriteExistingFile.ALWAYS)
 
