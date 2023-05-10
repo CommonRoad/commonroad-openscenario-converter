@@ -19,9 +19,12 @@ even if you mess something up, you can always have a safe and clean restart.
 A guide for managing python environments with Anaconda can be found [here](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html).
 
 - First, clone the repository. 
-- After installing Anaconda, create a new environment with (>=3.9):
+- After installing Anaconda, create a new environment with (>=3.9) and enter it:
 ``` bash
 $ conda create -n commonroad-py39 python=3.9 -y
+$ conda activate commonroad-py37
+or
+$ source activate commonroad-py37
 ```
 - Then, install the dependencies with:
 
