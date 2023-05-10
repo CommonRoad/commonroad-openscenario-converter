@@ -4,6 +4,8 @@
 Automatic Traffic Scenario Conversion between [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/)
 and [CommonRoad](commonroad.in.tum.de/). Currently, only the conversion from **O**pen**SC**ENARIO to **C**ommon**R**OAD (osc2cr) is developed.<br>
 [![Linux](https://svgshare.com/i/Zhy.svg?style=plastic)](https://svgshare.com/i/Zhy.svg)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
+[![PyPI license](https://img.shields.io/pypi/l/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
 [![PyPI version fury.io](https://badge.fury.io/py/commonroad-openscenario-converter.svg?style=plastic)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)<br>
 ### Using the Converter
 The recommended way of installation if you only want to use the OpenSCENARIO-CommonROAD Converter
@@ -40,13 +42,13 @@ $ python -m unittest -v
 
 ### Acknowledgments
 We would like to extend our heartfelt gratitude to the team behind [esmini](https://github.com/esmini/esmini) for 
-their remarkable effort in developing the simulation tool. Specifically, We would like to express our sincere 
+their remarkable effort in developing the simulation tool. Specifically, we would like to express our sincere 
 appreciation to [Emil Knabe](https://www.linkedin.com/in/emil-knabe-216a1a11/?originalSubdomain=se)
 for his invaluable contribution in reviewing and accepting the proposed changes to the esmini interface, 
 and to [Sebastian Maierhofer](https://www.ce.cit.tum.de/air/people/sebastian-maierhofer-msc/)
 for maintaining the converter from OpenDRIVE to lanelets.
 We gratefully acknowledge partial financial support by the German Federal Ministry for Digital and Transport (BMDV) 
-within the project \textit{Cooperative Autonomous Driving with Safety Guarantees} 
+within the project _Cooperative Autonomous Driving with Safety Guarantees_
 ([KoSi](https://www.ce.cit.tum.de/air/research/kosi/)).
 
 ### Citation
