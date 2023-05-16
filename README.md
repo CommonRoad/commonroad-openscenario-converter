@@ -7,6 +7,9 @@ and [CommonRoad](commonroad.in.tum.de/). Currently, only the conversion from **O
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
 [![PyPI license](https://img.shields.io/pypi/l/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
 [![PyPI version fury.io](https://badge.fury.io/py/commonroad-openscenario-converter.svg?style=plastic)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)<br>
+[![PyPI download month](https://img.shields.io/pypi/dm/commonroad-openscenario-converter.svg?style=plastic&label=PyPI%20downloads)](https://pypi.python.org/pypi/commonroad-openscenario-converter/) 
+[![PyPI download week](https://img.shields.io/pypi/dw/commonroad-openscenario-converter.svg?style=plastic&label=PyPI%20downloads)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)<br>
+
 ### Using the Converter
 The recommended way of installation if you only want to use the OpenSCENARIO-CommonROAD Converter
 (i.e., you do not want to work with the code directly) is to use the PyPI package:
