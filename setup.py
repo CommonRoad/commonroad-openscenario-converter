@@ -18,6 +18,7 @@ setup(name='commonroad-openscenario-converter',
           'numpy>=1.19.0',
           'tqdm>=4.65.0',
           'scenariogeneration>=0.9.0',
+          'protobuf==3.19'
       ],
       extras_require={
           'tests': [
