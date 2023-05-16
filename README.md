@@ -39,6 +39,12 @@ $ conda develop .
 $ cd tests
 $ python -m unittest -v
 ```
+
+### Open Simulation Interface (OSI) and UDP Driver
+If you want to save the OSI data or the UDP interface of [esmini](https://github.com/esmini/esmini) for 
+external driver models or vehicle simulators, you need to install OSI manually, 
+see [here](https://github.com/OpenSimulationInterface/open-simulation-interface).
+
 ### Contributors (in alphabetical order by last name)
 - Yuanfei Lin
 - Michael Ratzel
