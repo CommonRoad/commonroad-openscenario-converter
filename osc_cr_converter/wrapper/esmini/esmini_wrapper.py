@@ -181,7 +181,7 @@ class EsminiWrapper(SimWrapper):
             self._log_to_file = None
         elif isinstance(new_log_to_file, bool):
             if new_log_to_file:
-                log_dir =  os.path.dirname(os.path.realpath(__file__)) + "/../../../output/log"
+                log_dir = os.path.dirname(os.path.realpath(__file__)) + "/../../../output/log"
                 os.makedirs(log_dir, exist_ok=True)  # create directory if it doesn't exist
                 self._log_to_file = os.path.join(log_dir,
                                                  "{}.txt".format(datetime.now().isoformat(sep="_", timespec="seconds")))
@@ -296,6 +296,8 @@ class EsminiWrapper(SimWrapper):
             return False
 
         self.esmini_lib.SE_SetSeed(self.random_seed)
+
+        self.esmini_lib.SE_OpenOSISocket("127.0.0.1")
 
         self._callback_functor = ct.CFUNCTYPE(None, ct.c_char_p, ct.c_int, ct.c_int)(self.__state_change_callback)
         self.esmini_lib.SE_RegisterStoryBoardElementStateChangeCallback(self._callback_functor)
