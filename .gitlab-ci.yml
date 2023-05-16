@@ -7,6 +7,13 @@ stages:
 .install-and-run: &install-and-run
   # - echo "$DOCKER_REGISTRY_PASS" | docker login $CI_REGISTRY -u ${DOCKER_REGISTRY_USER:-gitlab-ci-token} -p ${DOCKER_REGISTRY_PASS:-$CI_BUILD_TOKEN}
   # - docker info
+  # installation of the osi
+  - git clone https://github.com/OpenSimulationInterface/open-simulation-interface.git
+  - cd open-simulation-interface
+  - pip3 install virtualenv
+  - virtualenv -p python3 venv
+  - source venv/bin/activate
+  - python3 -m pip install .
   - pip install tox coverage
   - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/".insteadOf "git@gitlab.lrz.de:"
   - pip install -e .
