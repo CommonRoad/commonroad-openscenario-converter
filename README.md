@@ -6,7 +6,7 @@ and [CommonRoad](commonroad.in.tum.de/). Currently, only the conversion from **O
 [![Linux](https://svgshare.com/i/Zhy.svg?style=plastic)](https://svgshare.com/i/Zhy.svg)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
 [![PyPI license](https://img.shields.io/pypi/l/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
-[![PyPI version fury.io](https://badge.fury.io/py/commonroad-openscenario-converter.svg?style=plastic)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)<br>
+[![PyPI version fury.io](https://badge.fury.io/py/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)<br>
 [![PyPI download month](https://img.shields.io/pypi/dm/commonroad-openscenario-converter.svg?style=plastic&label=PyPI%20downloads)](https://pypi.python.org/pypi/commonroad-openscenario-converter/) 
 [![PyPI download week](https://img.shields.io/pypi/dw/commonroad-openscenario-converter.svg?style=plastic&label=PyPI%20downloads)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)<br>
 
@@ -44,7 +44,7 @@ $ python -m unittest -v
 ```
 
 ### Open Simulation Interface (OSI) and UDP Driver
-If you want to save the OSI data or the UDP interface of [esmini](https://github.com/esmini/esmini) for 
+If you want to use the [esmini](https://github.com/esmini/esmini) UDPDriverController in combination with OSI for including
 external driver models or vehicle simulators, you need to install OSI manually, 
 see [here](https://github.com/OpenSimulationInterface/open-simulation-interface).
 
