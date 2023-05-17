@@ -1,14 +1,53 @@
+__author__ = "Michael Ratzel, Yuanfei Lin"
+__copyright__ = "TUM Cyber-Physical Systems Group"
+__credits__ = ["KoSi"]
+__version__ = "0.0.2"
+__maintainer__ = "Yuanfei Lin"
+__email__ = "commonroad@lists.lrz.de"
+__status__ = "Pre-alpha"
+
+
 """
 Code is original from
- https://github.com/esmini/esmini/blob/2e438be3b3a176dafd296fa5e41742f886868e6f/scripts/udp_driver/udp_osi_common.py
+ https://github.com/esmini/esmini/blob/2e438be3b3a176dafd296fa5e41742f886868e6f/scripts/udp_driver/udp_osi_common.py.
+ Exemplary usage please also refer to the esmini repository. 
+ 
+ * If you want to use the esmini UDPDriverController in combination with OSI, you need to:
+ 1. extend the OpenSCENARIO file with the UDP functionalities
+     - add the Controller Catalog into the
+        <CatalogLocations>
+
+        <ControllerCatalog>
+                <Directory path=<"your local path to the ESMINI UDP controller module>
+        </ControllerCatalog>
+    
+        </CatalogLocations>
+     -  extend the ego vehicle entity section like this example:
+    <Entities>
+        <ScenarioObject name="Ego">
+               <CatalogReference catalogName="VehicleCatalog" entryName="$HostVehicle"/>
+               <ObjectController>
+                  <CatalogReference catalogName="ControllerCatalog" entryName="UDPDriverController">
+                     <ParameterAssignments>
+                         <ParameterAssignment parameterRef="BasePort" value="53995" />
+                         <ParameterAssignment parameterRef="ExecMode" value="asynchronous" /> ## or synchronous
+                     </ParameterAssignments>
+                  </CatalogReference>
+                </ObjectController>
+        </ScenarioObject>
+        ...
+     </Entities>
+ 2. start the OSI Receiver and UDP sender together with your external driver models/simulators 
+    (the --osi_receiver_ip is set to 127.0.0.1 by default)
+ 3. in another terminal window, run the scenario converter script 
+
 """
 
 from socket import *
 import struct
-import os
-import sys
 
 from osi3.osi_groundtruth_pb2 import GroundTruth
+
 
 input_modes = {
   'driverInput': 1,
