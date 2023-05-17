@@ -7,14 +7,20 @@ stages:
 .install-and-run: &install-and-run
   # - echo "$DOCKER_REGISTRY_PASS" | docker login $CI_REGISTRY -u ${DOCKER_REGISTRY_USER:-gitlab-ci-token} -p ${DOCKER_REGISTRY_PASS:-$CI_BUILD_TOKEN}
   # - docker info
+  # installation of the osi
+  - pip install -e .
+  - git clone https://github.com/OpenSimulationInterface/open-simulation-interface.git
+  - cd open-simulation-interface
+  - python3 -m pip install .
   - pip install tox coverage
   - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.lrz.de/".insteadOf "git@gitlab.lrz.de:"
-  - pip install -e .
   - cd $CI_PROJECT_DIR/tests && python -m unittest
   - coverage report -m || true
 
 before_script:
     - apt-get update && apt-get install -y build-essential
+    - apt-get install -y libprotobuf-dev protobuf-compiler
+    - apt-get install -y python3-pip python3-setuptools
 
 test_python39:
   stage: test

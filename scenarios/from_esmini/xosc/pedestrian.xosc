@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Demonstrate how a simple trajectory can be defined and assigned to a moving -->
+<!-- entity, in this case a pedestrian. TimeToCollision condition is utilized to -->
+<!-- trig a brake maneuver.                                                      -->
+<OpenSCENARIO>
+   <FileHeader revMajor="1"
+               revMinor="1"
+               date="2020-10-02T10:00:00"
+               description="Pedestrian involved in a critical situation"
+               author="esmini-team"/>
+   <ParameterDeclarations />
+   <CatalogLocations>
+      <RouteCatalog>
+         <Directory path="/Catalogs/Routes"/>
+      </RouteCatalog>
+      <VehicleCatalog>
+         <Directory path="/Catalogs/Vehicles"/>
+      </VehicleCatalog>
+      <ControllerCatalog>
+         <Directory path="/Catalogs/Controllers"/>
+      </ControllerCatalog>
+   </CatalogLocations>
+   <RoadNetwork>
+      <LogicFile filepath="../xodr/fabriksgatan.xodr"/>
+   </RoadNetwork>
+   <Entities>
+       <ScenarioObject name="Ego">
+            <CatalogReference catalogName="VehicleCatalog" entryName="car_white"/>
+            <ObjectController>
+              <CatalogReference catalogName="ControllerCatalog" entryName="UDPDriverController">
+                 <ParameterAssignments>
+                     <ParameterAssignment parameterRef="BasePort" value="53995" />
+                     <ParameterAssignment parameterRef="ExecMode" value="asynchronous" />
+                 </ParameterAssignments>
+              </CatalogReference>
+            </ObjectController>
+       </ScenarioObject>
+    </Entities>
+   <Storyboard>
+      <Init>
+         <Actions>
+            <Private entityRef="Ego">
+               <PrivateAction>
+                  <TeleportAction>
+                     <Position>
+                        <LanePosition roadId="0" laneId="-1" offset="0" s="50"/>
+                     </Position>
+                  </TeleportAction>
+               </PrivateAction>
+               <PrivateAction>
+                   <ActivateControllerAction longitudinal="true" lateral="true" />
+               </PrivateAction>
+            </Private>
+         </Actions>
+      </Init>
+      <Story>
+         <Act name="DummyAct">
+         </Act>
+      </Story>
+   </Storyboard>
+</OpenSCENARIO>
