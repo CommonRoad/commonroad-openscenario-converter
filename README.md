@@ -25,9 +25,9 @@ A guide for managing python environments with Anaconda can be found [here](https
 - After installing Anaconda, create a new environment with (>=3.9) and enter it:
 ``` bash
 $ conda create -n commonroad-py39 python=3.9 -y
-$ conda activate commonroad-py37
+$ conda activate commonroad-py39
 or
-$ source activate commonroad-py37
+$ source activate commonroad-py39
 ```
 - Then, install the dependencies with:
 
