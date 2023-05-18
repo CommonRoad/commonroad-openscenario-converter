@@ -69,8 +69,8 @@ If you use `commonroad-openscenario-converter` for academic work, we highly enco
 @article{osc2cr,
   title={Automatic Traffic Scenario Conversion from OpenSCENARIO to CommonRoad},
   author={Yuanfei Lin, Michael Ratzel, and Matthias Althoff},
-  archivePrefix = {arXiv},
-  journal={arXiv  preprint arXiv:2305.10080},
+  archivePrefix={arXiv},
+  journal={arXiv preprint arXiv:2305.10080},
   year={2023}}
 }
 ```
