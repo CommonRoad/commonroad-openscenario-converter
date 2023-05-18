@@ -64,14 +64,14 @@ within the project _Cooperative Autonomous Driving with Safety Guarantees_
 ([KoSi](https://www.ce.cit.tum.de/air/research/kosi/)).
 
 ### Citation
-If you use `commonroad-openscenario-converter` for academic work, we highly encourage you to cite our paper:
+If you use `commonroad-openscenario-converter` for academic work, we highly encourage you to cite our [paper](https://arxiv.org/pdf/2305.10080.pdf):
 ```text
-@InProceedings{osc2cr,
-      title     = {Automatic Traffic Scenario Conversion from OpenSCENARIO to CommonRoad},
-      author    = {Yuanfei Lin, Michael Ratzel, and Matthias Althoff},
-      booktitle = {coming soon},     
-      pages     = {}, 
-      year      = {2023},
+@article{osc2cr,
+  title={Automatic Traffic Scenario Conversion from OpenSCENARIO to CommonRoad},
+  author={Yuanfei Lin, Michael Ratzel, and Matthias Althoff},
+  archivePrefix = {arXiv},
+  journal={arXiv  preprint arXiv:2305.10080},
+  year={2023}}
 }
 ```
 If you use this project's code in industry, we'd love to hear from you as well; 
