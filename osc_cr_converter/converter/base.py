@@ -8,7 +8,7 @@ __status__ = "Pre-alpha"
 
 import pickle
 from abc import ABC, abstractmethod
-from enum import Enum
+from enum import Enum, auto
 from multiprocessing import Lock
 from os import path
 from typing import Union, ClassVar, Optional
@@ -19,6 +19,18 @@ from osc_cr_converter.converter.serializable import Serializable
 from osc_cr_converter.converter.result import Osc2CrConverterResult
 
 
+class EFailureReason(Enum):
+    """
+    The enum of reasons why the conversion failed
+    """
+    SCENARIO_FILE_INVALID_PATH = auto()
+    SCENARIO_FILE_IS_CATALOG = auto()
+    SCENARIO_FILE_IS_PARAMETER_VALUE_DISTRIBUTION = auto()
+    SCENARIO_FILE_CONTAINS_NO_STORYBOARD = auto()
+    SIMULATION_FAILED_CREATING_OUTPUT = auto()
+    NO_DYNAMIC_BEHAVIOR_FOUND = auto()
+
+
 class Converter(ABC):
     """
     The Base class for a converter
@@ -26,7 +38,7 @@ class Converter(ABC):
     It only needs to implement the run_conversion function
     """
     __lock: ClassVar[Lock] = Lock()
-    conversion_result: Optional[Osc2CrConverterResult] = None
+    conversion_result: Union[Osc2CrConverterResult, EFailureReason] = None
 
     def run_in_batch_conversion(self, source_file: str) -> str:
         with self.__lock:

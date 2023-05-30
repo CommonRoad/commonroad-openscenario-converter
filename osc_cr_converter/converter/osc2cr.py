@@ -13,7 +13,6 @@ import time
 import warnings
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
-from enum import auto, Enum
 from os import path
 from typing import Optional, List, Dict, Tuple, Union, Set
 
@@ -28,7 +27,7 @@ from commonroad.common.file_writer import OverwriteExistingFile
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration.xosc import Vehicle
 
-from osc_cr_converter.converter.base import Converter
+from osc_cr_converter.converter.base import Converter, EFailureReason
 from osc_cr_converter.analyzer.base import Analyzer
 from osc_cr_converter.analyzer.error import AnalyzerErrorResult
 from osc_cr_converter.analyzer.result import AnalyzerResult
@@ -43,18 +42,6 @@ from osc_cr_converter.utility.obstacle_info import ObstacleExtraInfoFinder
 from osc_cr_converter.utility.pps import PPSBuilder
 from osc_cr_converter.utility.general import trim_scenario, dataclass_is_complete
 from osc_cr_converter.utility.configuration import ConverterParams
-
-
-class EFailureReason(Enum):
-    """
-    The enum of reasons why the conversion failed
-    """
-    SCENARIO_FILE_INVALID_PATH = auto()
-    SCENARIO_FILE_IS_CATALOG = auto()
-    SCENARIO_FILE_IS_PARAMETER_VALUE_DISTRIBUTION = auto()
-    SCENARIO_FILE_CONTAINS_NO_STORYBOARD = auto()
-    SIMULATION_FAILED_CREATING_OUTPUT = auto()
-    NO_DYNAMIC_BEHAVIOR_FOUND = auto()
 
 
 @dataclass
