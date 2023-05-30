@@ -52,9 +52,7 @@ class EsminiWrapper(SimWrapper):
         self._esmini_lib_bin_path = esmini_bin_path
 
         self.min_time = config.esmini.min_time
-        self.grace_period = config.esmini.grace_period
-        self.ignored_level = config.esmini.ignore_level
-        self.random_seed = config.esmini.ignore_level
+        self.random_seed = config.esmini.random_seed
 
         self.log_to_console = config.esmini.log_to_console
         self.log_to_file = config.esmini.log_to_file
@@ -64,7 +62,7 @@ class EsminiWrapper(SimWrapper):
     @property
     def min_time(self) -> float:
         """
-        Minimum simulation time that is used if grace_period is not None
+        Minimum simulation time.
         """
         return self._min_time
 
@@ -113,32 +111,6 @@ class EsminiWrapper(SimWrapper):
 
         else:
             warnings.warn(f"<EsminiWrapper/esmini_lib> Path {new_esmini_lib_bin_path} does not exist")
-
-    @property
-    def grace_period(self) -> Optional[float]:
-        """
-        If no OpenSCENARIO element is active for this amount of time, and min_time has already passed. Ending the
-        simulation
-        """
-        return self._grace_period
-
-    @grace_period.setter
-    def grace_period(self, new_grace_time: Optional[float]):
-        if new_grace_time is None or is_real_number(new_grace_time):
-            self._grace_period = new_grace_time
-        else:
-            warnings.warn(f"<EsminiWrapper/grace_period> Tried to set to non real number value {new_grace_time}.")
-
-    @property
-    def ignored_level(self) -> Optional[EStoryBoardElementLevel]:
-        """
-        For the end detection using the grace_period ignore any active elements of this level or higher
-        """
-        return self._ignored_level
-
-    @ignored_level.setter
-    def ignored_level(self, new_ignored_level: Optional[EStoryBoardElementLevel]):
-        self._ignored_level = new_ignored_level
 
     @property
     def random_seed(self) -> int:
@@ -237,7 +209,7 @@ class EsminiWrapper(SimWrapper):
                 ending_cause=cause
             )
 
-    def view_scenario(self, scenario_path: str, window_size=None):
+    def view_scenario(self, scenario_path: str, window_size: Optional[EsminiParams.WindowSize] = None):
         with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
                 warnings.warn("<EsminiWrapper/view_scenario> Failed to initialize scenario engine")
@@ -249,7 +221,7 @@ class EsminiWrapper(SimWrapper):
             self._close_scenario_engine()
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
-                               window_size=None) -> bool:
+                               window_size: Optional[EsminiParams.WindowSize] = None) -> bool:
         with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=7, use_threading=False):
                 warnings.warn("<EsminiWrapper/render_scenario_to_gif> Failed to initialize scenario engine")

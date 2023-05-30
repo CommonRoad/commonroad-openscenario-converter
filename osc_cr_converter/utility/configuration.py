@@ -160,11 +160,6 @@ class EsminiParams(BaseParam):
     min_time: float = 5.
     max_time: float = 60.
 
-    # additional time interval after the completion of the last triggered
-    # act or storyboard (defined by the ignore level)
-    grace_period: float = 1.0
-    ignore_level: EStoryBoardElementLevel = EStoryBoardElementLevel.ACT
-
     # logging information
     log_to_console: bool = False
     log_to_file: bool = True
