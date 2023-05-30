@@ -40,7 +40,7 @@ from osc_cr_converter.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResu
 from osc_cr_converter.converter.result import Osc2CrConverterResult
 from osc_cr_converter.utility.statistics import ConversionStatistics
 from osc_cr_converter.utility.obstacle_info import ObstacleExtraInfoFinder
-from osc_cr_converter.utility.pps import PPSBuilder
+from osc_cr_converter.utility.pps_builder import PPSBuilder
 from osc_cr_converter.utility.general import trim_scenario, dataclass_is_complete
 from osc_cr_converter.utility.configuration import ConverterParams
 

@@ -18,7 +18,7 @@ from omegaconf import OmegaConf
 from commonroad.scenario.scenario import Tag
 from commonroad.common.util import Interval
 
-from osc_cr_converter.utility.pps import PPSBuilder
+from osc_cr_converter.utility.pps_builder import PPSBuilder
 from osc_cr_converter.utility.abs_rel import AbsRel
 
 

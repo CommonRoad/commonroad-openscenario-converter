@@ -20,7 +20,6 @@ from sys import platform
 from typing import Optional, List, Dict, Union
 
 import imageio
-from commonroad.common.validity import is_real_number
 
 from osc_cr_converter.wrapper.base.ending_cause import ESimEndingCause
 from osc_cr_converter.wrapper.esmini.esmini_scenario_object import SEStruct
@@ -309,7 +308,7 @@ class EsminiWrapper(SimWrapper):
             self._log("{:.3f}: esmini requested quitting -> Scenario finished completely ".format(now))
             return ESimEndingCause.SCENARIO_FINISHED_BY_SIMULATOR
         if now >= self.max_time:
-            self._log("{:.3f}: Max Execution tim reached ".format(now))
+            self._log("{:.3f}: Max Execution time reached ".format(now))
             return ESimEndingCause.MAX_TIME_REACHED
         return None
 
