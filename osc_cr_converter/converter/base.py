@@ -1,7 +1,7 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.0.4"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
 __status__ = "Pre-alpha"
@@ -11,9 +11,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from multiprocessing import Lock
 from os import path
-from typing import Union, ClassVar
+from typing import Union, ClassVar, Optional
 
 from osc_cr_converter.converter.serializable import Serializable
+from osc_cr_converter.converter.result import Osc2CrConverterResult
 
 
 class Converter(ABC):
@@ -23,7 +24,7 @@ class Converter(ABC):
     It only needs to implement the run_conversion function
     """
     __lock: ClassVar[Lock] = Lock()
-    conversion_result = None
+    conversion_result: Optional[Osc2CrConverterResult] = None
 
     def run_in_batch_conversion(self, source_file: str) -> str:
         with self.__lock:
