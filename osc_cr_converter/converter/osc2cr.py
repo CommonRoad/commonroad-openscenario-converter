@@ -1,7 +1,7 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.0.4"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
 __status__ = "Pre-alpha"
@@ -33,7 +33,7 @@ from osc_cr_converter.converter.base import Converter
 from osc_cr_converter.analyzer.base import Analyzer
 from osc_cr_converter.analyzer.error import AnalyzerErrorResult
 from osc_cr_converter.analyzer.result import AnalyzerResult
-from osc_cr_converter.analyzer.error_analyzer import EAnalyzer
+from osc_cr_converter.analyzer.enum_analyzer import EAnalyzer
 from osc_cr_converter.wrapper.base.ending_cause import ESimEndingCause
 from osc_cr_converter.wrapper.esmini.esmini_wrapper_provider import EsminiWrapperProvider
 from osc_cr_converter.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState

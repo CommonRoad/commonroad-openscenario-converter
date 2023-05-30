@@ -1,7 +1,7 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.0.4"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
 __status__ = "Pre-alpha"
@@ -128,7 +128,7 @@ class BatchConverter:
                 if file_matcher.match(file) is not None:
                     self.file_list.append(os.path.join(dir_path, file))
 
-    def run_batch_conversion(self, num_worker: Optional[int]=0, timeout: Optional[int] = None):
+    def run_batch_conversion(self, num_worker: Optional[int] = None, timeout: Optional[int] = None):
         """
         Run the batch conversion
 
