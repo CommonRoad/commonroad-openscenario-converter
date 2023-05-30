@@ -15,9 +15,11 @@ import re
 import os
 from omegaconf import OmegaConf
 
-from osc_cr_converter.wrapper.esmini.storyboard_element import EStoryBoardElementLevel
-
 from commonroad.scenario.scenario import Tag
+from commonroad.common.util import Interval
+
+from osc_cr_converter.utility.pps import PPSBuilder
+from osc_cr_converter.utility.abs_rel import AbsRel
 
 
 def _dict_to_params(dict_params: Dict[str, Any], cls: Any) -> Any:
@@ -208,3 +210,16 @@ class ConverterParams(BaseParam):
     debug: DebugParams = field(default_factory=DebugParams)
     esmini: EsminiParams = field(default_factory=EsminiParams)
     scenario: ScenarioParams = field(default_factory=ScenarioParams)
+
+    @staticmethod
+    def initialize_planning_problem_set():
+        planning_problem_set = PPSBuilder()
+        planning_problem_set.time_interval = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_length = AbsRel(50, AbsRel.EUsage.ABS)
+        planning_problem_set.pos_width = AbsRel(10, AbsRel.EUsage.ABS)
+        planning_problem_set.pos_rotation = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_center_x = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_center_y = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.velocity_interval = AbsRel(Interval(-5, 5), AbsRel.EUsage.REL_ADD)
+        planning_problem_set.orientation_interval = None
+        return planning_problem_set
