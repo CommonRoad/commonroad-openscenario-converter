@@ -13,6 +13,8 @@ from multiprocessing import Lock
 from os import path
 from typing import Union, ClassVar, Optional
 
+from commonroad.scenario.scenario import Scenario
+
 from osc_cr_converter.converter.serializable import Serializable
 from osc_cr_converter.converter.result import Osc2CrConverterResult
 
@@ -38,7 +40,7 @@ class Converter(ABC):
         return result_file
 
     @abstractmethod
-    def run_conversion(self, source_file: str) -> Union[Serializable, Enum]:
+    def run_conversion(self, source_file: str) -> Union[Scenario, Enum]:
         """
         The main entry point of a converter. Implement this.
         """
