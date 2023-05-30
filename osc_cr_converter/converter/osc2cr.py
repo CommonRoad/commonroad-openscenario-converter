@@ -11,6 +11,7 @@ import os
 import re
 import time
 import warnings
+import logging
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
 from os import path
@@ -42,6 +43,10 @@ from osc_cr_converter.utility.obstacle_info import ObstacleExtraInfoFinder
 from osc_cr_converter.utility.pps import PPSBuilder
 from osc_cr_converter.utility.general import trim_scenario, dataclass_is_complete
 from osc_cr_converter.utility.configuration import ConverterParams
+
+# Configure the logging module
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -104,7 +109,7 @@ class Osc2CrConverter(Converter):
         :return converted results if converted successfully. Otherwise, the reason for the failure.
         """
         self.config.general.name_xosc = os.path.basename(source_file).split('.')[0]
-        print(f"* Converting the OpenSCENARIO file: {self.config.general.name_xosc}.xosc")
+        logger.info(f"* Converting the OpenSCENARIO file: {self.config.general.name_xosc}.xosc")
 
         assert dataclass_is_complete(self)
 
@@ -114,17 +119,17 @@ class Osc2CrConverter(Converter):
 
         if isinstance(implicit_opendrive_path, EFailureReason):
             self.conversion_result = implicit_opendrive_path
-            print(f"*\t Failed since : {self.conversion_result.name}")
+            logger.error(f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
 
         start_time = time.time()
         scenario, xodr_file, xodr_conversion_error = self._create_basic_scenario(implicit_opendrive_path)
         runtime = time.time() - start_time
-        print(f"*\t Map conversion takes {runtime:.2f} s")
+        logger.info(f"*\t Map conversion takes {runtime:.2f} s")
 
         if isinstance(scenario, EFailureReason):
             self.conversion_result = scenario
-            print(f"*\t Failed since : {self.conversion_result.name}")
+            logger.error(f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
 
         if self.view_scenario:
@@ -138,16 +143,16 @@ class Osc2CrConverter(Converter):
         res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
         if res.ending_cause is ESimEndingCause.FAILURE:
             self.conversion_result = EFailureReason.SIMULATION_FAILED_CREATING_OUTPUT
-            print(f"*\t Failed since : {self.conversion_result.name}")
+            logger.error(f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
         if len(res.states) == 0:
             self.conversion_result = EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
-            print(f"*\t Failed since : {self.conversion_result.name}")
+            logger.error(f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
         sim_time = res.sim_time
         runtime += res.runtime
         ending_cause = res.ending_cause
-        print(f"*\t Esmini simulation takes {res.runtime:.2f} s")
+        logger.info(f"*\t Esmini simulation takes {res.runtime:.2f} s")
 
         start_time = time.time()
 
@@ -175,8 +180,8 @@ class Osc2CrConverter(Converter):
             scenario = trim_scenario(scenario, deep_copy=False)
         pps = self.pps_builder.build(obstacles[ego_vehicle])
         runtime += time.time() - start_time
-        print(f"*\t Other conversion tasks take {time.time() - start_time:.2f} s")
-        print(f"* {self.config.general.name_xosc} is successfully converted 🏆!")
+        logger.info(f"*\t Other conversion tasks take {time.time() - start_time:.2f} s")
+        logger.info(f"* {self.config.general.name_xosc} is successfully converted 🏆!")
 
         if self.config.debug.write_to_xml:
             self.write_to_xml(scenario, pps)
@@ -403,13 +408,13 @@ class Osc2CrConverter(Converter):
         :param runtime: runtime of converting the scenario
         :return: statistics
         """
-        string = "# ===========  Conversion Statistics  =========== #\n"
+        string = "\n# ===========  Conversion Statistics  =========== #\n"
         string += f"# Nr of obstacles: {len(obstacles)}\n"
         string += f"# Scenario duration: {sim_time:.2f} s\n"
         string += f"# The ego vehicle is removed \n" if not keep_ego_vehicle else "# the ego vehicle is kept \n"
         string += f"# The ending cause {ending_cause.name}\n"
         string += "# ============================================== #"
-        print(string)
+        logger.info(string)
         return ConversionStatistics(
             num_obstacle_conversions=len(obstacles),
             failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],

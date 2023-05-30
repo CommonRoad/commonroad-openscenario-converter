@@ -1,3 +1,8 @@
+import logging
+
+# Configure the logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 import os
 from osc_cr_converter.utility.configuration import ConverterParams
