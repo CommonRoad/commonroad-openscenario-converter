@@ -10,9 +10,11 @@ import dataclasses
 import inspect
 from dataclasses import dataclass, field
 from typing import Union, Any, Dict, List, Optional
+from datetime import datetime
 import pathlib
 import re
 import os
+import logging
 from omegaconf import OmegaConf
 
 from commonroad.scenario.scenario import Tag
@@ -112,6 +114,9 @@ class GeneralParams(BaseParam):
 
     # path for the output files
     path_output_abs: str = os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")) + "/output/"
+    # path for logging information
+    path_output_log: str = path_output_abs + 'log/'
+    string_date_time = datetime.now().strftime("%Y_%m_%d_%H-%M-%S")
 
     def __init__(self):
         super().__init__()
@@ -139,6 +144,9 @@ class DebugParams(BaseParam):
     plot_limit: Union[List[Union[int, float]], None] = None
     # with which time steps
     time_steps: Union[List[int], None] = None
+
+    # logging level
+    logging_level: logging = logging.INFO
 
 
 @dataclass

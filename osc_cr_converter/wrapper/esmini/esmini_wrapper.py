@@ -154,15 +154,10 @@ class EsminiWrapper(SimWrapper):
             if new_log_to_file:
                 log_dir = os.path.dirname(os.path.realpath(__file__)) + "/../../../output/log"
                 os.makedirs(log_dir, exist_ok=True)  # create directory if it doesn't exist
-                self._log_to_file = os.path.join(log_dir,
-                                                 "{}.txt".format(datetime.now().isoformat(sep="_", timespec="seconds")))
-                warnings.warn(f"Using default log file {self._log_to_file}")
+                self._log_to_file = os.path.join(self.config.general.path_output_log,
+                                                 f"esmini_{self.config.general.string_date_time}.log")
             else:
                 self._log_to_file = None
-        elif path.exists(path.dirname(new_log_to_file)):
-            self._log_to_file = path.abspath(new_log_to_file)
-        else:
-            warnings.warn(f"<EsminiWrapper/log_to_file> Logging dir {path.dirname(new_log_to_file)} does not exist.")
 
     def __getstate__(self):
         state = self.__dict__.copy()
