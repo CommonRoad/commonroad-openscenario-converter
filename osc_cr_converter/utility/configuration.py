@@ -146,7 +146,7 @@ class DebugParams(BaseParam):
     time_steps: Union[List[int], None] = None
 
     # logging level
-    logging_level: logging = logging.INFO
+    logging_level: str = logging.INFO
 
 
 @dataclass
