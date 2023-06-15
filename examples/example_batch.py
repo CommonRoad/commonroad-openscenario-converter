@@ -9,6 +9,7 @@ from osc_cr_converter.converter.osc2cr import Osc2CrConverter
 from osc_cr_converter.converter.serializable import Serializable
 from osc_cr_converter.batch.converter import BatchConverter
 from osc_cr_converter.batch.analysis import analyze_results, plot_scenarios
+import osc_cr_converter.utility.logger as util_logger
 
 # directory of the scenario to be batch-processed
 directory = os.path.dirname(os.path.realpath(__file__)) + '/../scenarios/'
@@ -19,6 +20,7 @@ output_dir = os.path.dirname(os.path.realpath(__file__)) + '/../output/batch/'
 
 # initialize the converter
 config = ConverterParams()
+util_logger.initialize_logger(config)
 converter = Osc2CrConverter(config)
 batch_converter = BatchConverter(converter)
 
