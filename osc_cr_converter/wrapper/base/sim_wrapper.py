@@ -91,7 +91,7 @@ class SimWrapper:
         warnings.warn(f"{self.__class__} did not implement to view scenario")
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
-                               gif_size=None) -> bool:
+                               gif_size: Optional[EsminiParams.WindowSize] = None) -> bool:
         """
         Create a gif of an XOSC file.
 

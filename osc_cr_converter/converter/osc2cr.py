@@ -1,7 +1,7 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.0.4"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
 __status__ = "Pre-alpha"
@@ -11,9 +11,9 @@ import os
 import re
 import time
 import warnings
+import logging
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass
-from enum import auto, Enum
 from os import path
 from typing import Optional, List, Dict, Tuple, Union, Set
 
@@ -23,17 +23,16 @@ from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario, Tag
 from commonroad.planning.planning_problem import PlanningProblemSet
 from commonroad.scenario.trajectory import Trajectory
-from commonroad.common.util import Interval
 from commonroad.common.file_writer import CommonRoadFileWriter
 from commonroad.common.file_writer import OverwriteExistingFile
 from crdesigner.map_conversion.map_conversion_interface import opendrive_to_commonroad
 from scenariogeneration.xosc import Vehicle
 
-from osc_cr_converter.converter.base import Converter
+from osc_cr_converter.converter.base import Converter, EFailureReason
 from osc_cr_converter.analyzer.base import Analyzer
 from osc_cr_converter.analyzer.error import AnalyzerErrorResult
 from osc_cr_converter.analyzer.result import AnalyzerResult
-from osc_cr_converter.analyzer.error_analyzer import EAnalyzer
+from osc_cr_converter.analyzer.enum_analyzer import EAnalyzer
 from osc_cr_converter.wrapper.base.ending_cause import ESimEndingCause
 from osc_cr_converter.wrapper.esmini.esmini_wrapper_provider import EsminiWrapperProvider
 from osc_cr_converter.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
@@ -41,22 +40,13 @@ from osc_cr_converter.wrapper.base.sim_wrapper import SimWrapper, WrapperSimResu
 from osc_cr_converter.converter.result import Osc2CrConverterResult
 from osc_cr_converter.utility.statistics import ConversionStatistics
 from osc_cr_converter.utility.obstacle_info import ObstacleExtraInfoFinder
-from osc_cr_converter.utility.pps import PPSBuilder
+from osc_cr_converter.utility.pps_builder import PPSBuilder
 from osc_cr_converter.utility.general import trim_scenario, dataclass_is_complete
 from osc_cr_converter.utility.configuration import ConverterParams
-from osc_cr_converter.utility.abs_rel import AbsRel
+import osc_cr_converter.utility.logger as util_logger
 
-
-class EFailureReason(Enum):
-    """
-    The enum of reasons why the conversion failed
-    """
-    SCENARIO_FILE_INVALID_PATH = auto()
-    SCENARIO_FILE_IS_CATALOG = auto()
-    SCENARIO_FILE_IS_PARAMETER_VALUE_DISTRIBUTION = auto()
-    SCENARIO_FILE_CONTAINS_NO_STORYBOARD = auto()
-    SIMULATION_FAILED_CREATING_OUTPUT = auto()
-    NO_DYNAMIC_BEHAVIOR_FOUND = auto()
+# Configure the logging module
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -73,12 +63,12 @@ class Osc2CrConverter(Converter):
 
         self.dt_cr: float = config.scenario.dt_cr              # Time step size of the CommonRoad scenario
 
-        self.config = config
+        self.config: ConverterParams = config                  # Configurations
 
         # The used SimWrapper implementation
         self.sim_wrapper: SimWrapper = EsminiWrapperProvider(config).provide_esmini_wrapper()
         # The used PPSBuilder instance
-        self.pps_builder: PPSBuilder = self._initialize_planning_problem_set()
+        self.pps_builder: PPSBuilder = config.initialize_planning_problem_set()
 
         # indicating whether the openDRIVE map defined in the openSCENARIO is used
         self.use_implicit_odr_file: bool = config.esmini.use_implicit_odr_file
@@ -96,19 +86,6 @@ class Osc2CrConverter(Converter):
         self.dt_sim: Optional[float] = config.esmini.dt_sim  # User-defined time step size for esmini simulation
         self.odr_file_override: Optional[str] = config.esmini.odr_file_override  # User-defined OpenDRIVE map to be used
         self.ego_filter: Optional[re.Pattern, str] = config.esmini.ego_filter  # Pattern of recognizing the ego vehicle
-
-    @staticmethod
-    def _initialize_planning_problem_set():
-        planning_problem_set = PPSBuilder()
-        planning_problem_set.time_interval = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
-        planning_problem_set.pos_length = AbsRel(50, AbsRel.EUsage.ABS)
-        planning_problem_set.pos_width = AbsRel(10, AbsRel.EUsage.ABS)
-        planning_problem_set.pos_rotation = AbsRel(0, AbsRel.EUsage.REL_ADD)
-        planning_problem_set.pos_center_x = AbsRel(0, AbsRel.EUsage.REL_ADD)
-        planning_problem_set.pos_center_y = AbsRel(0, AbsRel.EUsage.REL_ADD)
-        planning_problem_set.velocity_interval = AbsRel(Interval(-5, 5), AbsRel.EUsage.REL_ADD)
-        planning_problem_set.orientation_interval = None
-        return planning_problem_set
 
     def get_analyzer_objects(self) -> Dict[EAnalyzer, Analyzer]:
         if self.analyzers is None:
@@ -132,7 +109,8 @@ class Osc2CrConverter(Converter):
         :return converted results if converted successfully. Otherwise, the reason for the failure.
         """
         self.config.general.name_xosc = os.path.basename(source_file).split('.')[0]
-        print(f"* Converting the OpenSCENARIO file: {self.config.general.name_xosc}.xosc")
+        util_logger.print_and_log_info(logger,
+                                       f"* Converting the OpenSCENARIO file: {self.config.general.name_xosc}.xosc")
 
         assert dataclass_is_complete(self)
 
@@ -142,17 +120,17 @@ class Osc2CrConverter(Converter):
 
         if isinstance(implicit_opendrive_path, EFailureReason):
             self.conversion_result = implicit_opendrive_path
-            print(f"*\t Failed since : {self.conversion_result.name}")
+            util_logger.print_and_log_error(logger, f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
 
         start_time = time.time()
         scenario, xodr_file, xodr_conversion_error = self._create_basic_scenario(implicit_opendrive_path)
         runtime = time.time() - start_time
-        print(f"*\t Map conversion takes {runtime:.2f} s")
+        util_logger.print_and_log_info(logger, f"*\t Map conversion takes {runtime:.2f} s")
 
         if isinstance(scenario, EFailureReason):
             self.conversion_result = scenario
-            print(f"*\t Failed since : {self.conversion_result.name}")
+            util_logger.print_and_log_error(logger, f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
 
         if self.view_scenario:
@@ -166,16 +144,16 @@ class Osc2CrConverter(Converter):
         res: WrapperSimResult = self.sim_wrapper.simulate_scenario(xosc_file, dt_sim)
         if res.ending_cause is ESimEndingCause.FAILURE:
             self.conversion_result = EFailureReason.SIMULATION_FAILED_CREATING_OUTPUT
-            print(f"*\t Failed since : {self.conversion_result.name}")
+            util_logger.print_and_log_error(logger, f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
         if len(res.states) == 0:
             self.conversion_result = EFailureReason.NO_DYNAMIC_BEHAVIOR_FOUND
-            print(f"*\t Failed since : {self.conversion_result.name}")
+            util_logger.print_and_log_error(logger, f"*\t Failed since : {self.conversion_result.name}")
             return self.conversion_result
         sim_time = res.sim_time
         runtime += res.runtime
         ending_cause = res.ending_cause
-        print(f"*\t Esmini simulation takes {res.runtime:.2f} s")
+        util_logger.print_and_log_info(logger, f"*\t Esmini simulation takes {res.runtime:.2f} s")
 
         start_time = time.time()
 
@@ -203,8 +181,8 @@ class Osc2CrConverter(Converter):
             scenario = trim_scenario(scenario, deep_copy=False)
         pps = self.pps_builder.build(obstacles[ego_vehicle])
         runtime += time.time() - start_time
-        print(f"*\t Other conversion tasks take {time.time() - start_time:.2f} s")
-        print(f"* {self.config.general.name_xosc} is successfully converted 🏆!")
+        util_logger.print_and_log_info(logger, f"*\t Other conversion tasks take {time.time() - start_time:.2f} s")
+        util_logger.print_and_log_info(logger, f"* {self.config.general.name_xosc} is successfully converted 🏆!")
 
         if self.config.debug.write_to_xml:
             self.write_to_xml(scenario, pps)
@@ -371,7 +349,7 @@ class Osc2CrConverter(Converter):
             # for pedestrian, we consider an overapproximated circular area.
             # see: Koschi, Markus, et al. "Set-based prediction of pedestrians in urban environments considering
             # formalized traffic rules." IEEE ITSC, 2018
-            shape = Circle(max(states[0].get_object_length(), states[0].get_object_width())/2.)
+            shape = Circle(max(states[0].get_object_length()/2., states[0].get_object_width())/2.)
         else:
             shape = Rectangle(states[0].get_object_length(), states[0].get_object_width())
 
@@ -431,13 +409,13 @@ class Osc2CrConverter(Converter):
         :param runtime: runtime of converting the scenario
         :return: statistics
         """
-        string = "# ===========  Conversion Statistics  =========== #\n"
-        string += f"# Nr of obstacles: {len(obstacles)}\n"
-        string += f"# Scenario duration: {sim_time:.2f} s\n"
-        string += f"# The ego vehicle is removed \n" if not keep_ego_vehicle else "# the ego vehicle is kept \n"
-        string += f"# The ending cause {ending_cause.name}\n"
-        string += "# ============================================== #"
-        print(string)
+        util_logger.print_and_log_info(logger, "# ===========  Conversion Statistics  ========== #")
+        util_logger.print_and_log_info(logger, f"#\t Nr of obstacles: {len(obstacles)}")
+        util_logger.print_and_log_info(logger, f"#\t Scenario duration: {sim_time:.2f} s")
+        util_logger.print_and_log_info(logger, f"#\t The ego vehicle is removed"
+                                               f"" if not keep_ego_vehicle else "#\t the ego vehicle is kept")
+        util_logger.print_and_log_info(logger, f"#\t The ending cause {ending_cause.name}")
+        util_logger.print_and_log_info(logger, "# ============================================== #")
         return ConversionStatistics(
             num_obstacle_conversions=len(obstacles),
             failed_obstacle_conversions=[o_name for o_name, o in obstacles.items() if o is None],

@@ -1,7 +1,7 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.0.4"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
 __status__ = "Pre-alpha"
@@ -10,14 +10,18 @@ import dataclasses
 import inspect
 from dataclasses import dataclass, field
 from typing import Union, Any, Dict, List, Optional
+from datetime import datetime
 import pathlib
 import re
 import os
+import logging
 from omegaconf import OmegaConf
 
-from osc_cr_converter.wrapper.esmini.storyboard_element import EStoryBoardElementLevel
-
 from commonroad.scenario.scenario import Tag
+from commonroad.common.util import Interval
+
+from osc_cr_converter.utility.pps_builder import PPSBuilder
+from osc_cr_converter.utility.abs_rel import AbsRel
 
 
 def _dict_to_params(dict_params: Dict[str, Any], cls: Any) -> Any:
@@ -110,6 +114,9 @@ class GeneralParams(BaseParam):
 
     # path for the output files
     path_output_abs: str = os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")) + "/output/"
+    # path for logging information
+    path_output_log: str = path_output_abs + 'log/'
+    string_date_time = datetime.now().strftime("%Y_%m_%d_%H-%M-%S")
 
     def __init__(self):
         super().__init__()
@@ -138,6 +145,9 @@ class DebugParams(BaseParam):
     # with which time steps
     time_steps: Union[List[int], None] = None
 
+    # logging level
+    logging_level: str = logging.INFO
+
 
 @dataclass
 class EsminiParams(BaseParam):
@@ -159,11 +169,6 @@ class EsminiParams(BaseParam):
     # lower and upper time limits for the simulation duration
     min_time: float = 5.
     max_time: float = 60.
-
-    # additional time interval after the completion of the last triggered
-    # act or storyboard (defined by the ignore level)
-    grace_period: float = 1.0
-    ignore_level: EStoryBoardElementLevel = EStoryBoardElementLevel.ACT
 
     # logging information
     log_to_console: bool = False
@@ -213,3 +218,16 @@ class ConverterParams(BaseParam):
     debug: DebugParams = field(default_factory=DebugParams)
     esmini: EsminiParams = field(default_factory=EsminiParams)
     scenario: ScenarioParams = field(default_factory=ScenarioParams)
+
+    @staticmethod
+    def initialize_planning_problem_set():
+        planning_problem_set = PPSBuilder()
+        planning_problem_set.time_interval = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_length = AbsRel(50, AbsRel.EUsage.ABS)
+        planning_problem_set.pos_width = AbsRel(10, AbsRel.EUsage.ABS)
+        planning_problem_set.pos_rotation = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_center_x = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.pos_center_y = AbsRel(0, AbsRel.EUsage.REL_ADD)
+        planning_problem_set.velocity_interval = AbsRel(Interval(-5, 5), AbsRel.EUsage.REL_ADD)
+        planning_problem_set.orientation_interval = None
+        return planning_problem_set

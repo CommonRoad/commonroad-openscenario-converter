@@ -1,7 +1,7 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.0.4"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
 __status__ = "Pre-alpha"
@@ -20,7 +20,6 @@ from sys import platform
 from typing import Optional, List, Dict, Union
 
 import imageio
-from commonroad.common.validity import is_real_number
 
 from osc_cr_converter.wrapper.base.ending_cause import ESimEndingCause
 from osc_cr_converter.wrapper.esmini.esmini_scenario_object import SEStruct
@@ -52,9 +51,7 @@ class EsminiWrapper(SimWrapper):
         self._esmini_lib_bin_path = esmini_bin_path
 
         self.min_time = config.esmini.min_time
-        self.grace_period = config.esmini.grace_period
-        self.ignored_level = config.esmini.ignore_level
-        self.random_seed = config.esmini.ignore_level
+        self.random_seed = config.esmini.random_seed
 
         self.log_to_console = config.esmini.log_to_console
         self.log_to_file = config.esmini.log_to_file
@@ -64,7 +61,7 @@ class EsminiWrapper(SimWrapper):
     @property
     def min_time(self) -> float:
         """
-        Minimum simulation time that is used if grace_period is not None
+        Minimum simulation time.
         """
         return self._min_time
 
@@ -115,32 +112,6 @@ class EsminiWrapper(SimWrapper):
             warnings.warn(f"<EsminiWrapper/esmini_lib> Path {new_esmini_lib_bin_path} does not exist")
 
     @property
-    def grace_period(self) -> Optional[float]:
-        """
-        If no OpenSCENARIO element is active for this amount of time, and min_time has already passed. Ending the
-        simulation
-        """
-        return self._grace_period
-
-    @grace_period.setter
-    def grace_period(self, new_grace_time: Optional[float]):
-        if new_grace_time is None or is_real_number(new_grace_time):
-            self._grace_period = new_grace_time
-        else:
-            warnings.warn(f"<EsminiWrapper/grace_period> Tried to set to non real number value {new_grace_time}.")
-
-    @property
-    def ignored_level(self) -> Optional[EStoryBoardElementLevel]:
-        """
-        For the end detection using the grace_period ignore any active elements of this level or higher
-        """
-        return self._ignored_level
-
-    @ignored_level.setter
-    def ignored_level(self, new_ignored_level: Optional[EStoryBoardElementLevel]):
-        self._ignored_level = new_ignored_level
-
-    @property
     def random_seed(self) -> int:
         """
         Run the simulation using this random seed, default is 0
@@ -183,15 +154,10 @@ class EsminiWrapper(SimWrapper):
             if new_log_to_file:
                 log_dir = os.path.dirname(os.path.realpath(__file__)) + "/../../../output/log"
                 os.makedirs(log_dir, exist_ok=True)  # create directory if it doesn't exist
-                self._log_to_file = os.path.join(log_dir,
-                                                 "{}.txt".format(datetime.now().isoformat(sep="_", timespec="seconds")))
-                warnings.warn(f"Using default log file {self._log_to_file}")
+                self._log_to_file = os.path.join(self.config.general.path_output_log,
+                                                 f"esmini_{self.config.general.string_date_time}.log")
             else:
                 self._log_to_file = None
-        elif path.exists(path.dirname(new_log_to_file)):
-            self._log_to_file = path.abspath(new_log_to_file)
-        else:
-            warnings.warn(f"<EsminiWrapper/log_to_file> Logging dir {path.dirname(new_log_to_file)} does not exist.")
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -237,7 +203,7 @@ class EsminiWrapper(SimWrapper):
                 ending_cause=cause
             )
 
-    def view_scenario(self, scenario_path: str, window_size=None):
+    def view_scenario(self, scenario_path: str, window_size: Optional[EsminiParams.WindowSize] = None):
         with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=1, use_threading=True):
                 warnings.warn("<EsminiWrapper/view_scenario> Failed to initialize scenario engine")
@@ -249,7 +215,7 @@ class EsminiWrapper(SimWrapper):
             self._close_scenario_engine()
 
     def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
-                               window_size=None) -> bool:
+                               window_size: Optional[EsminiParams.WindowSize] = None) -> bool:
         with EsminiWrapper.__lock:
             if not self._initialize_scenario_engine(scenario_path, viewer_mode=7, use_threading=False):
                 warnings.warn("<EsminiWrapper/render_scenario_to_gif> Failed to initialize scenario engine")
@@ -337,7 +303,7 @@ class EsminiWrapper(SimWrapper):
             self._log("{:.3f}: esmini requested quitting -> Scenario finished completely ".format(now))
             return ESimEndingCause.SCENARIO_FINISHED_BY_SIMULATOR
         if now >= self.max_time:
-            self._log("{:.3f}: Max Execution tim reached ".format(now))
+            self._log("{:.3f}: Max Execution time reached ".format(now))
             return ESimEndingCause.MAX_TIME_REACHED
         return None
 
