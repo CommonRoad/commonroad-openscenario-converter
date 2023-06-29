@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.0.2] & [0.0.3] - 2023-06-15
+## [0.0.2] & [0.0.3] - 2023-06-29
 
 ### Added
 - the interface to the esmini UDPDriverController in combination with OSI
