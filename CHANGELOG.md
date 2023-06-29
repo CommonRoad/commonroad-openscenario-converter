@@ -1,9 +1,7 @@
 # Changelog
 
-## [0.0.2] & [0.0.3] - 2023-06-29
-
+## [0.0.4] - 2023-06-29
 ### Added
-- the interface to the esmini UDPDriverController in combination with OSI
 - adding loggers for scenario conversion (the esmini and conversion information are stored in separate files)
 
 ### Fixed
@@ -14,3 +12,8 @@
 ### Changed
 - optimizing the code structure
 - removing the unused files/functions
+
+## [0.0.2] & [0.0.3] - 2023-05-17
+
+### Added
+- the interface to the esmini UDPDriverController in combination with OSI

@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name='commonroad-openscenario-converter',
-      version='0.0.3',
+      version='0.04',
       description='Converter between OpenSCENARIO and CommonRoad formats',
       keywords="scenario description, autonomous driving",
       author='Yuanfei Lin, Michael Ratzel',
