@@ -3,7 +3,7 @@
 
 Automatic Traffic Scenario Conversion between [OpenSCENARIO](https://www.asam.net/standards/detail/openscenario/)
 and [CommonRoad](commonroad.in.tum.de/). Currently, only the conversion from **O**pen**SC**ENARIO to **C**ommon**R**OAD (osc2cr) is developed.<br>
-[![Linux](https://svgshare.com/i/Zhy.svg?style=plastic)](https://svgshare.com/i/Zhy.svg)
+[![Linux](https://img.shields.io/badge/os-linux?&logo=Linux&logoColor=white&labelColor=gray)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
 [![PyPI license](https://img.shields.io/pypi/l/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)
 [![PyPI version fury.io](https://badge.fury.io/py/commonroad-openscenario-converter.svg)](https://pypi.python.org/pypi/commonroad-openscenario-converter/)<br>
@@ -64,14 +64,14 @@ within the project _Cooperative Autonomous Driving with Safety Guarantees_
 ([KoSi](https://www.ce.cit.tum.de/air/research/kosi/)).
 
 ### Citation
-If you use `commonroad-openscenario-converter` for academic work, we highly encourage you to cite our [paper](https://arxiv.org/pdf/2305.10080.pdf):
+If you use `commonroad-openscenario-converter` for academic work, we highly encourage you to cite our [paper](https://mediatum.ub.tum.de/doc/1716501/1716501.pdf):
 ```text
-@article{osc2cr,
-  title={Automatic Traffic Scenario Conversion from OpenSCENARIO to CommonRoad},
-  author={Yuanfei Lin, Michael Ratzel, and Matthias Althoff},
-  archivePrefix={arXiv},
-  journal={arXiv preprint arXiv:2305.10080},
-  year={2023}}
+@inproceedings{Lin2023Osc2Cr,
+	author = {Yuanfei Lin, Michael Ratzel, and Matthias Althoff},
+	title = {Automatic Traffic Scenario Conversion from {OpenSCENARIO} to {CommonRoad}},
+	booktitle = {Proc. of the IEEE Int. Conf. on Intell. Transp. Syst.},
+	year = {2023},
+	pages= {},
 }
 ```
 If you use this project's code in industry, we'd love to hear from you as well; 
