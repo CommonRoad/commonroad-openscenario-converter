@@ -27,6 +27,7 @@ class PPSBuilder:
     """
     Planning Problem Set builder
     """
+
     # Required
     time_interval: AbsRel[Interval] = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
 
@@ -45,12 +46,14 @@ class PPSBuilder:
 
         first_state = obstacle.prediction.trajectory.state_list[0]
         final_state = obstacle.prediction.trajectory.final_state
-        initial_state = InitialState(position=first_state.position,
-                                     velocity=first_state.velocity,
-                                     orientation=first_state.orientation,
-                                     yaw_rate=first_state.yaw_rate,
-                                     slip_angle=first_state.slip_angle,
-                                     time_step=first_state.time_step)
+        initial_state = InitialState(
+            position=first_state.position,
+            velocity=first_state.velocity,
+            orientation=first_state.orientation,
+            yaw_rate=first_state.yaw_rate,
+            slip_angle=first_state.slip_angle,
+            time_step=first_state.time_step,
+        )
 
         goal_state = CustomState()
 
@@ -60,15 +63,17 @@ class PPSBuilder:
                 position_rotation -= 2 * np.pi
             else:
                 position_rotation += 2 * np.pi
-        center = np.array((
-            self.pos_center_x.get(final_state.position[0]),
-            self.pos_center_y.get(final_state.position[1]),
-        ))
+        center = np.array(
+            (
+                self.pos_center_x.get(final_state.position[0]),
+                self.pos_center_y.get(final_state.position[1]),
+            )
+        )
         goal_state.position = Rectangle(
             length=self.pos_length.get(obstacle.obstacle_shape.length),
             width=self.pos_width.get(obstacle.obstacle_shape.width),
             center=center,
-            orientation=position_rotation
+            orientation=position_rotation,
         )
 
         goal_state.time_step = self.time_interval.get(final_state.time_step)
@@ -76,16 +81,16 @@ class PPSBuilder:
         if self.velocity_interval is not None:
             goal_state.velocity = self.velocity_interval.get(final_state.velocity)
         if self.orientation_interval is not None:
-            goal_state.orientation = self.orientation_interval.get(final_state.orientation)
+            goal_state.orientation = self.orientation_interval.get(
+                final_state.orientation
+            )
 
         return PlanningProblemSet(
             [
                 PlanningProblem(
                     planning_problem_id=obstacle.obstacle_id,
                     initial_state=initial_state,
-                    goal_region=GoalRegion(
-                        state_list=[goal_state]
-                    )
+                    goal_region=GoalRegion(state_list=[goal_state]),
                 )
             ]
         )

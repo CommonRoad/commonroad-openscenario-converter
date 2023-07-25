@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.4"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 from enum import Enum
 from typing import Type
@@ -23,4 +23,3 @@ class EAnalyzer(Enum):
         obj.analyzer_type = analyzer_type
         obj.result_type = result_type
         return obj
-

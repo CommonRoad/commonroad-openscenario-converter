@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 from enum import Enum
 from typing import Union, Dict, List, Optional, Type
@@ -68,10 +68,10 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
             counts[name] = amount
 
     def perc(
-            description: str,
-            part_str: Union[str, List[str]],
-            total_str: Union[str, List[str]],
-            invert: bool = False
+        description: str,
+        part_str: Union[str, List[str]],
+        total_str: Union[str, List[str]],
+        invert: bool = False,
     ):
         if isinstance(part_str, str):
             part = counts.get(part_str, 0)
@@ -123,7 +123,10 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
                         analyzer_times[t_analyzer] = []
                     analyzer_times[t_analyzer].append(exec_time)
                     count(f"{t_analyzer.__name__} scenario total")
-                    count(f"{t_analyzer.__name__} vehicle total", stats.num_obstacle_conversions)
+                    count(
+                        f"{t_analyzer.__name__} vehicle total",
+                        stats.num_obstacle_conversions,
+                    )
                     scenario_run = True
                     scenario_success = True
                     for vehicle_name, analyzer_result in analysis.items():
@@ -158,7 +161,11 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
     print("-" * 80)
     print("Sim Ending causes:")
     for e_ending_cause in ESimEndingCause:
-        perc(f" | {e_ending_cause.name}", f"sim ending cause {e_ending_cause.name}", "success")
+        perc(
+            f" | {e_ending_cause.name}",
+            f"sim ending cause {e_ending_cause.name}",
+            "success",
+        )
     print("\n" + "#" * 80)
     print("Granularity SCENARIO")
     print("-" * 80)
@@ -169,14 +176,26 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
     perc("Conversion exception rate", "exception", "total")
     print("-" * 80)
     for path, reason in failed_scenarios.items():
-        print(reason, ':', path)
+        print(reason, ":", path)
     for t_analyzer in analyzer_times.keys():
         print("-" * 80)
         print(f"{t_analyzer.__name__}")
         print(f"{'Average time':<50s} {np.mean(analyzer_times[t_analyzer]):}")
-        perc("run rate", f"{t_analyzer.__name__} scenario run", f"{t_analyzer.__name__} scenario total")
-        perc("success rate", f"{t_analyzer.__name__} scenario success", f"{t_analyzer.__name__} scenario total")
-        perc("", f"{t_analyzer.__name__} scenario success", f"{t_analyzer.__name__} scenario run")
+        perc(
+            "run rate",
+            f"{t_analyzer.__name__} scenario run",
+            f"{t_analyzer.__name__} scenario total",
+        )
+        perc(
+            "success rate",
+            f"{t_analyzer.__name__} scenario success",
+            f"{t_analyzer.__name__} scenario total",
+        )
+        perc(
+            "",
+            f"{t_analyzer.__name__} scenario success",
+            f"{t_analyzer.__name__} scenario run",
+        )
     print("\n" + "#" * 80)
     print("Granularity VEHICLE")
     print("-" * 80)
@@ -185,14 +204,26 @@ def analyze_results(results: Dict[str, BatchConversionResult]):
     for t_analyzer in analyzer_times.keys():
         print("-" * 80)
         print(f"{t_analyzer.__name__}")
-        perc("run rate", f"{t_analyzer.__name__} vehicle run", f"{t_analyzer.__name__} vehicle total")
-        perc("success rate", f"{t_analyzer.__name__} vehicle success", f"{t_analyzer.__name__} vehicle total")
-        perc("", f"{t_analyzer.__name__} vehicle success", f"{t_analyzer.__name__} vehicle run")
+        perc(
+            "run rate",
+            f"{t_analyzer.__name__} vehicle run",
+            f"{t_analyzer.__name__} vehicle total",
+        )
+        perc(
+            "success rate",
+            f"{t_analyzer.__name__} vehicle success",
+            f"{t_analyzer.__name__} vehicle total",
+        )
+        perc(
+            "",
+            f"{t_analyzer.__name__} vehicle success",
+            f"{t_analyzer.__name__} vehicle run",
+        )
 
 
 def print_exception_tracebacks(
-        results: Dict[str, BatchConversionResult],
-        compressed=True,
+    results: Dict[str, BatchConversionResult],
+    compressed=True,
 ):
     """
     Print the exception tracebacks, that raised inside the Converter and caught by the BatchConverter.
@@ -214,9 +245,10 @@ def print_exception_tracebacks(
 
 
 def print_exception_tracebacks_for_analyzer(
-        results: Dict[str, BatchConversionResult], analyzer: Type[Analyzer],
-        granularity: EGranularity = EGranularity.SCENARIO,
-        compressed=True,
+    results: Dict[str, BatchConversionResult],
+    analyzer: Type[Analyzer],
+    granularity: EGranularity = EGranularity.SCENARIO,
+    compressed=True,
 ):
     """
     Print the exception tracebacks, that were raised inside an Analyzer implementation.
@@ -230,7 +262,9 @@ def print_exception_tracebacks_for_analyzer(
 
     def handle_error(source_file, found_error: AnalyzerErrorResult):
         if not compressed:
-            print(f"{source_file}: {found_error.exception_text}\n{found_error.traceback_text}")
+            print(
+                f"{source_file}: {found_error.exception_text}\n{found_error.traceback_text}"
+            )
         else:
             errors[found_error] = 1 + errors.get(found_error, 0)
 
@@ -255,7 +289,14 @@ def print_exception_tracebacks_for_analyzer(
         print(f"{count}\n{error.exception_text}\n{error.traceback_text}")
         print("\n" * 3)
 
-def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Optional[str], label=None):
+
+def _plot_times(
+    times,
+    n_bins: int,
+    low_pass_filter: Optional[float],
+    path: Optional[str],
+    label=None,
+):
     if low_pass_filter is None:
         fig = plt.figure(figsize=(5, 2.5), tight_layout=True)
         plt.hist(times, bins=n_bins, color=_get_colors(times))
@@ -294,11 +335,13 @@ def _plot_times(times, n_bins: int, low_pass_filter: Optional[float], path: Opti
 
 
 def plot_sim_times(
-        results: Union[Dict[str, BatchConversionResult], List[Dict[str, BatchConversionResult]]],
-        n_bins: int = 25,
-        low_pass_filter: Optional[float] = None,
-        path: Optional[str] = None,
-        label: Optional[List[str]] = None
+    results: Union[
+        Dict[str, BatchConversionResult], List[Dict[str, BatchConversionResult]]
+    ],
+    n_bins: int = 25,
+    low_pass_filter: Optional[float] = None,
+    path: Optional[str] = None,
+    label: Optional[List[str]] = None,
 ):
     """
     Plot the simulation times in a histogram, it can also combine multiple results in one dict, if those are passed as a
@@ -331,12 +374,15 @@ def plot_sim_times(
 
     _plot_times(times, n_bins, low_pass_filter, path, label)
 
+
 def plot_runtimes(
-        results: Union[Dict[str, BatchConversionResult], List[Dict[str, BatchConversionResult]]],
-        n_bins: int = 25,
-        low_pass_filter: Optional[float] = None,
-        path: Optional[str] = None,
-        label: Optional[List[str]] = None
+    results: Union[
+        Dict[str, BatchConversionResult], List[Dict[str, BatchConversionResult]]
+    ],
+    n_bins: int = 25,
+    low_pass_filter: Optional[float] = None,
+    path: Optional[str] = None,
+    label: Optional[List[str]] = None,
 ):
     """
     Plot the simulation times in a histogram, it can also combine multiple results in one dict, if those are passed as a
@@ -369,10 +415,11 @@ def plot_runtimes(
 
     _plot_times(times, n_bins, low_pass_filter, path, label)
 
+
 def plot_num_obstacles(
-        results: Dict[str, BatchConversionResult],
-        low_pass_filter: Optional[int] = None,
-        path: Optional[str] = None
+    results: Dict[str, BatchConversionResult],
+    low_pass_filter: Optional[int] = None,
+    path: Optional[str] = None,
 ):
     """
     Plot how many scenarios have a num of obstacles in them

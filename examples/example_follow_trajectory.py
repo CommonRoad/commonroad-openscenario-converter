@@ -5,7 +5,7 @@ import sys
 from osc_cr_converter.udp_driver.common import *
 
 
-class Driver():
+class Driver:
     def __init__(self):
         self.steering = 0.0
         self.speed = 0.0
@@ -24,8 +24,9 @@ class Driver():
             return -(x % 200) + 200
 
     def step(self, speed, x, y, h):
-
-        lookahead = max(5.0, 1.2 * speed)  # look ahead some distance proportional to speed
+        lookahead = max(
+            5.0, 1.2 * speed
+        )  # look ahead some distance proportional to speed
         # Lateral position on the trajectory
         y_target = self.trajectory_function(x + lookahead)  # look ahead 10 m
 
@@ -49,31 +50,55 @@ class Driver():
 
 def print_osi_stuff(msg):
     # Print some content from the message
-    print('lane ids: {}'.format([l.id.value for l in msg.lane]))
+    print("lane ids: {}".format([l.id.value for l in msg.lane]))
     for i, o in enumerate(msg.moving_object):
-        print('Object[{}] id {}'.format(i, o.id.value))
-        print('   pos.x {:.2f} pos.y {:.2f} rot.h {:.2f}'.format(o.base.position.x, o.base.position.y,
-                                                                 o.base.orientation.yaw))
-        print('   vel.x {:.2f} vel.y {:.2f} rot_rate.h {:.2f}'.format(o.base.velocity.x, o.base.velocity.y,
-                                                                      o.base.orientation_rate.yaw))
-        print('   acc.x {:.2f} acc.y {:.2f} rot_acc.h {:.2f}'.format(o.base.acceleration.x, o.base.acceleration.y,
-                                                                     o.base.orientation_acceleration.yaw))
+        print("Object[{}] id {}".format(i, o.id.value))
+        print(
+            "   pos.x {:.2f} pos.y {:.2f} rot.h {:.2f}".format(
+                o.base.position.x, o.base.position.y, o.base.orientation.yaw
+            )
+        )
+        print(
+            "   vel.x {:.2f} vel.y {:.2f} rot_rate.h {:.2f}".format(
+                o.base.velocity.x, o.base.velocity.y, o.base.orientation_rate.yaw
+            )
+        )
+        print(
+            "   acc.x {:.2f} acc.y {:.2f} rot_acc.h {:.2f}".format(
+                o.base.acceleration.x,
+                o.base.acceleration.y,
+                o.base.orientation_acceleration.yaw,
+            )
+        )
 
-        lane_id = o.assigned_lane_id[0].value if len(msg.lane) > 0 and len(o.assigned_lane_id) > 0 else -1
+        lane_id = (
+            o.assigned_lane_id[0].value
+            if len(msg.lane) > 0 and len(o.assigned_lane_id) > 0
+            else -1
+        )
         left_lane_id = -1
         right_lane_id = -1
         for l in msg.lane:
             if l.id.value == o.assigned_lane_id[0].value:
-                left_lane_id = l.classification.left_adjacent_lane_id[0].value if len(
-                    l.classification.left_adjacent_lane_id) > 0 else -1
-                right_lane_id = l.classification.right_adjacent_lane_id[0].value if len(
-                    l.classification.right_adjacent_lane_id) > 0 else -1
+                left_lane_id = (
+                    l.classification.left_adjacent_lane_id[0].value
+                    if len(l.classification.left_adjacent_lane_id) > 0
+                    else -1
+                )
+                right_lane_id = (
+                    l.classification.right_adjacent_lane_id[0].value
+                    if len(l.classification.right_adjacent_lane_id) > 0
+                    else -1
+                )
                 break
-        print('   lane id {} left adj lane id {} right adj lane id {}'.format(lane_id, left_lane_id, right_lane_id))
+        print(
+            "   lane id {} left adj lane id {} right adj lane id {}".format(
+                lane_id, left_lane_id, right_lane_id
+            )
+        )
 
 
 if __name__ == "__main__":
-
     id = 0
 
     # Create UDP socket objects
@@ -84,7 +109,6 @@ if __name__ == "__main__":
     counter = 0
 
     while not done:
-
         # Read OSI
         try:
             msg = osiReceiver.receive()
@@ -93,31 +117,37 @@ if __name__ == "__main__":
             # extract values for vehicle
             o = msg.moving_object[id]
             speed = math.sqrt(
-                o.base.velocity.x ** 2 + o.base.velocity.y ** 2)  # assume speed is the hypotenuse of x and y velocity components
-            driver.step(speed, o.base.position.x, o.base.position.y, o.base.orientation.yaw)
+                o.base.velocity.x**2 + o.base.velocity.y**2
+            )  # assume speed is the hypotenuse of x and y velocity components
+            driver.step(
+                speed, o.base.position.x, o.base.position.y, o.base.orientation.yaw
+            )
 
         except timeout:
-            print('osiReceive Timeout')
+            print("osiReceive Timeout")
         except KeyboardInterrupt:
-            print('Ctrl+C pressed, quit')
+            print("Ctrl+C pressed, quit")
             done = True
 
         # Send updated driver input
         udpSender0.send(
             struct.pack(
-                'iiiiddd',
+                "iiiiddd",
                 1,  # version
-                input_modes['driverInput'],
+                input_modes["driverInput"],
                 id,  # object ID
                 counter,  # frame nr
                 driver.throttle,  # throttle
                 driver.brake,  # brake
-                driver.steering  # steering angle
+                driver.steering,  # steering angle
             )
         )
 
-        print('{} throttle {:.2f} brake {:.2f} steer_angle {:.2f}'.format(counter, driver.throttle, driver.brake,
-                                                                          driver.steering))
+        print(
+            "{} throttle {:.2f} brake {:.2f} steer_angle {:.2f}".format(
+                counter, driver.throttle, driver.brake, driver.steering
+            )
+        )
 
         counter += 1
 

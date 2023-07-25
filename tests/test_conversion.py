@@ -18,7 +18,9 @@ class TestOpenSCENARIOToCommonRoadConversion(unittest.TestCase):
         self.converter = Osc2CrConverter(config)
 
     def load_and_convert_openscenario(self, file_name: str) -> Scenario:
-        source_file = os.path.dirname(os.path.realpath(__file__)) + "/../scenarios/" + file_name
+        source_file = (
+            os.path.dirname(os.path.realpath(__file__)) + "/../scenarios/" + file_name
+        )
         return self.converter.run_conversion(source_file)
 
     def test_pedestrian_collision(self):
@@ -48,4 +50,3 @@ class TestOpenSCENARIOToCommonRoadConversion(unittest.TestCase):
         # test nr of obstacles
         self.assertEqual(len(scenario.dynamic_obstacles), 2)
         self.assertEqual(len(scenario.static_obstacles), 0)
-

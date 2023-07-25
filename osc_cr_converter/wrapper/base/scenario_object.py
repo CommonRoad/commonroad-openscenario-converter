@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 from abc import abstractmethod
 from typing import Tuple, List, Type, Optional
@@ -51,15 +51,22 @@ class ScenarioObjectState:
     SimScenarioObjectStates stored in _closest. Implementations of this class take care of interpolating the two
     SimScenarioObjectStates and creating a CommonRoad state out of it.
     """
+
     _closest: Tuple[SimScenarioObjectState, SimScenarioObjectState]
     _timestamp: float
     _dt1: float
     _dt2: float
     _obstacle_extra_info: Optional[Vehicle]
 
-    def __init__(self, timestamp: float, closest_states: Tuple[SimScenarioObjectState, SimScenarioObjectState],
-                 obstacle_extra_info: Optional[Vehicle]):
-        if abs(timestamp - closest_states[0].get_timestamp()) <= abs(timestamp - closest_states[1].get_timestamp()):
+    def __init__(
+        self,
+        timestamp: float,
+        closest_states: Tuple[SimScenarioObjectState, SimScenarioObjectState],
+        obstacle_extra_info: Optional[Vehicle],
+    ):
+        if abs(timestamp - closest_states[0].get_timestamp()) <= abs(
+            timestamp - closest_states[1].get_timestamp()
+        ):
             self._closest = (closest_states[0], closest_states[1])
         else:
             self._closest = (closest_states[1], closest_states[0])
@@ -89,8 +96,11 @@ class ScenarioObjectState:
         return self._obstacle_type
 
     @staticmethod
-    def build_interpolated(states: List[SimScenarioObjectState], timestamp: float,
-                           obstacle_extra_info: Optional[Vehicle]) -> "ScenarioObjectState":
+    def build_interpolated(
+        states: List[SimScenarioObjectState],
+        timestamp: float,
+        obstacle_extra_info: Optional[Vehicle],
+    ) -> "ScenarioObjectState":
         """
         Convenience function around _build_interpolated which utilizes
         SimScenarioObjectState.get_scenario_object_state_type() to enable inheritance
@@ -103,8 +113,12 @@ class ScenarioObjectState:
         """
         assert len(states) > 0
         if len(states) == 1:
-            return ScenarioObjectState.build_interpolated([states[0], states[0]], timestamp, obstacle_extra_info)
-        sorted_states = sorted(states, key=lambda state: abs(timestamp - state.timestamp))[:2]
+            return ScenarioObjectState.build_interpolated(
+                [states[0], states[0]], timestamp, obstacle_extra_info
+            )
+        sorted_states = sorted(
+            states, key=lambda state: abs(timestamp - state.timestamp)
+        )[:2]
         return states[0].get_scenario_object_state_type()(
             timestamp=timestamp,
             closest_states=(sorted_states[0], sorted_states[1]),
@@ -127,7 +141,13 @@ class ScenarioObjectState:
         """
         Interpolate the value of field_name between the two closest states
         """
-        val0, val1, = (getattr(self._closest[0], field_name), getattr(self._closest[1], field_name))
+        (
+            val0,
+            val1,
+        ) = (
+            getattr(self._closest[0], field_name),
+            getattr(self._closest[1], field_name),
+        )
         gradient = (val1 - val0) / self._dt1
         return val0 + gradient * self._dt2
 
@@ -135,10 +155,19 @@ class ScenarioObjectState:
         """
         Assert that the values of field_name match in both closest states and return the value
         """
-        val0, val1, = (getattr(self._closest[0], field_name), getattr(self._closest[1], field_name))
+        (
+            val0,
+            val1,
+        ) = (
+            getattr(self._closest[0], field_name),
+            getattr(self._closest[1], field_name),
+        )
         if val0 != val1:
-            raise ValueError("Failed interpolating new state, expected {}s to be equal: {}!={}"
-                             .format(field_name, val0, val1))
+            raise ValueError(
+                "Failed interpolating new state, expected {}s to be equal: {}!={}".format(
+                    field_name, val0, val1
+                )
+            )
         else:
             return val0
 
@@ -152,5 +181,11 @@ class ScenarioObjectState:
         """
         Get the rate of change of field_name between the two closest states
         """
-        val0, val1, = (getattr(self._closest[0], field_name), getattr(self._closest[1], field_name))
+        (
+            val0,
+            val1,
+        ) = (
+            getattr(self._closest[0], field_name),
+            getattr(self._closest[1], field_name),
+        )
         return (val1 - val0) / self._dt1

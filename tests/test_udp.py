@@ -7,5 +7,3 @@ class TestUDP(unittest.TestCase):
 
     def test_osi(self):
         OSIReceiver()
-
-
