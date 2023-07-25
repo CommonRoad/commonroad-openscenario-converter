@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0] - 2023-07-25
+### Added
+- adding the documentations
+- adding the details in pypi page
+### Fixed
+- finalizing for the ITSC final submission
+- using style checking (black)
+
 ## [0.0.4] - 2023-06-29
 ### Added
 - adding loggers for scenario conversion (the esmini and conversion information are stored in separate files)
