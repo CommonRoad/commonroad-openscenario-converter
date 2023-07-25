@@ -1,10 +1,10 @@
 __author__ = "Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 from enum import Enum
 import numpy as np
@@ -36,10 +36,13 @@ class TUMcolor(tuple, Enum):
 zorder = 22
 
 
-def draw_state_list(rnd: MPRenderer, state_list: List[Union[PMState, CustomState]],
-                    start_time_step: Union[None, int] = None,
-                    color: TUMcolor = TUMcolor.TUMdarkblue,
-                    linewidth: float = 0.75) -> None:
+def draw_state_list(
+    rnd: MPRenderer,
+    state_list: List[Union[PMState, CustomState]],
+    start_time_step: Union[None, int] = None,
+    color: TUMcolor = TUMcolor.TUMdarkblue,
+    linewidth: float = 0.75,
+) -> None:
     """
     Visualizing the state list as a connecting trajectory. The transparency is based on the starting
     time step.
@@ -51,13 +54,26 @@ def draw_state_list(rnd: MPRenderer, state_list: List[Union[PMState, CustomState
         opacity = 0.5 * (start_time_step / len(state_list) + 1)
     else:
         opacity = 1
-    rnd.ax.plot(pos[:, 0], pos[:, 1], linestyle='-', marker='o', color=color, markersize=5,
-                zorder=zorder, linewidth=linewidth, alpha=opacity)
+    rnd.ax.plot(
+        pos[:, 0],
+        pos[:, 1],
+        linestyle="-",
+        marker="o",
+        color=color,
+        markersize=5,
+        zorder=zorder,
+        linewidth=linewidth,
+        alpha=opacity,
+    )
     zorder += 1
 
 
-def draw_dyn_vehicle_shape(rnd: MPRenderer, obstacle: DynamicObstacle, time_step: int,
-                           color: TUMcolor = TUMcolor.TUMblue):
+def draw_dyn_vehicle_shape(
+    rnd: MPRenderer,
+    obstacle: DynamicObstacle,
+    time_step: int,
+    color: TUMcolor = TUMcolor.TUMblue,
+):
     global zorder
     obs_shape = obstacle.occupancy_at_time(time_step).shape
     if isinstance(obs_shape, ShapeGroup):
@@ -85,8 +101,14 @@ def visualize_scenario(scenario: Scenario, config: ConverterParams):
     rnd.render()
     for obs in scenario.obstacles:
         if obs.prediction.final_time_step >= time_steps[-1]:
-            draw_state_list(rnd, obs.prediction.trajectory.state_list[time_steps[0]:time_steps[-1] + 1],
-                            color=TUMcolor.TUMblue, linewidth=5)
+            draw_state_list(
+                rnd,
+                obs.prediction.trajectory.state_list[
+                    time_steps[0] : time_steps[-1] + 1
+                ],
+                color=TUMcolor.TUMblue,
+                linewidth=5,
+            )
             for ts in time_steps[1:]:
                 draw_dyn_vehicle_shape(rnd, obs, ts, color=TUMcolor.TUMblue)
     plt.show()

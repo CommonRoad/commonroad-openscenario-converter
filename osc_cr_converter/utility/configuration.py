@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.4"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import dataclasses
 import inspect
@@ -71,7 +71,9 @@ class BaseParam:
         try:
             value = self.__getattribute__(item)
         except AttributeError as e:
-            raise KeyError(f"{item} is not a parameter of {self.__class__.__name__}") from e
+            raise KeyError(
+                f"{item} is not a parameter of {self.__class__.__name__}"
+            ) from e
         return value
 
     def __setitem__(self, key: str, value: Any):
@@ -84,10 +86,14 @@ class BaseParam:
         try:
             self.__setattr__(key, value)
         except AttributeError as e:
-            raise KeyError(f"{key} is not a parameter of {self.__class__.__name__}") from e
+            raise KeyError(
+                f"{key} is not a parameter of {self.__class__.__name__}"
+            ) from e
 
     @classmethod
-    def load(cls, file_path: Union[pathlib.Path, str], validate_types: bool = True) -> 'ConverterParams':
+    def load(
+        cls, file_path: Union[pathlib.Path, str], validate_types: bool = True
+    ) -> "ConverterParams":
         """
         Loads config file and creates parameter class.
 
@@ -96,7 +102,9 @@ class BaseParam:
         :return: Base parameter class.
         """
         file_path = pathlib.Path(file_path)
-        assert file_path.suffix == ".yaml", f"File type {file_path.suffix} is unsupported! Please use .yaml!"
+        assert (
+            file_path.suffix == ".yaml"
+        ), f"File type {file_path.suffix} is unsupported! Please use .yaml!"
         loaded_yaml = OmegaConf.load(file_path)
         if validate_types:
             OmegaConf.merge(OmegaConf.structured(ConverterParams), loaded_yaml)
@@ -110,12 +118,14 @@ class GeneralParams(BaseParam):
 
     # path of the root
     # name of the OpenSCENARIO file and its path
-    name_xosc: str = ''
+    name_xosc: str = ""
 
     # path for the output files
-    path_output_abs: str = os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")) + "/output/"
+    path_output_abs: str = (
+        os.path.normpath(os.path.join(os.path.dirname(__file__), "../..")) + "/output/"
+    )
     # path for logging information
-    path_output_log: str = path_output_abs + 'log/'
+    path_output_log: str = path_output_abs + "log/"
     string_date_time = datetime.now().strftime("%Y_%m_%d_%H-%M-%S")
 
     def __init__(self):
@@ -124,7 +134,7 @@ class GeneralParams(BaseParam):
 
     @property
     def path_output(self):
-        path_output = self.path_output_abs + self.name_xosc + '/'
+        path_output = self.path_output_abs + self.name_xosc + "/"
         os.makedirs(path_output, exist_ok=True)
         return path_output
 
@@ -158,6 +168,7 @@ class EsminiParams(BaseParam):
         """
         Utility class storing information about the size and position of a window
         """
+
         x: int = 0
         y: int = 0
         width: int = 640
@@ -167,8 +178,8 @@ class EsminiParams(BaseParam):
     version: str = "default"  # we use v2.29.3 as default version
 
     # lower and upper time limits for the simulation duration
-    min_time: float = 5.
-    max_time: float = 60.
+    min_time: float = 5.0
+    max_time: float = 60.0
 
     # logging information
     log_to_console: bool = False
@@ -207,13 +218,14 @@ class ScenarioParams(BaseParam):
     # trim the map based on the vehicle information
     trim_scenario: bool = False
     # default config & pred for specifying the scenario name:
-    config: str = '1'  # 1-9
-    pred: str = '1'
+    config: str = "1"  # 1-9
+    pred: str = "1"
 
 
 @dataclass
 class ConverterParams(BaseParam):
     """Configuration parameters for OpenSCENARIO2CommonRoad converter."""
+
     general: GeneralParams = field(default_factory=GeneralParams)
     debug: DebugParams = field(default_factory=DebugParams)
     esmini: EsminiParams = field(default_factory=EsminiParams)
@@ -222,12 +234,16 @@ class ConverterParams(BaseParam):
     @staticmethod
     def initialize_planning_problem_set():
         planning_problem_set = PPSBuilder()
-        planning_problem_set.time_interval = AbsRel(Interval(-10, 0), AbsRel.EUsage.REL_ADD)
+        planning_problem_set.time_interval = AbsRel(
+            Interval(-10, 0), AbsRel.EUsage.REL_ADD
+        )
         planning_problem_set.pos_length = AbsRel(50, AbsRel.EUsage.ABS)
         planning_problem_set.pos_width = AbsRel(10, AbsRel.EUsage.ABS)
         planning_problem_set.pos_rotation = AbsRel(0, AbsRel.EUsage.REL_ADD)
         planning_problem_set.pos_center_x = AbsRel(0, AbsRel.EUsage.REL_ADD)
         planning_problem_set.pos_center_y = AbsRel(0, AbsRel.EUsage.REL_ADD)
-        planning_problem_set.velocity_interval = AbsRel(Interval(-5, 5), AbsRel.EUsage.REL_ADD)
+        planning_problem_set.velocity_interval = AbsRel(
+            Interval(-5, 5), AbsRel.EUsage.REL_ADD
+        )
         planning_problem_set.orientation_interval = None
         return planning_problem_set

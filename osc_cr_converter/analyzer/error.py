@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import traceback
 from dataclasses import dataclass, fields
@@ -18,6 +18,7 @@ class AnalyzerErrorResult(AnalyzerResult):
     """
     A result containing a exception text and traceback
     """
+
     exception_text: str
     traceback_text: str
 
@@ -33,11 +34,12 @@ class AnalyzerErrorResult(AnalyzerResult):
     @staticmethod
     def is_error(data: Dict) -> bool:
         expected_fields = fields(AnalyzerErrorResult)
-        return len(data) == len(expected_fields) and all([field.name in data for field in expected_fields])
+        return len(data) == len(expected_fields) and all(
+            [field.name in data for field in expected_fields]
+        )
 
     @staticmethod
     def from_exception(e: Exception) -> "AnalyzerErrorResult":
         return AnalyzerErrorResult(
-            exception_text=str(e),
-            traceback_text=traceback.format_exc(limit=50)
+            exception_text=str(e), traceback_text=traceback.format_exc(limit=50)
         )

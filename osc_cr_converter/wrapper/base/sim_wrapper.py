@@ -1,13 +1,13 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import warnings
-from typing import Optional,  Dict, List
+from typing import Optional, Dict, List
 from dataclasses import dataclass
 
 from commonroad.common.validity import is_real_number
@@ -27,6 +27,7 @@ class WrapperSimResult:
         states_per_vehicle List of simulation states per vehicle
         total_simulation_time total time simulated (Not execution time)
     """
+
     states: Dict[str, List[SimScenarioObjectState]]
     sim_time: float
     runtime: float
@@ -40,10 +41,7 @@ class WrapperSimResult:
         :return: A wrappersimresult object
         """
         return WrapperSimResult(
-            ending_cause=ESimEndingCause.FAILURE,
-            states={},
-            sim_time=0.0,
-            runtime=0.0
+            ending_cause=ESimEndingCause.FAILURE, states={}, sim_time=0.0, runtime=0.0
         )
 
 
@@ -51,6 +49,7 @@ class SimWrapper:
     """
     The base class of a ScenarioWrapper.
     """
+
     def __init__(self, config: ConverterParams):
         self.config = config
         self.max_time = config.esmini.max_time
@@ -69,7 +68,9 @@ class SimWrapper:
         elif is_real_number(new_max_time):
             self._max_time = new_max_time
         else:
-            warnings.warn(f"<EsminiWrapper/max_time> Tried to set to non real number value {new_max_time}.")
+            warnings.warn(
+                f"<EsminiWrapper/max_time> Tried to set to non real number value {new_max_time}."
+            )
 
     def simulate_scenario(self, scenario_path: str, sim_dt: float) -> WrapperSimResult:
         """
@@ -81,7 +82,9 @@ class SimWrapper:
         """
         raise NotImplementedError
 
-    def view_scenario(self, scenario_path: str, window_size: Optional[EsminiParams.WindowSize] = None):
+    def view_scenario(
+        self, scenario_path: str, window_size: Optional[EsminiParams.WindowSize] = None
+    ):
         """
         Render a XOSC file
 
@@ -90,8 +93,13 @@ class SimWrapper:
         """
         warnings.warn(f"{self.__class__} did not implement to view scenario")
 
-    def render_scenario_to_gif(self, scenario_path: str, gif_file_path: str, fps: int = 30,
-                               gif_size: Optional[EsminiParams.WindowSize] = None) -> bool:
+    def render_scenario_to_gif(
+        self,
+        scenario_path: str,
+        gif_file_path: str,
+        fps: int = 30,
+        gif_size: Optional[EsminiParams.WindowSize] = None,
+    ) -> bool:
         """
         Create a gif of an XOSC file.
 
@@ -101,6 +109,7 @@ class SimWrapper:
         :param gif_size Size of the gif
         :return Returns if gif creation was successful
         """
-        warnings.warn(f"{self.__class__} did not implement to render a scenario to a gif")
+        warnings.warn(
+            f"{self.__class__} did not implement to render a scenario to a gif"
+        )
         return False
-

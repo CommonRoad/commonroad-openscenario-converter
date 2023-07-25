@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 from dataclasses import dataclass
 from enum import Enum
@@ -23,6 +23,7 @@ class AbsRel(Generic[T]):
     it
     If _value is used as an absolute configuration value, it is returned without modification
     """
+
     __create_key: ClassVar[object] = object()
     _value: T
     _usage: "AbsRel.EUsage"
@@ -54,7 +55,7 @@ class AbsRel(Generic[T]):
 
         ABS = (lambda v, _: v,)
         REL_ADD = (lambda v, r: v + r,)
-        REL_SUB = (lambda v, r: v - r)
+        REL_SUB = lambda v, r: v - r
         REL_MUL = (lambda v, r: v * r,)
         REL_DIV = (lambda v, r: v / r,)
 
@@ -67,8 +68,12 @@ class AbsRel(Generic[T]):
         """
         if isinstance(self._value, (Interval, AngleInterval)):
             return type(self._value)(
-                start=self._usage.apply_value_to_reference(self._value.start, reference_value),
-                end=self._usage.apply_value_to_reference(self._value.end, reference_value),
+                start=self._usage.apply_value_to_reference(
+                    self._value.start, reference_value
+                ),
+                end=self._usage.apply_value_to_reference(
+                    self._value.end, reference_value
+                ),
             )
         elif isinstance(self._value, (float, int)):
             return self._usage.apply_value_to_reference(self._value, reference_value)

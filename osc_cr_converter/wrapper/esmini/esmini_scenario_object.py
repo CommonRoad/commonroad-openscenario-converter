@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import ctypes as ct
 from typing import Type
@@ -13,13 +13,17 @@ import numpy as np
 from commonroad.scenario.obstacle import ObstacleType
 from commonroad.scenario.state import CustomState
 
-from osc_cr_converter.wrapper.base.scenario_object import ScenarioObjectState, SimScenarioObjectState
+from osc_cr_converter.wrapper.base.scenario_object import (
+    ScenarioObjectState,
+    SimScenarioObjectState,
+)
 
 
 class SEStruct(ct.Structure, SimScenarioObjectState):
     """
     Implementation of the SimScenarioObjectState ABC. Objects of this will be recorded while running the simulation
     """
+
     _fields_ = [
         ("id", ct.c_int),
         ("model_id", ct.c_int),
@@ -47,7 +51,7 @@ class SEStruct(ct.Structure, SimScenarioObjectState):
         ("objectType", ct.c_int),
         ("objectCategory", ct.c_int),
         ("wheel_angle", ct.c_float),
-        ("wheel_rotation", ct.c_float)
+        ("wheel_rotation", ct.c_float),
     ]
 
     def get_scenario_object_state_type(self) -> "Type[ScenarioObjectState]":
@@ -112,6 +116,7 @@ class EsminiScenarioObjectState(ScenarioObjectState):
     """
     Class that converts from SEStructs to CommonRoad states
     """
+
     @property
     def id(self) -> int:
         if not hasattr(self, "_id"):
@@ -289,21 +294,21 @@ class EsminiScenarioObjectState(ScenarioObjectState):
         c_p, s_p = np.cos(self.p), np.sin(self.p)  # pitch
         c_r, s_r = np.cos(self.r), np.sin(self.r)  # roll
 
-        center = np.array((
-            self.x,
-            self.y,
-            self.z
-        ))
-        rotation_matrix = np.array((
-            (c_h * c_p, c_h * s_p * s_r - s_h * c_r, c_h * s_p * c_r + s_h * s_r),
-            (s_h * c_p, s_h * s_p * s_r + c_h * c_r, s_h * s_p * s_r - c_h * s_r),
-            (-s_p, c_p * s_r, c_p * c_r),
-        ))
-        offset = np.array((
-            self.center_offset_x,
-            self.center_offset_y,
-            self.center_offset_z,
-        ))
+        center = np.array((self.x, self.y, self.z))
+        rotation_matrix = np.array(
+            (
+                (c_h * c_p, c_h * s_p * s_r - s_h * c_r, c_h * s_p * c_r + s_h * s_r),
+                (s_h * c_p, s_h * s_p * s_r + c_h * c_r, s_h * s_p * s_r - c_h * s_r),
+                (-s_p, c_p * s_r, c_p * c_r),
+            )
+        )
+        offset = np.array(
+            (
+                self.center_offset_x,
+                self.center_offset_y,
+                self.center_offset_z,
+            )
+        )
         position_3d = center + np.matmul(rotation_matrix, offset)
         return CustomState(
             time_step=time_step,

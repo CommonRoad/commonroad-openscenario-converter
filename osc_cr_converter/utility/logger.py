@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.4"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import logging
 import os
@@ -19,8 +19,9 @@ def initialize_logger(config: ConverterParams) -> logging.Logger:
     logger = logging.getLogger()
 
     # create file handler (outputs to file)
-    path_log = os.path.join(config.general.path_output_log,
-                            f"convert_{config.general.string_date_time}.log")
+    path_log = os.path.join(
+        config.general.path_output_log, f"convert_{config.general.string_date_time}.log"
+    )
     file_handler = logging.FileHandler(path_log)
 
     # set logging levels
@@ -28,8 +29,10 @@ def initialize_logger(config: ConverterParams) -> logging.Logger:
     file_handler.setLevel(config.debug.logging_level)
 
     # create log formatter
-    formatter = logging.Formatter("%(levelname)-8s [%(asctime)s] --- %(message)s (%(filename)s:%(lineno)s)",
-                                  "%Y-%m-%d %H:%M:%S")
+    formatter = logging.Formatter(
+        "%(levelname)-8s [%(asctime)s] --- %(message)s (%(filename)s:%(lineno)s)",
+        "%Y-%m-%d %H:%M:%S",
+    )
     file_handler.setFormatter(formatter)
 
     # add handlers

@@ -4,7 +4,7 @@ __credits__ = ["KoSi"]
 __version__ = "0.0.1"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 from dataclasses import dataclass
 from typing import Optional, List, Dict
