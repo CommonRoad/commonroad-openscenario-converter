@@ -11,3 +11,5 @@ log.txt
 build/*
 dist/*
 *.egg-info/
+
+docs/sphinx/build

@@ -45,3 +45,24 @@ test_python11:
     - source activate cr11
     - echo $(python --version)
     - *install-and-run
+
+pages:
+  # Push the latest documentation of the development branch to the GitLab Pages
+  # at https://cps.pages.gitlab.lrz.de/commonroad-openscenario-converter/
+  stage: deploy
+  when: manual
+  only:
+    - master
+  script:
+    - pip install -e .
+    - pip install -r ./docs/requirements_doc.txt
+    - cd docs/sphinx
+    - make html
+    - mv ./build/html ../../public
+  artifacts:
+    paths:
+      - public
+  environment:
+    name: Gitlab Pages
+    url: https://cps.pages.gitlab.lrz.de/commonroad-openscenario-converter/
+
