@@ -1,5 +1,6 @@
+############################################
 Conversion of single OpenSCENARIO file
----------------------------------
+############################################
 
 This tutorial demonstrates how to use the converter to translate
 single OpenSCENARIO format to the CommonRoad scenarios.

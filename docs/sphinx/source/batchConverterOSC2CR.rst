@@ -1,5 +1,6 @@
+############################################
 Batch Conversion of OpenSCENARIO file
----------------------------------
+############################################
 
 This tutorial explains how to use the batch processing to convert OpenSCENARIO to CommonRoad in parallel.
 
@@ -31,7 +32,7 @@ This tutorial explains how to use the batch processing to convert OpenSCENARIO t
       Serializable.storage_dir = storage_dir
 
 Batch conversion, analyse, and visualization
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 

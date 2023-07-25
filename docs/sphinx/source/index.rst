@@ -26,7 +26,7 @@ and **OpenSCENARIO** formats.
    * `CommonRoad Scenario Designer <https://commonroad.in.tum.de/tools/scenario-designer>`_
 
 Installation
-===============
+===================
 We have tested the toolbox with Python 3.9, 3.10, and 3.11.
 
 The recommended way of installation if you only want to use the OpenSCENARIO-CommonROAD Converter
@@ -36,7 +36,7 @@ The recommended way of installation if you only want to use the OpenSCENARIO-Com
 
 
 Development
-===============
+===================
 For developing purposes, we recommend using `Anaconda <https://www.anaconda.com/>`_ to manage your environment so that
 even if you mess something up, you can always have a safe and clean restart.
 A guide for managing python environments with Anaconda can be found `here <https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html>`_.
@@ -47,6 +47,7 @@ After installing Anaconda, create a new environment with (>=3.9) and enter it::
 
    conda create -n commonroad-py39 python=3.9 -y
    conda activate commonroad-py39
+
 or::
 
    source activate commonroad-py39
@@ -63,7 +64,7 @@ To test the installition, run unittest::
    python -m unittest -v
 
 Overview
-===============
+===================
 
 .. toctree::
    :maxdepth: 2
@@ -72,7 +73,7 @@ Overview
     API <api/index.rst>
 
 Open Simulation Interface (OSI) and UDP Driver
-===============
+===================
 If you want to use the `esmini <https://github.com/esmini/esmini>`_ UDPDriverController in combination with OSI for including
 external driver models or vehicle simulators, you need to install OSI manually,
 see the `user manual <https://github.com/OpenSimulationInterface/open-simulation-interface>`_.
@@ -102,21 +103,8 @@ Contact information
 :Forum: `CommonRoad forum <https://commonroad.in.tum.de/forum/>`_
 :Email: `commonroad@lists.lrz.de <commonroad@lists.lrz.de>`_
 
-
-
-
-
-Welcome to commonroad-openscenario-converter's documentation!
-=============================================================
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
-
 Indices and tables
-==================
+===================
 
 * :ref:`genindex`
 * :ref:`modindex`
