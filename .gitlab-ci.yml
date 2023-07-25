@@ -54,8 +54,11 @@ pages:
   only:
     - master
   script:
+    - pip install -e .
     - pip install -r ./docs/requirements_doc.txt
-    - cd docs/sphinx/source && sphinx-build -b html . ../../public
+    - cd docs/sphinx
+    - make html
+    - mv ./build/html ../../public
   artifacts:
     paths:
       - public
