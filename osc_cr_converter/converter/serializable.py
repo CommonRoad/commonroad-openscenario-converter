@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import base64
 import pickle
@@ -21,6 +21,7 @@ class Serializable(ABC):
     Also when unpickle any file implementing is assumed to contain a small amount of data, unless the
     import_extra_files field is set to True here
     """
+
     storage_dir: ClassVar[Optional[str]] = None
     import_extra_files: ClassVar[bool] = True
 

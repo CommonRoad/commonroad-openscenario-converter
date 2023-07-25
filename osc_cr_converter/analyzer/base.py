@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import time
 from abc import ABC, abstractmethod
@@ -30,10 +30,15 @@ class Analyzer(ABC):
     To implement your own analyzer, implement the _run method and make sure it is safe that the analyzer will be killed
     after the timeout happened
     """
+
     timeout: float = 120
 
-    def run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
-            obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Tuple[float, Dict[str, AnalyzerResult]]:
+    def run(
+        self,
+        scenario: Scenario,
+        obstacles: Dict[str, Optional[DynamicObstacle]],
+        obstacles_extra_info: Dict[str, Optional[Vehicle]],
+    ) -> Tuple[float, Dict[str, AnalyzerResult]]:
         """
         The run method is the main entry point for your analyzer. It is called by the
         scenario runner and expects to receive three arguments:
@@ -57,7 +62,11 @@ class Analyzer(ABC):
         time_start = time.time()
 
         result_dict = Manager().dict()
-        process = Process(target=self.__run, args=(scenario, obstacles, obstacles_extra_info, result_dict), daemon=True)
+        process = Process(
+            target=self.__run,
+            args=(scenario, obstacles, obstacles_extra_info, result_dict),
+            daemon=True,
+        )
         process.start()
         process.join(self.timeout)
         exec_time = time.time() - time_start
@@ -69,21 +78,29 @@ class Analyzer(ABC):
                 process.kill()
                 exception_text = "Timed out - NEEDED SIGKILL"
             result = AnalyzerErrorResult(
-                exception_text=exception_text,
-                traceback_text=""
+                exception_text=exception_text, traceback_text=""
             )
             results = {o_name: result for o_name in obstacles.keys()}
         else:
             results = dict(result_dict)
         return exec_time, results
 
-    def __run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
-              obstacles_extra_info: Dict[str, Optional[Vehicle]], result_dict: Dict[str, AnalyzerResult]):
+    def __run(
+        self,
+        scenario: Scenario,
+        obstacles: Dict[str, Optional[DynamicObstacle]],
+        obstacles_extra_info: Dict[str, Optional[Vehicle]],
+        result_dict: Dict[str, AnalyzerResult],
+    ):
         result_dict.update(self._run(scenario, obstacles, obstacles_extra_info))
 
     @abstractmethod
-    def _run(self, scenario: Scenario, obstacles: Dict[str, Optional[DynamicObstacle]],
-             obstacles_extra_info: Dict[str, Optional[Vehicle]]) -> Dict[str, AnalyzerResult]:
+    def _run(
+        self,
+        scenario: Scenario,
+        obstacles: Dict[str, Optional[DynamicObstacle]],
+        obstacles_extra_info: Dict[str, Optional[Vehicle]],
+    ) -> Dict[str, AnalyzerResult]:
         """
         The _run method is the method where the actual work of the analyzer happens
 

@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.4"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 from dataclasses import dataclass
 from multiprocessing import Lock
@@ -32,6 +32,7 @@ class Osc2CrConverterResult(Serializable):
     For faster import of the results the loading of the scenario and planning problem set can be deactivated using
     the Serializable interface
     """
+
     __lock: ClassVar[Lock] = Lock()
     statistics: ConversionStatistics
     analysis: Dict[EAnalyzer, Tuple[float, Dict[str, AnalyzerResult]]]
@@ -45,18 +46,24 @@ class Osc2CrConverterResult(Serializable):
 
     def __getstate__(self) -> Dict:
         data = self.__dict__.copy()
-        if self.scenario is not None and self.planning_problem_set is not None \
-                and Serializable.storage_dir is not None:
+        if (
+            self.scenario is not None
+            and self.planning_problem_set is not None
+            and Serializable.storage_dir is not None
+        ):
             del data["scenario"]
             del data["planning_problem_set"]
-            file_path_base = path.join(Serializable.storage_dir, path.splitext(path.basename(self.xosc_file))[0])
+            file_path_base = path.join(
+                Serializable.storage_dir,
+                path.splitext(path.basename(self.xosc_file))[0],
+            )
             with self.__lock:
                 i = 1
                 while path.exists(file_path := file_path_base + f"{i}.xml"):
                     i += 1
                 CommonRoadFileWriter(
                     scenario=self.scenario,
-                    planning_problem_set=self.planning_problem_set
+                    planning_problem_set=self.planning_problem_set,
                 ).write_to_file(file_path, OverwriteExistingFile.SKIP)
                 data["file_path"] = file_path
 
@@ -67,7 +74,9 @@ class Osc2CrConverterResult(Serializable):
             scenario = None
             pps = None
             if path.exists(data["file_path"]) and Serializable.import_extra_files:
-                scenario, pps = CommonRoadFileReader(data["file_path"]).open(lanelet_assignment=True)
+                scenario, pps = CommonRoadFileReader(data["file_path"]).open(
+                    lanelet_assignment=True
+                )
             del data["file_path"]
             data["scenario"] = scenario
             data["planning_problem_set"] = pps

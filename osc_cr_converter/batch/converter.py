@@ -1,10 +1,10 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.4"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import os
 import pickle
@@ -26,6 +26,7 @@ class BatchConversionResult(Serializable):
     Contains either an AnalyzerErrorResult, or the path to an file, where the pickled result of the converter run is
     stored
     """
+
     exception: Optional[AnalyzerErrorResult]
     result_file: Optional[str]
 
@@ -33,8 +34,11 @@ class BatchConversionResult(Serializable):
         """
         Enforcing that exactly one of the two parameters is set
         """
-        assert self.exception is not None or self.result_file is not None and \
-               (self.exception is None or self.result_file is None)
+        assert (
+            self.exception is not None
+            or self.result_file is not None
+            and (self.exception is None or self.result_file is None)
+        )
 
     def __getstate__(self) -> Dict:
         return self.__dict__.copy()
@@ -45,15 +49,13 @@ class BatchConversionResult(Serializable):
     @staticmethod
     def from_result_file(result_file: str) -> "BatchConversionResult":
         return BatchConversionResult(
-            exception=None,
-            result_file=os.path.abspath(result_file)
+            exception=None, result_file=os.path.abspath(result_file)
         )
 
     @staticmethod
     def from_exception(e: Exception) -> "BatchConversionResult":
         return BatchConversionResult(
-            exception=AnalyzerErrorResult.from_exception(e),
-            result_file=None
+            exception=AnalyzerErrorResult.from_exception(e), result_file=None
         )
 
     def get_result(self) -> Serializable:
@@ -102,11 +104,11 @@ class BatchConverter:
         self._converter = new_converter
 
     def discover_files(
-            self,
-            directory: str,
-            file_matcher: re.Pattern,
-            reset_file_list: bool = True,
-            recursively: bool = True
+        self,
+        directory: str,
+        file_matcher: re.Pattern,
+        reset_file_list: bool = True,
+        recursively: bool = True,
     ):
         """
         Utility method to search a repository and discover files, that can be run in the batch conversion.
@@ -128,7 +130,9 @@ class BatchConverter:
                 if file_matcher.match(file) is not None:
                     self.file_list.append(os.path.join(dir_path, file))
 
-    def run_batch_conversion(self, num_worker: Optional[int] = None, timeout: Optional[int] = None):
+    def run_batch_conversion(
+        self, num_worker: Optional[int] = None, timeout: Optional[int] = None
+    ):
         """
         Run the batch conversion
 

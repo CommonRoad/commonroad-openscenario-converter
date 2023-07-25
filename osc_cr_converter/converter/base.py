@@ -1,17 +1,17 @@
 __author__ = "Michael Ratzel, Yuanfei Lin"
 __copyright__ = "TUM Cyber-Physical Systems Group"
 __credits__ = ["KoSi"]
-__version__ = "0.0.4"
+__version__ = "0.1.0"
 __maintainer__ = "Yuanfei Lin"
 __email__ = "commonroad@lists.lrz.de"
-__status__ = "Pre-alpha"
+__status__ = "beta"
 
 import pickle
 from abc import ABC, abstractmethod
 from enum import Enum, auto
 from multiprocessing import Lock
 from os import path
-from typing import Union, ClassVar, Optional
+from typing import Union, ClassVar
 
 from commonroad.scenario.scenario import Scenario
 
@@ -23,6 +23,7 @@ class EFailureReason(Enum):
     """
     The enum of reasons why the conversion failed
     """
+
     SCENARIO_FILE_INVALID_PATH = auto()
     SCENARIO_FILE_IS_CATALOG = auto()
     SCENARIO_FILE_IS_PARAMETER_VALUE_DISTRIBUTION = auto()
@@ -37,12 +38,16 @@ class Converter(ABC):
 
     It only needs to implement the run_conversion function
     """
+
     __lock: ClassVar[Lock] = Lock()
     conversion_result: Union[Osc2CrConverterResult, EFailureReason] = None
 
     def run_in_batch_conversion(self, source_file: str) -> str:
         with self.__lock:
-            file_path_base = path.join(Serializable.storage_dir, "Res_" + path.splitext(path.basename(source_file))[0])
+            file_path_base = path.join(
+                Serializable.storage_dir,
+                "Res_" + path.splitext(path.basename(source_file))[0],
+            )
             i = 1
             while path.exists(result_file := file_path_base + f"{i}.pickle"):
                 i += 1

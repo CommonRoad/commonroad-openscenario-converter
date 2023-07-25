@@ -1,4 +1,3 @@
-
 import os
 import re
 import pickle
@@ -12,11 +11,11 @@ from osc_cr_converter.batch.analysis import analyze_results, plot_scenarios
 import osc_cr_converter.utility.logger as util_logger
 
 # directory of the scenario to be batch-processed
-directory = os.path.dirname(os.path.realpath(__file__)) + '/../scenarios/'
-directory = '/home/yuanfei/commonroad2/openscenario_files/esmini-demo/resources/xosc'
+directory = os.path.dirname(os.path.realpath(__file__)) + "/../scenarios/"
+directory = "/home/yuanfei/commonroad2/openscenario_files/esmini-demo/resources/xosc"
 # directory = '/home/yuanfei/commonroad2/openscenario_files/openscenario-v1.1.1/'
 # directory = '/home/yuanfei/commonroad2/openscenario_files/OSC-ALKS-scenarios/'
-output_dir = os.path.dirname(os.path.realpath(__file__)) + '/../output/batch/'
+output_dir = os.path.dirname(os.path.realpath(__file__)) + "/../output/batch/"
 
 # initialize the converter
 config = ConverterParams()
@@ -25,10 +24,14 @@ converter = Osc2CrConverter(config)
 batch_converter = BatchConverter(converter)
 
 # discover the files
-batch_converter.discover_files(directory, re.compile(r".*\.xosc", re.IGNORECASE), recursively=True)
+batch_converter.discover_files(
+    directory, re.compile(r".*\.xosc", re.IGNORECASE), recursively=True
+)
 
 # specify the storage dictionary
-storage_dir = output_dir + "{}".format(datetime.now().isoformat(sep="_", timespec="seconds"))
+storage_dir = output_dir + "{}".format(
+    datetime.now().isoformat(sep="_", timespec="seconds")
+)
 os.makedirs(storage_dir, exist_ok=True)
 Serializable.storage_dir = storage_dir
 
@@ -45,4 +48,3 @@ if all_results:
     # analyse the result
     analyze_results(all_results)
     plot_scenarios(all_results)
-
