@@ -52,6 +52,18 @@ see [here](https://github.com/OpenSimulationInterface/open-simulation-interface)
 - Yuanfei Lin
 - Michael Ratzel
 
+### Documentation
+
+The documentation of our toolbox is available on our website: https://cps.pages.gitlab.lrz.de/commonroad-openscenario-converter/.
+
+In order to generate the documentation via Sphinx locally, run the following commands in the root directory:
+
+```bash
+$ pip install -r ./docs/requirements_doc.txt
+$ cd docs/sphinx
+$ make html
+```
+The documentation can then be launched by browsing ``./docs/sphinx/build/html/index.html/``.
 ### Acknowledgments
 We would like to extend our heartfelt gratitude to the team behind [esmini](https://github.com/esmini/esmini) for 
 their remarkable effort in developing the simulation tool. Specifically, we would like to express our sincere 

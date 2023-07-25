@@ -11,18 +11,18 @@ with open(os.path.join(this_directory, "README.md"), "r", encoding="utf-8") as f
 
 setup(
     name="commonroad-openscenario-converter",
-    version="0.0.4",
+    version="0.1.0",
     description="Converter between OpenSCENARIO and CommonRoad formats",
     keywords="scenario description, autonomous driving",
     long_description_content_type="text/markdown",
     long_description=readme,
     url="https://commonroad.in.tum.de/tools/openscenario-converter",
     project_urls={
-        "Documentation": "",
+        "Documentation": "https://cps.pages.gitlab.lrz.de/commonroad-openscenario-converter/",
         "Forum": "https://commonroad.in.tum.de/forum/c/dataset-converter/",
         "Source": "https://gitlab.lrz.de/tum-cps/commonroad-openscenario-converter",
     },
-    author="Yuanfei Lin, Michael Ratzel",
+    author="Yuanfei Lin, Michael Ratzel, Matthias Althoff",
     author_email="yuanfei.lin@tum.de",
     license="BSD 3-Clause",
     data_files=[(".", ["LICENSE"])],
