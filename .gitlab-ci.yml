@@ -56,6 +56,7 @@ black:
   allow_failure: true
   script:
     - black --check --verbose --diff --color osc_cr_converter
+    - black --check --verbose --diff --color tests
 
 pages:
   # Push the latest documentation of the development branch to the GitLab Pages
