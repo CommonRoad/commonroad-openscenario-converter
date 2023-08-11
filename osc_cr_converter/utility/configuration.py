@@ -47,7 +47,7 @@ def _dict_to_params(dict_params: Dict[str, Any], cls: Any) -> Any:
 
 @dataclass
 class BaseParam:
-    """Reactive planner base parameters."""
+    """Converter base parameters."""
 
     __initialized: bool = field(init=False, default=False, repr=False)
 
