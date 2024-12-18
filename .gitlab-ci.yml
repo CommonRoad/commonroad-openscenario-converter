@@ -1,4 +1,4 @@
-image: python:3.10
+image: continuumio/miniconda3
 
 stages:
 - style
