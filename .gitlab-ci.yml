@@ -69,7 +69,6 @@ pages:
   only:
     - master
   script:
-    - pip install -e .
     - pip install -r ./docs/requirements_doc.txt
     - cd docs/sphinx
     - make html
@@ -79,7 +78,7 @@ pages:
       - public
   environment:
     name: Gitlab Pages
-    url: https://cps.pages.gitlab.lrz.de/commonroad-openscenario-converter/
+    url: https://cps.pages.gitlab.lrz.de/commonroad/commonroad-openscenario-converter/
 
 push_to_external_pipy_test_registry:
   stage: publish

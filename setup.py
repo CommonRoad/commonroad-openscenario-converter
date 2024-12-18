@@ -18,7 +18,7 @@ setup(
     long_description=readme,
     url="https://commonroad.in.tum.de/tools/openscenario-converter",
     project_urls={
-        "Documentation": "https://cps.pages.gitlab.lrz.de/commonroad-openscenario-converter/",
+        "Documentation": "https://cps.pages.gitlab.lrz.de/commonroad/commonroad-openscenario-converter/",
         "Forum": "https://commonroad.in.tum.de/forum/c/dataset-converter/",
         "Source": "https://gitlab.lrz.de/tum-cps/commonroad-openscenario-converter",
     },
