@@ -11,7 +11,7 @@ with open(os.path.join(this_directory, "README.md"), "r", encoding="utf-8") as f
 
 setup(
     name="commonroad-openscenario-converter",
-    version="0.1.0",
+    version="0.1.1",
     description="Converter between OpenSCENARIO and CommonRoad formats",
     keywords="scenario description, autonomous driving",
     long_description_content_type="text/markdown",
@@ -28,9 +28,8 @@ setup(
     data_files=[(".", ["LICENSE"])],
     packages=find_packages(),
     install_requires=[
-        "commonroad-io==2023.1",
+        "commonroad-io>=2024.2",
         "commonroad-scenario-designer>=0.7.0",
-        "matplotlib>=3.5.2",
         "imageio>=2.28.1",
         "numpy>=1.19.0",
         "tqdm>=4.65.0",

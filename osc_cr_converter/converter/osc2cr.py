@@ -22,6 +22,7 @@ from commonroad.prediction.prediction import TrajectoryPrediction
 from commonroad.scenario.obstacle import DynamicObstacle, ObstacleType
 from commonroad.scenario.scenario import Scenario, Tag
 from commonroad.planning.planning_problem import PlanningProblemSet
+from commonroad.scenario.state import InitialState
 from commonroad.scenario.trajectory import Trajectory
 from commonroad.common.file_writer import CommonRoadFileWriter
 from commonroad.common.file_writer import OverwriteExistingFile
@@ -441,14 +442,20 @@ class Osc2CrConverter(Converter):
             ],
         )
         prediction = TrajectoryPrediction(trajectory, shape)
-        prediction.final_time_step = last_used_time_step
-        prediction.initial_time_step = first_used_time_step
 
+        initial_state = trajectory.state_list[0]
         return DynamicObstacle(
             obstacle_id=obstacle_id,
             obstacle_type=obstacle_type,
             obstacle_shape=shape,
-            initial_state=trajectory.state_list[0],
+            initial_state=InitialState(
+                position=initial_state.position,
+                orientation=initial_state.orientation,
+                time_step=initial_state.time_step,
+                velocity=initial_state.velocity,
+                yaw_rate=0.0,
+                slip_angle=0.0,
+            ),
             prediction=prediction,
         )
 

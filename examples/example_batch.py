@@ -12,7 +12,7 @@ import osc_cr_converter.utility.logger as util_logger
 
 # directory of the scenario to be batch-processed
 directory = os.path.dirname(os.path.realpath(__file__)) + "/../scenarios/"
-directory = "/home/yuanfei/commonroad2/openscenario_files/esmini-demo/resources/xosc"
+# directory = "/home/yuanfei/commonroad2/openscenario_files/esmini-demo/resources/xosc"
 # directory = '/home/yuanfei/commonroad2/openscenario_files/openscenario-v1.1.1/'
 # directory = '/home/yuanfei/commonroad2/openscenario_files/OSC-ALKS-scenarios/'
 output_dir = os.path.dirname(os.path.realpath(__file__)) + "/../output/batch/"
