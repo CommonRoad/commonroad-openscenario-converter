@@ -20,7 +20,7 @@ stages:
 
 before_script:
     - apt-get update && apt-get install -y build-essential git pkg-config ca-certificates wget libomp-dev libeigen3-dev libboost-all-dev uuid-dev libcgal-dev
-    - apt-get install -y libgl1 libxkbcommon-x11-0 libegl1
+    - apt-get install -y libgl1 libxkbcommon-x11-0 libegl1 libdbus-1-3
     - apt-get install -y libprotobuf-dev protobuf-compiler
     - apt-get install -y python3-pip python3-setuptools
     - export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python

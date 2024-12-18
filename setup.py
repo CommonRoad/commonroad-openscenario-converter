@@ -29,7 +29,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "commonroad-io>=2024.2",
-        "commonroad-scenario-designer>=0.7.0",
+        "commonroad-scenario-designer>=0.8.2",
         "imageio>=2.28.1",
         "numpy>=1.19.0",
         "tqdm>=4.65.0",
