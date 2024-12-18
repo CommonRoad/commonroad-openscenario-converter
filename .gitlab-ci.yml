@@ -1,4 +1,4 @@
-image: $CI_REGISTRY/cps/commonroad-scenario-designer/ci:v0.7.5
+image: $CI_REGISTRY/cps/commonroad/commonroad-scenario-designer/ci:v0.7.5
 
 stages:
 - style
