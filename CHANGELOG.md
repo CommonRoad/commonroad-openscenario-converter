@@ -1,5 +1,8 @@
 # Changelog
 
+## [0.1.1] - 2024-12-18
+### Fixed
+- Dependencies 
 ## [0.1.0] - 2023-07-25
 ### Added
 - adding the documentations
