@@ -19,9 +19,7 @@ stages:
   - coverage report -m || true
 
 before_script:
-    - apt-get update && apt-get install -y build-essential
-    - apt-get install -y libprotobuf-dev protobuf-compiler
-    - apt-get install -y python3-pip python3-setuptools
+    - apt-get update && apt-get install -y cmake build-essential git pkg-config ca-certificates wget libomp-dev libeigen3-dev libboost-all-dev uuid-dev libcgal-dev
     - export PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 test_python39:
