@@ -54,7 +54,7 @@ see [here](https://github.com/OpenSimulationInterface/open-simulation-interface)
 
 ### Documentation
 
-The documentation of our toolbox is available on our website: https://cps.pages.gitlab.lrz.de/commonroad-openscenario-converter/.
+The documentation of our toolbox is available on our website: https://cps.pages.gitlab.lrz.de/commonroad/commonroad-openscenario-converter/.
 
 In order to generate the documentation via Sphinx locally, run the following commands in the root directory:
 
