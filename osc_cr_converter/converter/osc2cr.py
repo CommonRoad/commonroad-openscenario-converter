@@ -441,7 +441,15 @@ class Osc2CrConverter(Converter):
                 for i, state in enumerate(used_states)
             ],
         )
-        prediction = TrajectoryPrediction(trajectory, shape)
+
+        # Exclude the first state in the trajectory for the prediction
+        trimmed_states = trajectory.state_list[1:]
+
+        # Create a new trajectory with the trimmed state list
+        trimmed_trajectory = Trajectory(first_used_time_step + 1, trimmed_states)
+
+        # Use the trimmed trajectory for the prediction
+        prediction = TrajectoryPrediction(trimmed_trajectory, shape)
 
         initial_state = trajectory.state_list[0]
         return DynamicObstacle(
